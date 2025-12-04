@@ -2,8 +2,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .utils.ocean_api import get_buoy_data
+from rest_framework import generics
+from .models import Diary
+from .serializers import DiarySerializer
 
-
+class DiaryListView(generics.ListCreateAPIView):
+    queryset = Diary.objects.all().order_by('-fishing_date') # 최신순 정렬
+    serializer_class = DiarySerializer
 class OceanDataView(APIView):
     def get(self, request):
         # 1. URL 파라미터에서 위도/경도 가져오기 (예: ?lat=35.1&lon=129.0)

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "core",
     "rest_framework",  # API용
+    "storages",  # AWS S3 연동용
 ]
 
 MIDDLEWARE = [
@@ -134,3 +135,23 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # 커스텀 유저 모델 지정
 AUTH_USER_MODEL = "core.User"
+
+# [AWS S3 설정]
+# .env 파일에서 키를 가져옵니다.
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "ap-northeast-2")  # 기본값 서울
+
+# S3 파일 덮어쓰기 방지 (같은 이름 파일 올라오면 뒤에 난수 붙임)
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None  # 파일을 private하게 관리할지 설정 (일단 None)
+AWS_S3_VERIFY = True  # TLS 인증서 확인
+
+# [핵심] 파일 저장소를 S3로 교체
+# Django 4.2 이상부터는 STORAGES 설정을 권장하지만,
+# 7주 프로젝트용으로 가장 설정이 쉬운 구버전 방식을 먼저 알려드립니다.
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
+# 이미지 URL 설정 (이제 로컬 주소가 아니라 S3 주소가 됩니다)
+MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"

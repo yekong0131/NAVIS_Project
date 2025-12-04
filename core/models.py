@@ -94,8 +94,10 @@ class WeatherSnapshot(models.Model):
 # 5-2. 일지 사진
 class DiaryImage(models.Model):
     image_id = models.AutoField(primary_key=True)
-    diary = models.ForeignKey(Diary, on_delete=models.CASCADE, related_name="images")
-    image_url = models.URLField()  # S3 경로
+    diary = models.ForeignKey(Diary, on_delete=models.CASCADE, related_name='images')
+    
+    image_url = models.ImageField(upload_to='diary_images/') 
+    
     is_main = models.BooleanField(default=False)
 
 
