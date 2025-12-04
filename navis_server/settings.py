@@ -10,7 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv  # 1. 이 줄 추가
+
+load_dotenv()  # 2. .env 파일의 환경 변수를 로드
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +41,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "core",
+    "rest_framework",  # API용
 ]
 
 MIDDLEWARE = [
@@ -75,8 +81,12 @@ WSGI_APPLICATION = "navis_server.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "navis_db",  # 아까 Workbench에서 만든 DB 이름
+        "USER": "root",  # MySQL 아이디 (보통 root)
+        "PASSWORD": os.getenv("DB_PASSWORD"),  # MySQL 설치할 때 설정한 비밀번호
+        "HOST": "127.0.0.1",  # 로컬 호스트 (localhost)
+        "PORT": "3306",  # MySQL 기본 포트
     }
 }
 

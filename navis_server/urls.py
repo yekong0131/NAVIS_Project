@@ -16,8 +16,9 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include  # include 추가
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/", include("core.urls")),  # /api/ 로 시작하는 건 core 앱으로 보냄
 ]
