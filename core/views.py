@@ -10,7 +10,10 @@ from .serializers import DiarySerializer
 from rest_framework.parsers import MultiPartParser, FormParser  # [추가 1] 파서 임포트
 from .serializers import EgiRecommendSerializer  # [추가 2] 시리얼라이저 임포트
 from PIL import Image  # 이미지 처리 라이브러리
-import io
+import random
+
+# (나중에 YOLO 모델이 완성되면 주석 해제)
+# from ultralytics import YOLO
 
 
 class DiaryListView(generics.ListCreateAPIView):
@@ -123,27 +126,68 @@ class OceanDataView(APIView):
         return rain_types.get(rain_type, "알 수 없음")
 
 
-# 1. (Mock) 물색 분석 API
 class WaterColorAnalyzeView(APIView):
     """
     [POST] /api/analyze/color/
-    앱에서 사진을 보내면, AI 분석 결과(가짜)를 리턴함.
+    YOLO 모델을 흉내 내어 물색을 분석하는 Mock API
     """
 
-    def post(self, request):
-        # 파일이 잘 왔는지 로그로 확인
-        if "image" in request.FILES:
-            print(f"📸 이미지 수신 성공: {request.FILES['image'].name}")
-        else:
-            print("⚠️ 이미지 파일이 없습니다.")
+    parser_classes = (MultiPartParser, FormParser)
 
-        # 가짜 응답 데이터 (무조건 탁함)
-        mock_response = {
-            "result": "Muddy",  # 분석 결과 (Clear / Muddy / Moderate)
-            "confidence": 95.5,  # 확신도
-            "message": "물색이 탁하네요! 시인성 좋은 에기가 필요해요.",
+    # 입력받는 형태는 에기 추천과 비슷하므로 재활용 (이미지만 있으면 됨)
+    serializer_class = EgiRecommendSerializer
+
+    def post(self, request):
+        # 1. 이미지 파일 수신
+        if "image" not in request.FILES:
+            return Response(
+                {"error": "이미지 파일이 없습니다."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        image_file = request.FILES["image"]
+        print(f"📸 YOLO 분석 요청 수신: {image_file.name}")
+
+        # ---------------------------------------------------------
+        # [Mock Logic] 가짜 YOLO 분석 시작
+        # ---------------------------------------------------------
+
+        # 2. 가짜 결과 랜덤 생성
+        # YOLO가 탐지할 클래스 리스트
+        class_names = ["Clear", "Muddy", "Moderate"]
+        detected_class = random.choice(class_names)  # 랜덤 선택
+
+        # YOLO가 뱉어주는 '확신도(Confidence Score)' 흉내
+        confidence = round(random.uniform(0.85, 0.99), 2)
+
+        # YOLO가 뱉어주는 '바다 영역 좌표(Bounding Box)' 흉내 [x1, y1, x2, y2]
+        # "사진의 (100, 200)부터 (500, 600)까지가 바다입니다" 라는 뜻
+        fake_bbox = [100, 200, 500, 600]
+
+        # 3. 결과 메시지 생성
+        if detected_class == "Muddy":
+            msg = "탁한 물색이 감지되었습니다. (시인성 중요)"
+        elif detected_class == "Clear":
+            msg = "맑은 물색이 감지되었습니다. (내추럴 컬러 추천)"
+        else:
+            msg = "적당한 물색이 감지되었습니다."
+
+        # ---------------------------------------------------------
+        # [Response] 앱에게 줄 최종 응답
+        # ---------------------------------------------------------
+        response_data = {
+            "status": "success",
+            "data": {
+                "model": "YOLOv8-Custom",  # 사용 모델 명시 (간지용)
+                "result": {
+                    "label": detected_class,  # 결과 (Muddy 등)
+                    "confidence": confidence,  # 정확도 (0.95)
+                    "bbox": fake_bbox,  # 탐지된 영역 (나중에 앱에서 네모 박스 그려줄 수도 있음)
+                },
+                "message": msg,
+            },
         }
-        return Response(mock_response, status=status.HTTP_200_OK)
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class EgiRecommendView(APIView):
