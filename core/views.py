@@ -7,6 +7,10 @@ from .utils.ocean_api import get_buoy_data
 from rest_framework import generics
 from .models import Diary
 from .serializers import DiarySerializer
+from rest_framework.parsers import MultiPartParser, FormParser  # [추가 1] 파서 임포트
+from .serializers import EgiRecommendSerializer  # [추가 2] 시리얼라이저 임포트
+from PIL import Image  # 이미지 처리 라이브러리
+import io
 
 
 class DiaryListView(generics.ListCreateAPIView):
@@ -119,48 +123,131 @@ class OceanDataView(APIView):
         return rain_types.get(rain_type, "알 수 없음")
 
 
-# 물색 분석 Mock API
+# 1. (Mock) 물색 분석 API
 class WaterColorAnalyzeView(APIView):
-    def post(self, request):
-        if "image" in request.FILES:
-            print(f"이미지 받음: {request.FILES['image'].name}")
+    """
+    [POST] /api/analyze/color/
+    앱에서 사진을 보내면, AI 분석 결과(가짜)를 리턴함.
+    """
 
+    def post(self, request):
+        # 파일이 잘 왔는지 로그로 확인
+        if "image" in request.FILES:
+            print(f"📸 이미지 수신 성공: {request.FILES['image'].name}")
+        else:
+            print("⚠️ 이미지 파일이 없습니다.")
+
+        # 가짜 응답 데이터 (무조건 탁함)
         mock_response = {
-            "result": "Muddy",
-            "confidence": 95.5,
+            "result": "Muddy",  # 분석 결과 (Clear / Muddy / Moderate)
+            "confidence": 95.5,  # 확신도
             "message": "물색이 탁하네요! 시인성 좋은 에기가 필요해요.",
         }
         return Response(mock_response, status=status.HTTP_200_OK)
 
 
-# 에기 추천 Mock API
 class EgiRecommendView(APIView):
+    """
+    [POST] /api/recommend/egi/
+    1. 물색 사진(메모리) -> CNN 분석
+    2. 위치(GPS) -> 해양/기상 API 데이터 수집
+    3. 종합 데이터 -> RAG 추천 -> 결과 반환
+    """
+
+    parser_classes = (MultiPartParser, FormParser)
+    serializer_class = EgiRecommendSerializer
+
     def post(self, request):
-        water_color = request.data.get("water_color")
-        weather = request.data.get("weather")
+        serializer = EgiRecommendSerializer(data=request.data)
 
-        print(f"요청 상황 - 물색: {water_color}, 날씨: {weather}")
+        if serializer.is_valid():
+            # 1. 데이터 가져오기
+            uploaded_file = serializer.validated_data.get("image")
+            lat = serializer.validated_data.get("lat")
+            lon = serializer.validated_data.get("lon")
+            target_fish = serializer.validated_data.get("target_fish")
 
-        mock_response = {
-            "recommendations": [
-                {
-                    "rank": 1,
-                    "name": "키우라 수박 에기",
-                    "img_url": "https://placehold.co/100x100/green/white?text=Watermelon",
-                    "reason": "탁한 물에서는 녹색/빨강 조합인 수박 색상이 물고기 눈에 가장 잘 띕니다.",
-                },
-                {
-                    "rank": 2,
-                    "name": "요즈리 틴셀 핑크",
-                    "img_url": "https://placehold.co/100x100/pink/white?text=Pink",
-                    "reason": "흐린 날씨에는 핑크색의 파장이 멀리까지 전달되어 유인 효과가 좋습니다.",
-                },
-                {
-                    "rank": 3,
-                    "name": "야마시타 네온 브라이트",
-                    "img_url": "https://placehold.co/100x100/orange/white?text=Neon",
-                    "reason": "전천후로 사용하기 무난하며, 현재 수온에서 활성도가 높은 오징어를 꼬시기 좋습니다.",
-                },
-            ]
-        }
-        return Response(mock_response, status=status.HTTP_200_OK)
+            print(f"🎯 대상 어종: {target_fish}")
+            try:
+                # ---------------------------------------------------------
+                # [Step 1] 이미지 처리 (저장 X, 메모리에서 바로 분석)
+                # ---------------------------------------------------------
+                image = Image.open(
+                    uploaded_file
+                )  # 메모리에 있는 파일을 이미지 객체로 변환
+
+                # (TODO: AI 팀원이 만든 분석 함수 연결)
+                # water_color_result = analyze_water_color(image)
+
+                # [임시 데이터] AI 모델 연결 전까지 사용할 더미 값
+                water_color_result = {"result": "Muddy", "confidence": 95.5}
+                print(
+                    f"📸 이미지 분석 완료 (Size: {image.size}) -> 결과: {water_color_result['result']}"
+                )
+
+                # ---------------------------------------------------------
+                # [Step 2] 환경 데이터 수집 (우리가 만든 API 활용)
+                # ---------------------------------------------------------
+                ocean_data = get_buoy_data(lat, lon)  # 해수부 API
+                weather_data = get_kma_weather(lat, lon)  # 기상청 API
+
+                # 데이터 병합 (기상청 데이터로 해양 데이터 구멍 메우기)
+                env_data = ocean_data if ocean_data else {}
+
+                if weather_data:
+                    if env_data.get("wind_speed") is None:
+                        env_data["wind_speed"] = weather_data.get("wind_speed")
+
+                    # 해양 데이터에 없는 날씨 정보 추가
+                    env_data["weather_desc"] = (
+                        "비" if weather_data.get("rain_type", 0) > 0 else "맑음/흐림"
+                    )
+
+                print(f"🌊 환경 데이터 수집 완료: {env_data}")
+
+                # ---------------------------------------------------------
+                # [Step 3] 에기 추천 (RAG 로직)
+                # ---------------------------------------------------------
+                # (TODO: AI 팀원이 만든 추천 함수 연결)
+                # recommendations = get_recommendations(water_color_result['result'], env_data)
+
+                # [임시 데이터] 추천 결과 더미
+                recommendations = [
+                    {
+                        "rank": 1,
+                        "name": "키우라 수박 에기",
+                        "image_url": "https://placehold.co/200x200/green/white?text=Watermelon",
+                        "reason": f"현재 물색과 수온을 고려했을 때, {target_fish if target_fish else '두족류'} 낚시에 가장 반응이 좋은 컬러입니다.",
+                    },
+                    {
+                        "rank": 2,
+                        "name": "요즈리 틴셀 핑크",
+                        "image_url": "https://placehold.co/200x200/pink/white?text=Pink",
+                        "reason": "흐린 날씨에 어필력이 좋은 핑크 색상입니다.",
+                    },
+                ]
+
+                # ---------------------------------------------------------
+                # [Step 4] 최종 응답 (JSON)
+                # ---------------------------------------------------------
+                response_data = {
+                    "status": "success",
+                    "data": {
+                        "analysis_result": {
+                            "water_color": water_color_result["result"],
+                            "confidence": water_color_result["confidence"],
+                        },
+                        "environment": env_data,
+                        "recommendations": recommendations,
+                    },
+                }
+                return Response(response_data, status=status.HTTP_200_OK)
+
+            except Exception as e:
+                print(f"❌ 에러 발생: {e}")
+                return Response(
+                    {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

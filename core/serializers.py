@@ -44,3 +44,13 @@ class DiarySerializer(serializers.ModelSerializer):
                 # 파일이 없거나 깨진 경우 무시
                 continue
         return image_urls
+
+
+class EgiRecommendSerializer(serializers.Serializer):
+    # 파일 입력 필드 (이게 있어야 파일 선택 버튼이 생김)
+    image = serializers.ImageField(help_text="물색 분석을 위한 바다 사진")
+
+    # 나머지 데이터 필드
+    lat = serializers.FloatField(help_text="위도")
+    lon = serializers.FloatField(help_text="경도")
+    target_fish = serializers.CharField(required=False, help_text="대상 어종 (선택)")

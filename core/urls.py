@@ -9,7 +9,6 @@ from .views import (
 urlpatterns = [
     path("ocean/", OceanDataView.as_view(), name="ocean-data"),
     path("diaries/", DiaryListView.as_view(), name="diary-list"),  # 추가
-    # 추가된 API들
     path("analyze/color/", WaterColorAnalyzeView.as_view(), name="analyze-color"),
     path("recommend/egi/", EgiRecommendView.as_view(), name="recommend-egi"),
 ]
