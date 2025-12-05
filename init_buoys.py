@@ -44,18 +44,14 @@ buoy_data = [
     {"id": "HB_0008", "name": "한수원_덕천", "lat": 37.1, "lon": 129.404},
     {"id": "HB_0007", "name": "한수원_온양", "lat": 37.019, "lon": 129.425},
     {"id": "HB_0003", "name": "한수원_진하", "lat": 35.384, "lon": 129.368},
-    {"id": "TW_0062", "name": "해운대해수욕장", "lat": 35.148, "lon": 129.17}
+    {"id": "TW_0062", "name": "해운대해수욕장", "lat": 35.148, "lon": 129.17},
 ]
 
 # 데이터 저장 실행
 for item in buoy_data:
     Buoy.objects.update_or_create(
         station_id=item["id"],
-        defaults={
-            "name": item["name"],
-            "lat": item["lat"],
-            "lon": item["lon"]
-        }
+        defaults={"name": item["name"], "lat": item["lat"], "lon": item["lon"]},
     )
     print(f"{item['name']} 저장 완료!")
 

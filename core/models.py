@@ -13,6 +13,29 @@ class Buoy(models.Model):
         return self.name
 
 
+class CoastalPoint(models.Model):
+    """기상청 격자 좌표 참조용 해안 지점"""
+
+    point_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=50)
+    region = models.CharField(max_length=20)  # 동해안, 남해안, 서해안, 제주도, 섬
+    lat = models.FloatField()
+    lon = models.FloatField()
+    nx = models.IntegerField()
+    ny = models.IntegerField()
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "coastal_points"
+        indexes = [
+            models.Index(fields=["lat", "lon"]),
+            models.Index(fields=["region"]),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.region})"
+
+
 # 1. 사용자 (기본 User 모델 확장)
 class User(AbstractUser):
     nickname = models.CharField(max_length=50, unique=True)
@@ -94,10 +117,10 @@ class WeatherSnapshot(models.Model):
 # 5-2. 일지 사진
 class DiaryImage(models.Model):
     image_id = models.AutoField(primary_key=True)
-    diary = models.ForeignKey(Diary, on_delete=models.CASCADE, related_name='images')
-    
-    image_url = models.ImageField(upload_to='diary_images/') 
-    
+    diary = models.ForeignKey(Diary, on_delete=models.CASCADE, related_name="images")
+
+    image_url = models.ImageField(upload_to="diary_images/")
+
     is_main = models.BooleanField(default=False)
 
 
