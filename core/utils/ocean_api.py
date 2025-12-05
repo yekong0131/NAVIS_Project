@@ -1,5 +1,3 @@
-# core/utils/ocean_api.py
-
 import requests
 import os
 from haversine import haversine

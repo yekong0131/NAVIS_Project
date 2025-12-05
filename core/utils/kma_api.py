@@ -9,8 +9,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# utils/kma_api.py 수정
-
 
 def get_nearest_land_grid_from_db(lat, lon):
     """
