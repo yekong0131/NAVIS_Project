@@ -166,3 +166,19 @@ class FishingSpot(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class TideStation(models.Model):
+    """조위 관측소 (물때 계산용)"""
+
+    station_id = models.CharField(max_length=20, primary_key=True)
+    name = models.CharField(max_length=50)
+    lat = models.FloatField()
+    lon = models.FloatField()
+    last_obs_time = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "tide_stations"
+
+    def __str__(self):
+        return self.name

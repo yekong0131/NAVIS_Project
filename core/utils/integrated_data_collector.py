@@ -1,8 +1,9 @@
-# core/utils/integrated_data_collector.py (새 파일 생성)
+# core/utils/integrated_data_collector.py
 
 from .fishing_index_api import get_fishing_index_data
 from .ocean_api import get_buoy_data
 from .kma_api import get_kma_weather
+from .tide_api import get_tide_info  # ⭐ 추가
 
 
 def collect_all_marine_data(user_lat, user_lon, target_fish=None):
@@ -13,17 +14,10 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     1. 바다낚시지수 API (낚시 포인트 기반)
     2. 해양관측부이 API (부이 기반)
     3. 기상청 단기실황 API (격자 기반)
-
-    Args:
-        user_lat: 사용자 위도
-        user_lon: 사용자 경도
-        target_fish: 대상 어종 (기본값: 쭈갑)
-
-    Returns:
-        dict: 통합된 해양/기상 데이터
+    4. 조석예보 API (물때 계산) ⭐ 추가
     """
 
-    # ⭐ 어종 미지정시 기본값 설정
+    # 어종 미지정시 기본값 설정
     if not target_fish:
         target_fish = "쭈갑"
         print(f"[INFO] 대상 어종 미지정 → 기본값 '{target_fish}' 사용")
@@ -38,7 +32,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     final_result = {
         "source": None,
         "location_name": None,
-        "target_fish": target_fish,  # ⭐ 기본값 포함
+        "target_fish": target_fish,
         "water_temp": None,
         "wave_height": None,
         "wind_speed": None,
@@ -49,6 +43,11 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
         "humidity": None,
         "rain_type": None,
         "record_time": None,
+        # ⭐ 물때 정보 추가
+        "moon_phase": None,
+        "next_high_tide": None,
+        "next_low_tide": None,
+        "tide_station": None,
     }
 
     # ================================================================
@@ -66,14 +65,13 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
         if final_result["source"] is None:
             final_result["source"] = "바다낚시지수 API"
             final_result["location_name"] = fishing_data.get("spot_name")
-            # API에서 받은 어종으로 업데이트 (실제 매칭된 어종)
             if fishing_data.get("target_fish"):
                 final_result["target_fish"] = fishing_data.get("target_fish")
     else:
         print(f"⚠️ 낚시지수 데이터 없음")
 
     # ================================================================
-    # [2순위] 해양관측부이 API (부족한 데이터 보완)
+    # [2순위] 해양관측부이 API
     # ================================================================
     print(f"\n[2단계] 해양관측부이 API 시도")
     print("-" * 70)
@@ -91,7 +89,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
         print(f"⚠️ 부이 데이터 없음")
 
     # ================================================================
-    # [3순위] 기상청 API (기온, 습도, 강수 보완)
+    # [3순위] 기상청 API
     # ================================================================
     print(f"\n[3단계] 기상청 API 시도")
     print("-" * 70)
@@ -107,6 +105,26 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
             final_result["location_name"] = "가까운 관측소"
     else:
         print(f"⚠️ 기상청 데이터 없음")
+
+    # ================================================================
+    # [4순위] 조석예보 API (물때 정보) ⭐ 추가
+    # ================================================================
+    print(f"\n[4단계] 조석예보 API 시도 (물때 계산)")
+    print("-" * 70)
+
+    tide_data = get_tide_info(user_lat, user_lon)
+
+    if tide_data:
+        print(f"✅ 물때 정보 수집 성공!")
+        final_result["moon_phase"] = tide_data.get("moon_phase")
+        final_result["next_high_tide"] = tide_data.get("next_high_tide")
+        final_result["next_low_tide"] = tide_data.get("next_low_tide")
+        final_result["tide_station"] = tide_data.get("station_name")
+        print(f"    → 물때: {tide_data.get('moon_phase')}")
+        print(f"    → 다음 만조: {tide_data.get('next_high_tide')}")
+        print(f"    → 다음 간조: {tide_data.get('next_low_tide')}")
+    else:
+        print(f"⚠️ 물때 정보 없음")
 
     # ================================================================
     # 최종 결과 출력
@@ -133,6 +151,12 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     print(f"  🎣 낚시지수: {final_result.get('fishing_index', 'N/A')}")
     print(f"  🎯 낚시점수: {final_result.get('fishing_score', 'N/A')}")
 
+    print(f"\n  [물때 정보] ⭐")
+    print(f"  🌙 물때: {final_result.get('moon_phase', 'N/A')}")
+    print(f"  ⬆️  다음 만조: {final_result.get('next_high_tide', 'N/A')}")
+    print(f"  ⬇️  다음 간조: {final_result.get('next_low_tide', 'N/A')}")
+    print(f"  📍 조위 관측소: {final_result.get('tide_station', 'N/A')}")
+
     print(f"\n  ⏰ 관측시간: {final_result.get('record_time', 'N/A')}")
     print(f"{'='*70}\n")
 
@@ -153,7 +177,15 @@ def _merge_data(target, source, source_name):
     merged_count = 0
 
     for key in target.keys():
-        if key in ["source", "location_name", "target_fish"]:
+        if key in [
+            "source",
+            "location_name",
+            "target_fish",
+            "moon_phase",
+            "next_high_tide",
+            "next_low_tide",
+            "tide_station",
+        ]:
             continue
 
         if target[key] is None and key in source:
