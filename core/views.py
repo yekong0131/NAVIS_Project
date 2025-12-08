@@ -12,6 +12,15 @@ from .serializers import DiarySerializer, EgiRecommendSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
 from PIL import Image
 
+# 에기 추천 쪽은 collect_all_marine_data 를 사용
+# from .utils.kma_api import get_kma_weather
+# from .utils.ocean_api import get_buoy_data
+from .utils.egi_service import (
+    analyze_water_color,
+    build_environment_context,
+    make_mock_recommendations,
+)
+
 
 class DiaryListView(generics.ListCreateAPIView):
     queryset = Diary.objects.all().order_by("-fishing_date")
@@ -107,85 +116,102 @@ class WaterColorAnalyzeView(APIView):
 class EgiRecommendView(APIView):
     """
     [POST] /api/recommend/egi/
-    종합 에기 추천 API
+
+    Request (multipart/form-data):
+      - image: 파일 (물색 사진)
+      - lat: float
+      - lon: float
+      - target_fish: str (옵션, 쭈꾸미/갑오징어/쭈갑, 기본 쭈갑)
+      - requested_at: datetime (옵션, ISO 8601)
+
+    Response (JSON):
+
+    {
+      "status": "success",
+      "data": {
+        "analysis_result": {
+          "water_color": "Muddy",
+          "confidence": 95.5
+        },
+        "environment": { ... collect_all_marine_data 기반 ... },
+        "recommendations": [ ... RAG(or Mock) 결과 ... ]
+      }
+    }
     """
 
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = EgiRecommendSerializer
 
-    def post(self, request):
-        serializer = EgiRecommendSerializer(data=request.data)
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
 
-        if serializer.is_valid():
-            uploaded_file = serializer.validated_data.get("image")
-            lat = serializer.validated_data.get("lat")
-            lon = serializer.validated_data.get("lon")
-            target_fish = serializer.validated_data.get("target_fish")
-
-            # ⭐ 어종 미지정시 기본값 "쭈갑"
-            if not target_fish:
-                target_fish = "쭈갑"
-
-            # 어종 검증
-            if target_fish not in SUPPORTED_FISH:
-                return Response(
-                    {
-                        "error": "지원하지 않는 어종입니다.",
-                        "supported_fish": SUPPORTED_FISH,
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            print(f"🎯 대상 어종: {target_fish}")
-
-            try:
-                # [Step 1] 이미지 분석
-                image = Image.open(uploaded_file)
-                water_color_result = {"result": "Muddy", "confidence": 95.5}
-                print(f"📸 이미지 분석: {water_color_result['result']}")
-
-                # [Step 2] 환경 데이터 수집
-                env_data = collect_all_marine_data(lat, lon, target_fish=target_fish)
-                print(f"🌊 환경 데이터 수집 완료")
-
-                # [Step 3] 에기 추천
-                recommendations = [
-                    {
-                        "rank": 1,
-                        "name": "키우라 수박 에기",
-                        "image_url": "https://placehold.co/200x200/green/white?text=Watermelon",
-                        "reason": f"수온 {env_data.get('water_temp', 'N/A')}°C, {target_fish} 낚시에 최적입니다.",
-                    },
-                    {
-                        "rank": 2,
-                        "name": "요즈리 틴셀 핑크",
-                        "image_url": "https://placehold.co/200x200/pink/white?text=Pink",
-                        "reason": f"파고 {env_data.get('wave_height', 'N/A')}m 조건에서 효과적입니다.",
-                    },
-                ]
-
-                # [Step 4] 최종 응답
-                response_data = {
-                    "status": "success",
-                    "data": {
-                        "analysis_result": {
-                            "water_color": water_color_result["result"],
-                            "confidence": water_color_result["confidence"],
-                        },
-                        "environment": env_data,
-                        "recommendations": recommendations,
-                    },
-                }
-                return Response(response_data, status=status.HTTP_200_OK)
-
-            except Exception as e:
-                print(f"❌ 에러: {e}")
-                import traceback
-
-                traceback.print_exc()
-                return Response(
-                    {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-        else:
+        if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1) 입력 값 추출
+        uploaded_file = serializer.validated_data.get("image")
+        lat = serializer.validated_data.get("lat")
+        lon = serializer.validated_data.get("lon")
+        raw_target_fish = serializer.validated_data.get("target_fish")
+        requested_at = serializer.validated_data.get(
+            "requested_at"
+        )  # 사용 여부는 나중에 확장
+
+        print("====== [EGI RECOMMEND] 요청 수신 ======")
+        print(f"  위치: ({lat}, {lon})")
+        print(f"  대상 어종(raw): {raw_target_fish}")
+        print(f"  요청 시각: {requested_at}")
+
+        try:
+            # ---------------------------------------------------------
+            # [Step 1] 이미지 → YOLO 물색 분석 (현재는 Mock)
+            # ---------------------------------------------------------
+            image = Image.open(uploaded_file)
+            water_color_info = analyze_water_color(image)
+            water_color = water_color_info["water_color"]
+            confidence = water_color_info["confidence"]
+
+            # ---------------------------------------------------------
+            # [Step 2] 환경 데이터 수집 (collect_all_marine_data 사용)
+            # ---------------------------------------------------------
+            env_data = build_environment_context(lat, lon, raw_target_fish)
+
+            # ---------------------------------------------------------
+            # [Step 3] 에기 추천 (RAG 자리, 현재는 Mock)
+            # ---------------------------------------------------------
+            target_fish_normalized = (
+                env_data.get("target_fish") or raw_target_fish or "쭈갑"
+            )
+            recommendations = make_mock_recommendations(
+                water_color=water_color,
+                env_data=env_data,
+                target_fish=target_fish_normalized,
+            )
+
+            # ---------------------------------------------------------
+            # [Step 4] 최종 응답 JSON 구성
+            # ---------------------------------------------------------
+            response_data = {
+                "status": "success",
+                "data": {
+                    "analysis_result": {
+                        "water_color": water_color,
+                        "confidence": confidence,
+                    },
+                    "environment": env_data,
+                    "recommendations": recommendations,
+                },
+            }
+
+            print("====== [EGI RECOMMEND] 응답 생성 완료 ======")
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"❌ 에기 추천 처리 중 에러 발생: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

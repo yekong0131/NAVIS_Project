@@ -148,7 +148,7 @@ def get_buoy_data_aggressive(user_lat, user_lon):
     required_keys = ["water_temp", "wave_height", "wind_speed"]
 
     # 단계별 확장 검색
-    search_limits = [5, 10, 20, 50, None]  # None은 전체
+    search_limits = [3, None]  # None은 전체
 
     for limit in search_limits:
         if all(result[k] is not None for k in required_keys):

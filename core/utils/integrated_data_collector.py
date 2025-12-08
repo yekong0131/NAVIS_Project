@@ -3,7 +3,7 @@
 from .fishing_index_api import get_fishing_index_data
 from .ocean_api import get_buoy_data
 from .kma_api import get_kma_weather
-from .tide_api import get_tide_info  # ⭐ 추가
+from .tide_api import get_tide_info
 
 
 def collect_all_marine_data(user_lat, user_lon, target_fish=None):
@@ -14,7 +14,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     1. 바다낚시지수 API (낚시 포인트 기반)
     2. 해양관측부이 API (부이 기반)
     3. 기상청 단기실황 API (격자 기반)
-    4. 조석예보 API (물때 계산) ⭐ 추가
+    4. 조석예보 API (물때 계산)
     """
 
     # 어종 미지정시 기본값 설정
@@ -71,22 +71,22 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
         print(f"⚠️ 낚시지수 데이터 없음")
 
     # ================================================================
-    # [2순위] 해양관측부이 API
+    # [2순위] 해양관측부이 API - 현재 해양수산부 이전으로 API 오류 : 주석 처리함
     # ================================================================
-    print(f"\n[2단계] 해양관측부이 API 시도")
-    print("-" * 70)
+    # print(f"\n[2단계] 해양관측부이 API 시도")
+    # print("-" * 70)
 
-    buoy_data = get_buoy_data(user_lat, user_lon)
+    # buoy_data = get_buoy_data(user_lat, user_lon)
 
-    if buoy_data:
-        print(f"✅ 부이 데이터 수집 성공!")
-        _merge_data(final_result, buoy_data, "해양관측부이")
+    # if buoy_data:
+    #     print(f"✅ 부이 데이터 수집 성공!")
+    #     _merge_data(final_result, buoy_data, "해양관측부이")
 
-        if final_result["source"] is None:
-            final_result["source"] = "해양관측부이 API"
-            final_result["location_name"] = buoy_data.get("station_name")
-    else:
-        print(f"⚠️ 부이 데이터 없음")
+    #     if final_result["source"] is None:
+    #         final_result["source"] = "해양관측부이 API"
+    #         final_result["location_name"] = buoy_data.get("station_name")
+    # else:
+    #     print(f"⚠️ 부이 데이터 없음")
 
     # ================================================================
     # [3순위] 기상청 API
