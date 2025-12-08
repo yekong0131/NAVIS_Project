@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 
-# 0. [기존] 해양 관측소 (이미 만드신 것)
+# 0. 해양 관측소 (부이)
 class Buoy(models.Model):
     station_id = models.CharField(max_length=20, primary_key=True)
     name = models.CharField(max_length=50)
@@ -44,7 +44,7 @@ class User(AbstractUser):
     class Meta:
         db_table = "users"
 
-    # [추가] 슈퍼유저 생성 시 닉네임도 필수로 입력받게 설정
+    # 슈퍼유저 생성 시 닉네임도 필수로 입력받게 설정
     REQUIRED_FIELDS = ["email", "nickname"]
 
 

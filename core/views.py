@@ -12,13 +12,11 @@ from .serializers import DiarySerializer, EgiRecommendSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
 from PIL import Image
 
-# 에기 추천 쪽은 collect_all_marine_data 를 사용
-# from .utils.kma_api import get_kma_weather
-# from .utils.ocean_api import get_buoy_data
+from .utils.egi_rag import run_egi_rag
 from .utils.egi_service import (
     analyze_water_color,
     build_environment_context,
-    make_mock_recommendations,
+    make_mock_recommendations,  # 지금은 안 써도 됨 (남겨둬도 무방)
 )
 
 
@@ -67,7 +65,7 @@ class OceanDataView(APIView):
 class WaterColorAnalyzeView(APIView):
     """
     [POST] /api/analyze/color/
-    물색 분석 Mock API
+    물색 분석 Mock API (단독 테스트용)
     """
 
     parser_classes = (MultiPartParser, FormParser)
@@ -82,7 +80,7 @@ class WaterColorAnalyzeView(APIView):
         image_file = request.FILES["image"]
         print(f"📸 YOLO 분석 요청: {image_file.name}")
 
-        # Mock 분석 결과
+        # 여기서는 간단 mock (랜덤) - 필요하면 analyze_water_color(image)로 교체 가능
         import random
 
         class_names = ["Clear", "Muddy", "Moderate"]
@@ -134,7 +132,17 @@ class EgiRecommendView(APIView):
           "confidence": 95.5
         },
         "environment": { ... collect_all_marine_data 기반 ... },
-        "recommendations": [ ... RAG(or Mock) 결과 ... ]
+        "recommendations": [
+          {
+            "rank": 1,
+            "name": "에기 이름",
+            "brand": "브랜드",
+            "image_url": "https://.../egi_image/10.jpg",
+            "score": 90,
+            "reason": "이유 설명..."
+          },
+          ...
+        ]
       }
     }
     """
@@ -153,9 +161,7 @@ class EgiRecommendView(APIView):
         lat = serializer.validated_data.get("lat")
         lon = serializer.validated_data.get("lon")
         raw_target_fish = serializer.validated_data.get("target_fish")
-        requested_at = serializer.validated_data.get(
-            "requested_at"
-        )  # 사용 여부는 나중에 확장
+        requested_at = serializer.validated_data.get("requested_at")
 
         print("====== [EGI RECOMMEND] 요청 수신 ======")
         print(f"  위치: ({lat}, {lon})")
@@ -164,40 +170,49 @@ class EgiRecommendView(APIView):
 
         try:
             # ---------------------------------------------------------
-            # [Step 1] 이미지 → YOLO 물색 분석 (현재는 Mock)
+            # [Step 1] 이미지 → YOLO 물색 분석 (현재는 Mock 함수)
             # ---------------------------------------------------------
             image = Image.open(uploaded_file)
             water_color_info = analyze_water_color(image)
-            water_color = water_color_info["water_color"]
-            confidence = water_color_info["confidence"]
+            water_color = water_color_info.get("water_color")
+            confidence = water_color_info.get("confidence")
+
+            print(f"  물색 분석 결과: {water_color} (confidence={confidence})")
 
             # ---------------------------------------------------------
             # [Step 2] 환경 데이터 수집 (collect_all_marine_data 사용)
             # ---------------------------------------------------------
             env_data = build_environment_context(lat, lon, raw_target_fish)
+            # env_data 안에는 water_temp, wave_height, wind_speed, weather, tide 등 들어있다고 가정
+
+            # 대상 어종 정규화: env_data > raw_target_fish > 기본 '쭈갑'
+            target_fish = env_data.get("target_fish") or raw_target_fish or "쭈갑"
+
+            print(f"  정규화된 대상 어종: {target_fish}")
+            print(f"  환경 데이터 키: {list(env_data.keys())}")
 
             # ---------------------------------------------------------
-            # [Step 3] 에기 추천 (RAG 자리, 현재는 Mock)
+            # [Step 3] 에기 추천 (RAG 파이프라인)
             # ---------------------------------------------------------
-            target_fish_normalized = (
-                env_data.get("target_fish") or raw_target_fish or "쭈갑"
-            )
-            recommendations = make_mock_recommendations(
+            recommendations = run_egi_rag(
+                target_fish=target_fish,
                 water_color=water_color,
                 env_data=env_data,
-                target_fish=target_fish_normalized,
+                limit=3,
             )
 
             # ---------------------------------------------------------
             # [Step 4] 최종 응답 JSON 구성
             # ---------------------------------------------------------
+            analysis_result = {
+                "water_color": water_color,
+                "confidence": confidence,
+            }
+
             response_data = {
                 "status": "success",
                 "data": {
-                    "analysis_result": {
-                        "water_color": water_color,
-                        "confidence": confidence,
-                    },
+                    "analysis_result": analysis_result,
                     "environment": env_data,
                     "recommendations": recommendations,
                 },
