@@ -13,7 +13,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     우선순위:
     1. 바다낚시지수 API (낚시 포인트 기반)
     2. 해양관측부이 API (부이 기반)
-    3. 기상청 단기실황 API (격자 기반)
+    3. 기상청 초단기실황 API (격자 기반)
     4. 조석예보 API (물때 계산)
     """
 
@@ -43,11 +43,12 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
         "humidity": None,
         "rain_type": None,
         "record_time": None,
-        # ⭐ 물때 정보 추가
         "moon_phase": None,
         "next_high_tide": None,
         "next_low_tide": None,
         "tide_station": None,
+        "wind_direction_deg": None,
+        "wind_direction_16": None,
     }
 
     # ================================================================
@@ -71,7 +72,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
         print(f"⚠️ 낚시지수 데이터 없음")
 
     # ================================================================
-    # [2순위] 해양관측부이 API - 현재 해양수산부 이전으로 API 오류 : 주석 처리함
+    # [2순위] 해양관측부이 API
     # ================================================================
     print(f"\n[2단계] 해양관측부이 API 시도")
     print("-" * 70)
@@ -89,7 +90,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
         print(f"⚠️ 부이 데이터 없음")
 
     # ================================================================
-    # [3순위] 기상청 API
+    # [3순위] 기상청 API (초단기실황)
     # ================================================================
     print(f"\n[3단계] 기상청 API 시도")
     print("-" * 70)
@@ -98,6 +99,8 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
 
     if weather_data:
         print(f"✅ 기상청 데이터 수집 성공!")
+        # 여기서 source_name="기상청" 이라서 아래 _merge_data 에서
+        # wind_speed override 로직 적용됨
         _merge_data(final_result, weather_data, "기상청")
 
         if final_result["source"] is None:
@@ -107,7 +110,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
         print(f"⚠️ 기상청 데이터 없음")
 
     # ================================================================
-    # [4순위] 조석예보 API (물때 정보) ⭐ 추가
+    # [4순위] 조석예보 API (물때 정보)
     # ================================================================
     print(f"\n[4단계] 조석예보 API 시도 (물때 계산)")
     print("-" * 70)
@@ -146,6 +149,10 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     print(f"  🌡️  기온: {final_result.get('air_temp', 'N/A')}°C")
     print(f"  💧 습도: {final_result.get('humidity', 'N/A')}%")
     print(f"  ☔ 강수: {_rain_type_to_text(final_result.get('rain_type'))}")
+    print(
+        f"  🧭 풍향: {final_result.get('wind_direction_16', 'N/A')} "
+        f"({final_result.get('wind_direction_deg', 'N/A')}°)"
+    )
 
     print(f"\n  [낚시 정보]")
     print(f"  🎣 낚시지수: {final_result.get('fishing_index', 'N/A')}")
@@ -165,18 +172,40 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
 
 def _merge_data(target, source, source_name):
     """
-    데이터 병합 (None인 필드만 채우기)
+    데이터 병합 로직
+
+    - 기본: target[key] 가 None 인 경우에만 source[key] 로 채운다.
+    - 예외: source_name == "기상청" 인 경우,
+      wind_speed 는 항상 덮어쓰기(override)
     """
     if not source:
         return
 
-    # 기상청 'temp' → 'air_temp' 변환
-    if "temp" in source and target.get("air_temp") is None:
+    # 기상청 'temp' → 'air_temp' 로 매핑 (이미 값이 있으면 보존)
+    if (
+        "temp" in source
+        and source.get("temp") is not None
+        and target.get("air_temp") is None
+    ):
         source["air_temp"] = source.pop("temp")
 
     merged_count = 0
+    overwritten_fields = []
 
+    # -----------------------------
+    # 1) 기상청 풍속 override 처리
+    # -----------------------------
+    if source_name == "기상청":
+        if "wind_speed" in source and source["wind_speed"] is not None:
+            target["wind_speed"] = source["wind_speed"]
+            merged_count += 1
+            overwritten_fields.append("wind_speed")
+
+    # -----------------------------
+    # 2) 일반 병합 (None인 필드만 채움)
+    # -----------------------------
     for key in target.keys():
+        # 메타 필드들은 건너뛰기
         if key in [
             "source",
             "location_name",
@@ -188,13 +217,18 @@ def _merge_data(target, source, source_name):
         ]:
             continue
 
+        # 이미 override 한 필드는 다시 처리하지 않음
+        if key in overwritten_fields:
+            continue
+
+        # 기존에 값이 없고(source에 값이 있으면) 채워 넣기
         if target[key] is None and key in source:
             if source[key] is not None:
                 target[key] = source[key]
                 merged_count += 1
 
     if merged_count > 0:
-        print(f"    → [{source_name}]에서 {merged_count}개 필드 보완")
+        print(f"    → [{source_name}]에서 {merged_count}개 필드 보완/갱신")
 
 
 def _rain_type_to_text(rain_type):
