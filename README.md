@@ -39,7 +39,7 @@
   </thead>
   <tbody>
     <tr>
-      <td><img src="./images/1.jpg" alt="혜린"></td>
+      <td><img src="./images/1.jpg" style="width:150px; height:auto;" alt="혜린"></td>
       <td><img src="./images/12.jpg" style="width:150px; height:auto;" alt="시은"></td>
       <td><img src="./images/10.jpg" style="width:150px; height:auto;" alt="예빈"></td>
       <td><img src="./images/6.jpg" style="width:150px; height:auto;" alt="원석"></td>
