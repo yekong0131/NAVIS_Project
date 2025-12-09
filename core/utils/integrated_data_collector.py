@@ -73,20 +73,20 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     # ================================================================
     # [2순위] 해양관측부이 API - 현재 해양수산부 이전으로 API 오류 : 주석 처리함
     # ================================================================
-    # print(f"\n[2단계] 해양관측부이 API 시도")
-    # print("-" * 70)
+    print(f"\n[2단계] 해양관측부이 API 시도")
+    print("-" * 70)
 
-    # buoy_data = get_buoy_data(user_lat, user_lon)
+    buoy_data = get_buoy_data(user_lat, user_lon)
 
-    # if buoy_data:
-    #     print(f"✅ 부이 데이터 수집 성공!")
-    #     _merge_data(final_result, buoy_data, "해양관측부이")
+    if buoy_data:
+        print(f"✅ 부이 데이터 수집 성공!")
+        _merge_data(final_result, buoy_data, "해양관측부이")
 
-    #     if final_result["source"] is None:
-    #         final_result["source"] = "해양관측부이 API"
-    #         final_result["location_name"] = buoy_data.get("station_name")
-    # else:
-    #     print(f"⚠️ 부이 데이터 없음")
+        if final_result["source"] is None:
+            final_result["source"] = "해양관측부이 API"
+            final_result["location_name"] = buoy_data.get("station_name")
+    else:
+        print(f"⚠️ 부이 데이터 없음")
 
     # ================================================================
     # [3순위] 기상청 API

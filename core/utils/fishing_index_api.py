@@ -57,7 +57,6 @@ def _call_fishing_index_api(
     해양수산부 바다낚시지수 API 호출.
 
     - gubun: '선상' 또는 '갯바위'
-      (요구사항: 선상/갯바위 구분 안 할 거라 기본값 '선상')
     - req_date: 'YYYYMMDD', None 이면 오늘 날짜.
     """
     import datetime
@@ -71,7 +70,6 @@ def _call_fishing_index_api(
 
     base_url = "https://apis.data.go.kr/1192136/fcstFishing/GetFcstFishingApiService"
 
-    # Swagger에서 성공했던 파라미터 조합 그대로 맞춤
     params = {
         "serviceKey": service_key,  # 디코딩 키 그대로 전달 → requests 가 URL 인코딩
         "type": "json",
@@ -133,6 +131,29 @@ def _call_fishing_index_api(
     return items
 
 
+def _get_all_items_for_both_gubun(
+    req_date: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """
+    선상 + 갯바위 두 gubun을 모두 호출해서 item을 합친다.
+    각 item에는 '_gubun' 키로 출처 구분을 추가한다.
+    """
+    all_items: List[Dict[str, Any]] = []
+    for gubun in ["선상", "갯바위"]:
+        items = _call_fishing_index_api(gubun=gubun, req_date=req_date)
+        if not items:
+            print(f"[낚시지수] gubun={gubun} 결과 없음 또는 오류")
+            continue
+
+        for it in items:
+            copy_it = dict(it)
+            copy_it["_gubun"] = gubun
+            all_items.append(copy_it)
+
+    print("[낚시지수] 선상+갯바위 통합 item 개수:", len(all_items))
+    return all_items
+
+
 def _avg(a: Any, b: Any) -> Optional[float]:
     """두 값의 평균(하나만 있으면 그 값)."""
     try:
@@ -186,6 +207,7 @@ def _item_to_partial(
             "api_seafsPstnNm": item.get("seafsPstnNm"),
             "api_lat": item.get("lat"),
             "api_lot": item.get("lot"),
+            "api_gubun": item.get("_gubun"),  # 선상/갯바위 출처
             "dist_user_to_spot_km": round(dist_user_to_spot, 1),
             "dist_spot_to_api_km": round(dist_spot_to_api, 1),
         },
@@ -226,10 +248,10 @@ def get_fishing_index_data(
     바다낚시지수 API 데이터를 거리 기반으로 매칭해
     최종 낚시지수 정보를 반환한다.
 
-    🔹 요구사항
-    - 선상/갯바위(method)는 API 호출에는 사용하지 않음.
-    - DB 에서 가장 가까운 포인트들만 사용.
-    - API gubun 은 '선상' 으로 고정.
+    - API를 gubun='선상', gubun='갯바위' 두 번 호출한다.
+    - 두 gubun의 item을 모두 합친 뒤, 각 FishingSpot 에서
+      가장 가까운 API 지점을 찾는다.
+    - FishingSpot.method(선상/갯바위)는 API 호출 gubun에는 사용하지 않는다.
     """
     norm_target_fish = _normalize_target_fish(target_fish)
     print(
@@ -260,8 +282,8 @@ def get_fishing_index_data(
     for idx, (spot, dist) in enumerate(chosen_spots, start=1):
         print("  {}. {} ({}, ~{:.1f}km)".format(idx, spot.name, spot.method, dist))
 
-    # 2) 바다낚시지수 API 한 번 호출 (gubun=선상 고정)
-    items = _call_fishing_index_api(gubun="선상")
+    # 2) 바다낚시지수 API를 선상 + 갯바위 모두 호출
+    items = _get_all_items_for_both_gubun()
     if not items:
         print("[낚시지수] ❌ 바다낚시지수 API 에서 데이터를 가져오지 못했습니다.")
         return None
@@ -284,8 +306,8 @@ def get_fishing_index_data(
     }
 
     for idx, (spot, dist_user_to_spot) in enumerate(chosen_spots, start=1):
-        best_item = None  # type: Optional[Dict[str, Any]]
-        best_dist = None  # type: Optional[float]
+        best_item: Optional[Dict[str, Any]] = None
+        best_dist: Optional[float] = None
 
         for it in items:
             api_lat = it.get("lat")
@@ -318,8 +340,10 @@ def get_fishing_index_data(
             )
         )
         print(
-            "             ↳ 선택된 API 지점: {} (~{:.1f}km)".format(
-                best_item.get("seafsPstnNm"), best_dist
+            "             ↳ 선택된 API 지점: {} (gubun={}, ~{:.1f}km)".format(
+                best_item.get("seafsPstnNm"),
+                best_item.get("_gubun"),
+                best_dist,
             )
         )
 
