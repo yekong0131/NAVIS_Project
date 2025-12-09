@@ -3,9 +3,71 @@ import os
 from haversine import haversine
 from core.models import Buoy
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
 
 load_dotenv()
+
+
+def _deg_to_16_wind(deg: float) -> str:
+    """
+    풍향(deg)를 16방위 문자열(N, NNE, ..., NNW)로 변환
+    0° = 북, 시계 방향
+    """
+    dirs_16 = [
+        "N",
+        "NNE",
+        "NE",
+        "ENE",
+        "E",
+        "ESE",
+        "SE",
+        "SSE",
+        "S",
+        "SSW",
+        "SW",
+        "WSW",
+        "W",
+        "WNW",
+        "NW",
+        "NNW",
+    ]
+    # 0~360 정규화 후 16구간으로 나눔
+    deg = float(deg) % 360
+    idx = int(((deg + 11.25) % 360) / 22.5)
+    return dirs_16[idx]
+
+
+def _extract_latest_wind_dir(raw_data_list):
+    """
+    부이 raw_data 리스트에서 가장 최신의 wind_dir(deg) 값을 찾아서
+    (deg, 16방위 문자열) 튜플로 반환
+    """
+    if not raw_data_list:
+        return None, None
+
+    # record_time 기준으로 최신순 정렬 (없으면 기존 순서를 그대로 사용)
+    def _get_time(row):
+        return row.get("record_time") or ""
+
+    sorted_rows = sorted(raw_data_list, key=_get_time, reverse=True)
+
+    for row in sorted_rows:
+        raw = row.get("wind_dir")
+        if raw in (None, ""):
+            continue
+
+        try:
+            deg = float(raw)
+        except (TypeError, ValueError):
+            continue
+
+        # deg 범위 체크 (0~360만 유효)
+        if deg < 0 or deg > 360:
+            continue
+
+        deg = deg % 360
+        return deg, _deg_to_16_wind(deg)
+
+    return None, None
 
 
 def get_nearby_buoys(user_lat, user_lon, limit=5):
@@ -125,7 +187,7 @@ def extract_latest_value(raw_data_list, key):
     return None
 
 
-def get_buoy_data_aggressive(user_lat, user_lon):
+def get_buoy_data(user_lat, user_lon):
     """
     적극적 데이터 수집 - 반드시 데이터를 찾아냄
     """
@@ -143,6 +205,8 @@ def get_buoy_data_aggressive(user_lat, user_lon):
         "wave_height": None,
         "wind_speed": None,
         "record_time": None,
+        "wind_direction_deg": None,
+        "wind_direction_16": None,
     }
 
     required_keys = ["water_temp", "wave_height", "wind_speed"]
@@ -194,6 +258,16 @@ def get_buoy_data_aggressive(user_lat, user_lon):
                 result["station_name"] = buoy.name
                 result["record_time"] = raw_data[-1].get("record_time")
 
+            # 풍향이 비어 있다면 이 부이에서 풍향도 세팅
+            if (
+                result["wind_direction_deg"] is None
+                or result["wind_direction_16"] is None
+            ):
+                dir_deg, dir_16 = _extract_latest_wind_dir(raw_data)
+                if dir_deg is not None:
+                    result["wind_direction_deg"] = dir_deg
+                    result["wind_direction_16"] = dir_16
+
         # 이번 단계에서 데이터를 찾았으면 다음 단계로 넘어가지 않음
         if result["station_name"] is not None:
             break
@@ -205,10 +279,3 @@ def get_buoy_data_aggressive(user_lat, user_lon):
         return None
 
     return result
-
-
-def get_buoy_data(user_lat, user_lon, limit=5):
-    """
-    기존 호환성 유지용 래퍼 함수
-    """
-    return get_buoy_data_aggressive(user_lat, user_lon)

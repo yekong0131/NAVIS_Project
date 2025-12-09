@@ -193,13 +193,29 @@ def _merge_data(target, source, source_name):
     overwritten_fields = []
 
     # -----------------------------
-    # 1) 기상청 풍속 override 처리
+    # 1) 기상청 풍속/풍향 override 처리
     # -----------------------------
     if source_name == "기상청":
-        if "wind_speed" in source and source["wind_speed"] is not None:
-            target["wind_speed"] = source["wind_speed"]
+        # 1-1) 풍속: KMA 값이 있으면 무조건 덮어쓰기
+        kma_ws = source.get("wind_speed")
+        if kma_ws is not None:
+            target["wind_speed"] = kma_ws
             merged_count += 1
             overwritten_fields.append("wind_speed")
+
+        # 1-2) 풍향(deg): KMA 값이 있을 때만 덮어쓰기
+        kma_wd_deg = source.get("wind_direction_deg")
+        if kma_wd_deg is not None:
+            target["wind_direction_deg"] = kma_wd_deg
+            merged_count += 1
+            overwritten_fields.append("wind_direction_deg")
+
+        # 1-3) 풍향(16방위 문자열): KMA 값이 있을 때만 덮어쓰기
+        kma_wd_16 = source.get("wind_direction_16")
+        if kma_wd_16 is not None:
+            target["wind_direction_16"] = kma_wd_16
+            merged_count += 1
+            overwritten_fields.append("wind_direction_16")
 
     # -----------------------------
     # 2) 일반 병합 (None인 필드만 채움)
