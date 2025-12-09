@@ -12,9 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv  # 1. 이 줄 추가
+from dotenv import load_dotenv
 
-load_dotenv()  # 2. .env 파일의 환경 변수를 로드
+load_dotenv()  # .env 파일의 환경 변수를 로드
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -83,8 +83,8 @@ WSGI_APPLICATION = "navis_server.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "navis_db",  # 아까 Workbench에서 만든 DB 이름
-        "USER": "root",  # MySQL 아이디 (보통 root)
+        "NAME": "navis_db",  # Workbench에서 만든 DB 이름
+        "USER": "root",  # MySQL 아이디
         "PASSWORD": os.getenv("DB_PASSWORD"),  # MySQL 설치할 때 설정한 비밀번호
         "HOST": "127.0.0.1",  # 로컬 호스트 (localhost)
         "PORT": "3306",  # MySQL 기본 포트
@@ -137,7 +137,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "core.User"
 
 # [AWS S3 설정]
-# .env 파일에서 키를 가져옵니다.
+# .env 파일에서 키 가져오기
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
@@ -148,10 +148,8 @@ AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = None  # 파일을 private하게 관리할지 설정 (일단 None)
 AWS_S3_VERIFY = True  # TLS 인증서 확인
 
-# [핵심] 파일 저장소를 S3로 교체
-# Django 4.2 이상부터는 STORAGES 설정을 권장하지만,
-# 7주 프로젝트용으로 가장 설정이 쉬운 구버전 방식을 먼저 알려드립니다.
+# 파일 저장소를 S3로 교체
 DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
-# 이미지 URL 설정 (이제 로컬 주소가 아니라 S3 주소가 됩니다)
+# 이미지 URL 설정 (S3 버킷 URL)
 MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"

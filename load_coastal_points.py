@@ -1,13 +1,14 @@
 # navis_project/load_coastal_points.py
+"""
+DB에 해양 관측 부이 목록 저장
+"""
 
 import os
 import django
 
-# Django 설정 초기화
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "navis_server.settings")
 django.setup()
 
-# 이제 models import 가능
 from core.models import CoastalPoint
 
 

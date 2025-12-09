@@ -1,4 +1,7 @@
-# init_tide_stations.py (프로젝트 루트)
+# navis_project/init_tide_stations.py
+"""
+DB에 조위 관측소 목록 저장
+"""
 
 import os
 import django

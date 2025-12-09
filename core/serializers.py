@@ -1,3 +1,5 @@
+# core/serializers.py
+
 from rest_framework import serializers
 from .models import Diary, DiaryCatch, DiaryImage
 
@@ -31,12 +33,12 @@ class DiarySerializer(serializers.ModelSerializer):
         first_catch = obj.catches.first()
         return first_catch.fish_name if first_catch else "정보 없음"
 
-    # [여기 수정!] 이미지가 없을 때도 안전하게 처리
+    # 이미지가 없을 때도 안전하게 처리
     def get_images(self, obj):
         image_urls = []
         for img in obj.images.all():
-            # img.image_url은 ImageFieldFile 객체입니다.
-            # .url 속성을 호출해야 S3의 '진짜 주소(String)'가 나옵니다.
+            # img.image_url은 ImageFieldFile 객체
+            # .url 속성을 호출해야 S3의 '진짜 주소(String)'가 나옴
             try:
                 if img.image_url:
                     image_urls.append(img.image_url.url)
@@ -55,7 +57,7 @@ class EgiRecommendSerializer(serializers.Serializer):
     - requested_at: 요청 시각 (옵션, 없으면 서버 현재 시각 사용)
     """
 
-    # 파일 입력 필드 (이게 있어야 파일 선택 버튼이 생김)
+    # 파일 입력 필드
     image = serializers.ImageField(help_text="물색 분석을 위한 바다 사진")
 
     # 위치 정보

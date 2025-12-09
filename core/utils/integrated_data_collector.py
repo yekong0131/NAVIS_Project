@@ -1,4 +1,7 @@
 # core/utils/integrated_data_collector.py
+"""
+통합 해양/기상 데이터 수집기
+"""
 
 from .fishing_index_api import get_fishing_index_data
 from .ocean_api import get_buoy_data

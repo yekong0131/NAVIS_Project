@@ -1,13 +1,16 @@
+# navis_project/init_buoys.py
+"""
+DB에 해양 관측 부이 목록 저장
+"""
+
 import os
 import django
 
-# Django 환경 설정 (DB 접속을 위해 필요)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "navis_server.settings")
 django.setup()
 
 from core.models import Buoy
 
-# 사용자님이 주신 데이터 (복사해서 넣음)
 buoy_data = [
     {"id": "TW_0088", "name": "감천항", "lat": 35.052, "lon": 129.003},
     {"id": "TW_0077", "name": "경인항", "lat": 37.523, "lon": 126.592},

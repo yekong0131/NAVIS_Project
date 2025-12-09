@@ -1,3 +1,8 @@
+# core/management/commands/import_spots.py
+"""
+DB에 갯바위/선상 낚시 포인트 CSV 데이터 저장
+"""
+
 import csv
 import os
 from django.core.management.base import BaseCommand

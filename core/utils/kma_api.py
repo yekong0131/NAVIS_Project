@@ -1,5 +1,8 @@
 # core/utils/kma_api.py
 
+"""
+기상청 초단기실황 API 호출 및 데이터 파싱"""
+
 import os
 from datetime import datetime, timedelta
 

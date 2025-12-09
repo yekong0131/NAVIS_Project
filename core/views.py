@@ -16,7 +16,6 @@ from .utils.egi_rag import run_egi_rag
 from .utils.egi_service import (
     analyze_water_color,
     build_environment_context,
-    make_mock_recommendations,  # 지금은 안 써도 됨 (남겨둬도 무방)
 )
 
 
@@ -40,7 +39,7 @@ class OceanDataView(APIView):
                 {"error": "위도/경도 오류"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        # ⭐ 어종 미지정시 기본값 "쭈갑"
+        # 어종 미지정시 기본값 "쭈갑"
         if not target_fish:
             target_fish = "쭈갑"
 

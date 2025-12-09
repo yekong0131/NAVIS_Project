@@ -1,3 +1,8 @@
+# core/utils/fishing_index_api.py
+"""
+해양수산부 바다낚시지수 API 호출 및 데이터 파싱
+"""
+
 import os
 import math
 from typing import Optional, List, Dict, Any, Tuple

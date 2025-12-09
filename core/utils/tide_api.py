@@ -1,4 +1,8 @@
-# core/utils/tide_api.py (새 파일 생성)
+# core/utils/tide_api.py
+
+"""
+조석예보 API 호출 및 물때 계산
+"""
 
 import requests
 import os
@@ -31,11 +35,6 @@ def get_nearest_tide_station(user_lat, user_lon):
     print(f"[물때] 가장 가까운 조위 관측소: {nearest_station.name} ({distance:.1f}km)")
 
     return nearest_station
-
-
-# core/utils/tide_api.py 수정
-
-# core/utils/tide_api.py 수정
 
 
 def fetch_tide_prediction_multi_day(station_id, days=2):

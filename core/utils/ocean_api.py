@@ -1,3 +1,9 @@
+# core/utils/ocean_api.py
+
+"""
+해양수산부 해양관측부이 API 호출 및 데이터 파싱
+"""
+
 import requests
 import os
 from haversine import haversine

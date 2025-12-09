@@ -1,3 +1,8 @@
+# core/utils/converter.py
+"""
+기상청 격자 좌표 변환
+"""
+
 import math
 
 

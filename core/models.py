@@ -1,8 +1,10 @@
+# core/models.py
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 
-# 0. 해양 관측소 (부이)
+# 0-1. 해양 관측 부이 (CSV 업로드용)
 class Buoy(models.Model):
     station_id = models.CharField(max_length=20, primary_key=True)
     name = models.CharField(max_length=50)
@@ -13,6 +15,7 @@ class Buoy(models.Model):
         return self.name
 
 
+# 0-2. 기상청 해안 지점 (격자 좌표 참조용)
 class CoastalPoint(models.Model):
     """기상청 격자 좌표 참조용 해안 지점"""
 
@@ -34,6 +37,51 @@ class CoastalPoint(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.region})"
+
+
+# 0-3. 낚시 포인트 (CSV 업로드용)
+class FishingSpot(models.Model):
+    """CSV로 업로드할 낚시 포인트 (갯바위/선상)"""
+
+    spot_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100)
+    detail_name = models.CharField(max_length=100, blank=True)
+    address = models.CharField(max_length=100)
+
+    # 좌표 (변환된 십진수 좌표)
+    lat = models.FloatField()
+    lon = models.FloatField()
+
+    # 원본 DMS 좌표
+    lat_dms = models.CharField(max_length=50, blank=True)
+    lon_dms = models.CharField(max_length=50, blank=True)
+
+    # 상세 정보
+    depth = models.TextField(blank=True)
+    bottom_type = models.TextField(blank=True)
+    tide = models.TextField(blank=True)
+    target_fish = models.TextField(blank=True)
+    method = models.CharField(max_length=100, blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+# 0-4. 조위 관측소 (물때 계산용)
+class TideStation(models.Model):
+    """조위 관측소 (물때 계산용)"""
+
+    station_id = models.CharField(max_length=20, primary_key=True)
+    name = models.CharField(max_length=50)
+    lat = models.FloatField()
+    lon = models.FloatField()
+    last_obs_time = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "tide_stations"
+
+    def __str__(self):
+        return self.name
 
 
 # 1. 사용자 (기본 User 모델 확장)
@@ -62,12 +110,12 @@ class Boat(models.Model):
         db_table = "boats"
 
 
-# 3. 에기(루어) 기본 정보
+# 3. 에기 기본 정보
 class Egi(models.Model):
     """
-    에기(루어) 기본 정보만 저장하는 테이블.
+    에기 기본 정보만 저장하는 테이블.
 
-    - 에기명, 브랜드, 이미지(S3 경로)
+    - 에기명, 브랜드, 이미지(S3 경로) 등
     - 조건/상황 정보는 EgiCondition에서 관리
     """
 
@@ -230,47 +278,3 @@ class DiaryUsedEgi(models.Model):
     used_id = models.AutoField(primary_key=True)
     diary = models.ForeignKey(Diary, on_delete=models.CASCADE, related_name="used_egis")
     color_name = models.CharField(max_length=50)  # 사용한 색상
-
-
-# 6. 낚시 포인트 (CSV 업로드용)
-class FishingSpot(models.Model):
-    """CSV로 업로드할 낚시 포인트 (갯바위/선상)"""
-
-    spot_id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100)
-    detail_name = models.CharField(max_length=100, blank=True)
-    address = models.CharField(max_length=100)
-
-    # 좌표 (변환된 십진수 좌표)
-    lat = models.FloatField()
-    lon = models.FloatField()
-
-    # 원본 DMS 좌표
-    lat_dms = models.CharField(max_length=50, blank=True)
-    lon_dms = models.CharField(max_length=50, blank=True)
-
-    # 상세 정보 (TextField로 변경)
-    depth = models.TextField(blank=True)  # ← 변경! (수심 범위)
-    bottom_type = models.TextField(blank=True)  # ← 변경! (저질)
-    tide = models.TextField(blank=True)  # ← 변경! (조수물때)
-    target_fish = models.TextField(blank=True)  # ← 변경! (대상 어종)
-    method = models.CharField(max_length=100, blank=True)
-
-    def __str__(self):
-        return self.name
-
-
-class TideStation(models.Model):
-    """조위 관측소 (물때 계산용)"""
-
-    station_id = models.CharField(max_length=20, primary_key=True)
-    name = models.CharField(max_length=50)
-    lat = models.FloatField()
-    lon = models.FloatField()
-    last_obs_time = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        db_table = "tide_stations"
-
-    def __str__(self):
-        return self.name

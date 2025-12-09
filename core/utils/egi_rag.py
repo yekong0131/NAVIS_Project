@@ -1,4 +1,7 @@
 # core/utils/egi_rag.py
+"""
+에기 추천 RAG 파이프라인
+"""
 
 import os
 import json
@@ -139,7 +142,7 @@ def retrieve_candidates_simple(
 ) -> List[EgiCondition]:
     """
     지금은 EgiCondition을 DB 필터+정렬로 찾는다.
-    나중에 벡터 DB 도입 시 이 함수만 교체하면 됨.
+    나중에 벡터 DB 도입 시 교체.
     """
     if env_data is None:
         env_data = {}
@@ -202,7 +205,7 @@ USER_PROMPT_TEMPLATE = """
 {candidate_summary}
 
 요구사항:
-1. 위의 후보 에기(eigi_id 값들) 중에서만 추천을 선택하세요.
+1. 위의 후보 에기(egi_id 값들) 중에서만 추천을 선택하세요.
 2. 최대 3개까지 추천합니다.
 3. 다음 JSON 형식으로만 응답하세요:
 
