@@ -112,7 +112,7 @@ class WaterColorAnalyzeView(APIView):
 
 class EgiRecommendView(APIView):
     """
-    [POST] /api/recommend/egi/
+    [POST] /api/egi/recommend/
 
     Request (multipart/form-data):
       - image: 파일 (물색 사진)

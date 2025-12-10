@@ -101,6 +101,8 @@ def build_environment_context(
         "air_temp": marine.get("air_temp"),
         "humidity": marine.get("humidity"),
         "current_speed": marine.get("current_speed"),
+        "wind_direction_deg": marine.get("wind_direction_deg"),
+        "wind_direction_16": marine.get("wind_direction_16"),
         # 낚시지수 정보
         "fishing_index": marine.get("fishing_index"),
         "fishing_score": marine.get("fishing_score"),

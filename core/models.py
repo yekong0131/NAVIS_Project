@@ -211,7 +211,7 @@ class EgiCondition(models.Model):
     notes = models.TextField(blank=True)
 
     # 나중에 이 내용을 한 문단으로 합쳐서 embedding_text로 만들고,
-    # 벡터 DB/RAG에 활용할 수 있음
+    # 벡터 DB/RAG에 활용
     embedding_text = models.TextField(blank=True)
 
     class Meta:
