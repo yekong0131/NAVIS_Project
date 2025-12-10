@@ -3,7 +3,12 @@
 from rest_framework import serializers
 from .models import Diary, DiaryCatch, DiaryImage
 
+from django.contrib.auth import get_user_model
+from rest_framework import serializers
+
 from drf_spectacular.utils import extend_schema_field
+
+User = get_user_model()
 
 
 class DiarySerializer(serializers.ModelSerializer):
@@ -93,3 +98,44 @@ class OceanDataRequestSerializer(serializers.Serializer):
         required=False,
         allow_blank=True,
     )
+
+
+class SignupSerializer(serializers.ModelSerializer):
+    """
+    회원가입용 Serializer
+    username, password, nickname, email 을 입력받아 User 생성
+    """
+
+    password = serializers.CharField(write_only=True, min_length=8)
+    password2 = serializers.CharField(
+        write_only=True, min_length=8, help_text="비밀번호 확인"
+    )
+
+    class Meta:
+        model = User
+        fields = ("username", "nickname", "email", "password", "password2")
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password2"]:
+            raise serializers.ValidationError("비밀번호가 일치하지 않습니다.")
+        return attrs
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        validated_data.pop("password2", None)
+
+        user = User.objects.create_user(
+            **validated_data,  # username, nickname, email
+            password=password,
+        )
+        return user
+
+
+class LoginSerializer(serializers.Serializer):
+    """
+    로그인용 Serializer
+    username + password 조합으로 로그인
+    """
+
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)

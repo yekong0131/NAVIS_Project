@@ -20,6 +20,7 @@ from drf_spectacular.utils import (
     extend_schema,
     OpenApiParameter,
     OpenApiExample,
+    OpenApiResponse,
 )
 from drf_spectacular.types import OpenApiTypes
 
@@ -28,6 +29,18 @@ from .utils.egi_service import (
     analyze_water_color,
     build_environment_context,
 )
+
+from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
+from rest_framework.authtoken.models import Token
+from rest_framework.permissions import IsAuthenticated
+
+from .serializers import SignupSerializer, LoginSerializer
+
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
+
+User = get_user_model()
 
 
 class DiaryListView(generics.ListCreateAPIView):
@@ -318,3 +331,117 @@ class EgiRecommendView(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class SignupView(APIView):
+    """
+    회원가입 API
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="회원가입",
+        description="username, nickname, email, password를 입력받아 회원가입을 처리하고, 토큰을 발급합니다.",
+        request=SignupSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=SignupSerializer,
+                description="회원 생성 성공",
+            ),
+            400: OpenApiResponse(description="유효성 검사 실패"),
+        },
+    )
+    def post(self, request):
+        serializer = SignupSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user = serializer.save()
+
+        # 토큰 발급
+        token, _ = Token.objects.get_or_create(user=user)
+
+        return Response(
+            {
+                "user": SignupSerializer(user).data,
+                "token": token.key,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class LoginView(APIView):
+    """
+    로그인 API
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="로그인",
+        description="username과 password로 로그인하고, 유효하면 토큰을 반환합니다.",
+        request=LoginSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="로그인 성공",
+                response=OpenApiTypes.OBJECT,
+            ),
+            400: OpenApiResponse(description="입력 오류 / 인증 실패"),
+        },
+    )
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        username = serializer.validated_data["username"]
+        password = serializer.validated_data["password"]
+
+        user = authenticate(request, username=username, password=password)
+        if not user:
+            return Response(
+                {"detail": "아이디 또는 비밀번호가 올바르지 않습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token, _ = Token.objects.get_or_create(user=user)
+
+        return Response(
+            {
+                "token": token.key,
+                "user": {
+                    "username": user.username,
+                    "nickname": user.nickname,
+                    "email": user.email,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MeView(APIView):
+    """
+    내 정보 조회 API (인증 필요)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="내 정보 조회",
+        description="현재 토큰으로 인증된 사용자의 기본 정보를 반환합니다.",
+        responses={
+            200: OpenApiTypes.OBJECT,
+            401: OpenApiResponse(description="인증 필요 / 토큰 없음"),
+        },
+    )
+    def get(self, request):
+        user: User = request.user
+        return Response(
+            {
+                "username": user.username,
+                "nickname": user.nickname,
+                "email": user.email,
+            },
+            status=status.HTTP_200_OK,
+        )

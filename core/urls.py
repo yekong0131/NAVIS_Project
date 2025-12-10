@@ -6,6 +6,9 @@ from .views import (
     DiaryListView,
     WaterColorAnalyzeView,
     EgiRecommendView,
+    SignupView,
+    LoginView,
+    MeView,
 )
 
 urlpatterns = [
@@ -17,4 +20,7 @@ urlpatterns = [
     path(
         "egi/recommend/", EgiRecommendView.as_view(), name="egi-recommend"
     ),  # 에기 추천
+    path("auth/signup/", SignupView.as_view(), name="auth-signup"),
+    path("auth/login/", LoginView.as_view(), name="auth-login"),
+    path("auth/me/", MeView.as_view(), name="auth-me"),
 ]
