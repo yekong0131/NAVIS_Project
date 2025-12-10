@@ -8,9 +8,20 @@ from .utils.integrated_data_collector import collect_all_marine_data
 from .utils.fishing_index_api import SUPPORTED_FISH
 from rest_framework import generics
 from .models import Diary
-from .serializers import DiarySerializer, EgiRecommendSerializer
+from .serializers import (
+    DiarySerializer,
+    EgiRecommendSerializer,
+    OceanDataRequestSerializer,
+)
 from rest_framework.parsers import MultiPartParser, FormParser
 from PIL import Image
+
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiExample,
+)
+from drf_spectacular.types import OpenApiTypes
 
 from .utils.egi_rag import run_egi_rag
 from .utils.egi_service import (
@@ -20,6 +31,10 @@ from .utils.egi_service import (
 
 
 class DiaryListView(generics.ListCreateAPIView):
+    """
+    낚시 일지 목록 조회/생성 API
+    """
+
     queryset = Diary.objects.all().order_by("-fishing_date")
     serializer_class = DiarySerializer
 
@@ -29,6 +44,83 @@ class OceanDataView(APIView):
     통합 해양/기상 데이터 조회
     """
 
+    serializer_class = OceanDataRequestSerializer
+
+    @extend_schema(
+        summary="통합 해양/기상 데이터 조회",
+        description=(
+            "사용자 위치(lat, lon)와 대상 어종(target_fish)을 기반으로\n"
+            "- 해양수산부 바다낚시지수 API\n"
+            "- 해양관측부이 최신 관측 데이터\n"
+            "- 기상청 초단기실황 API\n"
+            "- 조석(물때) API\n"
+            "를 통합한 환경 정보를 반환합니다.\n\n"
+            "target_fish를 생략하면 기본값으로 '쭈갑'(쭈꾸미+갑오징어) 이 사용됩니다."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="lat",
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description="사용자 위치 위도 (예: 35.1)",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="lon",
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description="사용자 위치 경도 (예: 129.0)",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="target_fish",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="대상 어종 (쭈꾸미, 갑오징어, 쭈갑). 미입력 시 기본값 '쭈갑'",
+                required=False,
+            ),
+        ],
+        responses={
+            200: OpenApiTypes.OBJECT,  # 통합 환경 정보 JSON
+            400: OpenApiTypes.OBJECT,  # 에러 메시지 JSON
+        },
+        examples=[
+            OpenApiExample(
+                "부산 앞바다 예시",
+                value={
+                    "lat": 35.1,
+                    "lon": 129.0,
+                    "target_fish": "쭈꾸미",
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "성공 응답 예시",
+                value={
+                    "source": "바다낚시지수 API",
+                    "location_name": "문갑도·선갑도",
+                    "target_fish": "쭈꾸미",
+                    "water_temp": 11.7,
+                    "wave_height": 0.3,
+                    "wind_speed": 2.3,
+                    "current_speed": 2.2,
+                    "fishing_index": "보통",
+                    "fishing_score": 62.59,
+                    "air_temp": 6.9,
+                    "humidity": 51.0,
+                    "rain_type": 0,
+                    "record_time": "2025-12-09 오전",
+                    "moon_phase": "4물",
+                    "next_high_tide": "20:04",
+                    "next_low_tide": "13:36",
+                    "tide_station": "덕적도",
+                    "wind_direction_deg": 49.0,
+                    "wind_direction_16": "NE",
+                },
+                response_only=True,
+            ),
+        ],
+    )
     def get(self, request):
         try:
             lat = float(request.query_params.get("lat"))
@@ -63,7 +155,6 @@ class OceanDataView(APIView):
 
 class WaterColorAnalyzeView(APIView):
     """
-    [POST] /api/analyze/color/
     물색 분석 Mock API (단독 테스트용)
     """
 
@@ -112,8 +203,6 @@ class WaterColorAnalyzeView(APIView):
 
 class EgiRecommendView(APIView):
     """
-    [POST] /api/egi/recommend/
-
     Request (multipart/form-data):
       - image: 파일 (물색 사진)
       - lat: float

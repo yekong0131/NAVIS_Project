@@ -17,8 +17,27 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include  # include 추가
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("core.urls")),  # /api/ 로 시작하는 건 core 앱으로 보냄
+    # OpenAPI 스키마(JSON)
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    # Swagger UI
+    path(
+        "api/schema/swagger-ui/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
+    # ReDoc UI (깔끔한 문서형 뷰)
+    path(
+        "api/schema/redoc/",
+        SpectacularRedocView.as_view(url_name="schema"),
+        name="redoc",
+    ),
 ]

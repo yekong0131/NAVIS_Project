@@ -3,6 +3,8 @@
 from rest_framework import serializers
 from .models import Diary, DiaryCatch, DiaryImage
 
+from drf_spectacular.utils import extend_schema_field
+
 
 class DiarySerializer(serializers.ModelSerializer):
     date = serializers.SerializerMethodField()
@@ -22,17 +24,21 @@ class DiarySerializer(serializers.ModelSerializer):
             "images",
         ]
 
+    @extend_schema_field(serializers.CharField)
     def get_date(self, obj):
         return obj.fishing_date.strftime("%Y-%m-%d")
 
+    @extend_schema_field(serializers.IntegerField)
     def get_fishCount(self, obj):
         total_count = sum(catch.count for catch in obj.catches.all())
         return f"{total_count} 마리"
 
+    @extend_schema_field(serializers.CharField)
     def get_species(self, obj):
         first_catch = obj.catches.first()
         return first_catch.fish_name if first_catch else "정보 없음"
 
+    @extend_schema_field(serializers.ListField(child=serializers.URLField()))
     # 이미지가 없을 때도 안전하게 처리
     def get_images(self, obj):
         image_urls = []
@@ -76,4 +82,14 @@ class EgiRecommendSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         help_text="요청 시각 (ISO 8601, 미전송 시 서버 시간이 사용됨)",
+    )
+
+
+class OceanDataRequestSerializer(serializers.Serializer):
+    lat = serializers.FloatField(help_text="위도")
+    lon = serializers.FloatField(help_text="경도")
+    target_fish = serializers.CharField(
+        help_text="대상 어종 (쭈꾸미 / 갑오징어 / 쭈갑), 미선택시 기본 쭈갑",
+        required=False,
+        allow_blank=True,
     )

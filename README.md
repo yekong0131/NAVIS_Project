@@ -171,3 +171,11 @@
 
 ## 💼 문서
 
+- 
+- 
+
+---
+### 🖨️ 백엔드 환경 세팅
+- `conda create --name navisenv python=3.9 --no-default-packages`
+- `conda activate navisenv`
+- `pip install -r requirements.txt`

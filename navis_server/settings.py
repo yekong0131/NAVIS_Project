@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "core",
     "rest_framework",  # API용
     "storages",  # AWS S3 연동용
+    "drf_spectacular",  # API 문서화용
 ]
 
 MIDDLEWARE = [
@@ -153,3 +154,15 @@ DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
 # 이미지 URL 설정 (S3 버킷 URL)
 MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
+
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",  # Swagger용 스키마 생성기
+}
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Navis Fishing Assistant API",
+    "DESCRIPTION": "낚시 포인트 환경 정보, 에기 추천 API 문서",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
