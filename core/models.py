@@ -99,8 +99,13 @@ class User(AbstractUser):
 # 2. 선박 정보 (정적 데이터)
 class Boat(models.Model):
     boat_id = models.AutoField(primary_key=True)
+    ship_no = models.IntegerField(unique=True)
     name = models.CharField(max_length=100)
     port = models.CharField(max_length=100)  # 출항지
+    area_main = models.CharField(max_length=100)
+    area_sub = models.CharField(max_length=100)
+    address = models.CharField(max_length=200, blank=True)
+    area_sea = models.CharField(max_length=50)
     contact = models.CharField(max_length=50, blank=True)
     target_fish = models.CharField(max_length=100)  # 주력 어종 (콤마로 구분)
     booking_url = models.URLField()  # 예약 페이지 링크
@@ -108,6 +113,12 @@ class Boat(models.Model):
 
     class Meta:
         db_table = "boats"
+        indexes = [
+            models.Index(fields=["ship_no"]),
+            models.Index(fields=["area_main", "area_sub"]),
+            models.Index(fields=["area_sea"]),
+            models.Index(fields=["target_fish"]),
+        ]
 
 
 # 3. 에기 기본 정보

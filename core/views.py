@@ -39,8 +39,7 @@ from .serializers import SignupSerializer, LoginSerializer
 
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
-
-User = get_user_model()
+from core.models import User
 
 
 class DiaryListView(generics.ListCreateAPIView):
