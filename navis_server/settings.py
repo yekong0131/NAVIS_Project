@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from drf_spectacular.types import OpenApiTypes
 
 load_dotenv()  # .env 파일의 환경 변수를 로드
 
@@ -172,4 +173,9 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "낚시 도우미 어플 (용왕의 한 수) API 문서",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "CUSTOM_FIELD_MAPPING": {
+        "rest_framework.fields.ImageField": OpenApiTypes.BINARY,
+        "rest_framework.fields.FileField": OpenApiTypes.BINARY,
+    },
 }

@@ -11,6 +11,7 @@ import requests
 from dotenv import load_dotenv
 
 from core.models import FishingSpot
+from datetime import datetime
 
 load_dotenv()
 
@@ -54,85 +55,118 @@ def _get_service_key() -> Optional[str]:
     return key
 
 
+# 바다낚시지수 API 엔드포인트
+DEFAULT_API_URL = "https://apis.data.go.kr/1192136/fcstFishing/GetFcstFishingApiService"
+
+
+def _get_service_key() -> Optional[str]:
+    """
+    serviceKey 읽기
+    """
+    return os.getenv("KMA_SERVICE_KEY")
+
+
+def _extract_root(payload: Any) -> Dict[str, Any]:
+    """
+    응답이 아래 두 형태 중 무엇이든 대응:
+    1) {"response": {"header":..., "body":...}}
+    2) {"header":..., "body":...}
+    """
+    if not isinstance(payload, dict):
+        return {}
+
+    if "response" in payload and isinstance(payload["response"], dict):
+        return payload["response"]
+
+    # 이미 response가 벗겨진 형태
+    if "header" in payload and "body" in payload:
+        return payload
+
+    return {}
+
+
 def _call_fishing_index_api(
     gubun: str = "선상",
     req_date: Optional[str] = None,
+    page_no: int = 1,
+    num_of_rows: int = 300,
 ) -> Optional[List[Dict[str, Any]]]:
     """
-    해양수산부 바다낚시지수 API 호출.
-
-    - gubun: '선상' 또는 '갯바위'
-    - req_date: 'YYYYMMDD', None 이면 오늘 날짜.
+    바다낚시지수 API 호출 -> item 리스트 반환
+    - 실패 시 None
     """
-    import datetime
-
     service_key = _get_service_key()
     if not service_key:
+        print("[낚시지수][ERROR] serviceKey가 없습니다. env를 확인하세요.")
         return None
 
-    if req_date is None:
-        req_date = datetime.date.today().strftime("%Y%m%d")
-
-    base_url = "https://apis.data.go.kr/1192136/fcstFishing/GetFcstFishingApiService"
+    if not req_date:
+        req_date = datetime.now().strftime("%Y%m%d")
 
     params = {
-        "serviceKey": service_key,  # 디코딩 키 그대로 전달 → requests 가 URL 인코딩
+        "serviceKey": service_key,
         "type": "json",
         "reqDate": req_date,
-        "gubun": gubun,
-        "pageNo": 1,
-        "numOfRows": 300,
+        "gubun": gubun,  # '선상' or '갯바위' (requests가 자동 URL-encode)
+        "pageNo": page_no,
+        "numOfRows": num_of_rows,
     }
 
     print("[낚시지수] 바다낚시지수 API 호출")
-    print("  gubun   =", gubun)
-    print("  reqDate =", req_date)
-    print("  params  =", params)
+    print(f"  gubun   = {gubun}")
+    print(f"  reqDate = {req_date}")
+    print(f"  params  = {params}")
 
     try:
-        resp = requests.get(base_url, params=params, timeout=10)
-    except requests.RequestException as e:
-        print("[낚시지수][ERROR] 요청 예외:", e)
+        resp = requests.get(DEFAULT_API_URL, params=params, timeout=15)
+    except Exception as e:
+        print(f"[낚시지수][ERROR] 요청 실패: {e}")
         return None
 
-    print("[낚시지수] 최종 요청 URL:", resp.url)
-    print("[낚시지수] HTTP 상태 코드:", resp.status_code)
+    print(f"[낚시지수] HTTP 상태 코드: {resp.status_code}")
+    print(f"[낚시지수] 최종 요청 URL: {resp.url}")
 
     if resp.status_code != 200:
-        print("[낚시지수][ERROR] HTTP 에러")
-        print(resp.text[:500])
+        print("[낚시지수][ERROR] HTTP 실패 응답:")
+        print(resp.text[:800])
         return None
 
     try:
         data = resp.json()
-    except ValueError:
-        print("[낚시지수][ERROR] JSON 파싱 실패")
-        print(resp.text[:500])
+    except Exception as e:
+        print(f"[낚시지수][ERROR] JSON 파싱 실패: {e}")
+        print(resp.text[:800])
         return None
 
-    response = data.get("response", {})
-    header = response.get("header", {})
-    body = response.get("body", {})
+    root = _extract_root(data)
+    header = root.get("header") or {}
+    body = root.get("body") or {}
 
     result_code = header.get("resultCode")
     result_msg = header.get("resultMsg")
-    print("[낚시지수] resultCode={}, resultMsg={}".format(result_code, result_msg))
+    print(f"[낚시지수] resultCode={result_code}, resultMsg={result_msg}")
 
-    if result_code != "00":
-        print("[낚시지수][WARNING] API 오류: {} {}".format(result_code, result_msg))
+    # resultCode가 문자열 "00"이 정상
+    if str(result_code) != "00":
+        print(f"[낚시지수][WARNING] API 오류: {result_code} {result_msg}")
         return None
 
-    items_wrapper = body.get("items", {})
+    items_wrapper = body.get("items") or {}
     items = items_wrapper.get("item")
 
-    if items is None:
-        print("[낚시지수][WARNING] items.item 이 없습니다.")
-        return None
+    # item이 없을 때
+    if not items:
+        print("[낚시지수][WARNING] body.items.item 이 비어있습니다.")
+        return []
 
-    if not isinstance(items, list):
+    # item이 dict로 오는 케이스도 방어
+    if isinstance(items, dict):
         items = [items]
+    elif not isinstance(items, list):
+        print(f"[낚시지수][WARNING] item 타입이 예상과 다릅니다: {type(items)}")
+        return []
 
-    print("[낚시지수] 수신 item 개수: {}".format(len(items)))
+    print(f"[낚시지수] 수신 item 개수: {len(items)}")
     return items
 
 
@@ -375,3 +409,43 @@ def get_fishing_index_data(
     )
 
     return final_result
+
+
+def _to_float(v: Any) -> Optional[float]:
+    if v is None:
+        return None
+    try:
+        fv = float(v)
+    except (TypeError, ValueError):
+        return None
+    # -999 같은 결측 sentinel 대응(필요하면 범위 조정)
+    if fv <= -900:
+        return None
+    return fv
+
+
+def pick_fields_from_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    item(dict)에서 앱에서 쓸만한 필드만 추림
+    """
+    return {
+        "seafsPstnNm": item.get("seafsPstnNm"),
+        "lat": _to_float(item.get("lat")),
+        "lot": _to_float(item.get("lot")),
+        "predcYmd": item.get("predcYmd"),
+        "predcNoonSeCd": item.get("predcNoonSeCd"),
+        "seafsTgfshNm": item.get("seafsTgfshNm"),
+        "tdlvHrScr": _to_float(item.get("tdlvHrScr")),
+        "minWvhgt": _to_float(item.get("minWvhgt")),
+        "maxWvhgt": _to_float(item.get("maxWvhgt")),
+        "minWtem": _to_float(item.get("minWtem")),
+        "maxWtem": _to_float(item.get("maxWtem")),
+        "minArtmp": _to_float(item.get("minArtmp")),
+        "maxArtmp": _to_float(item.get("maxArtmp")),
+        "minCrsp": _to_float(item.get("minCrsp")),
+        "maxCrsp": _to_float(item.get("maxCrsp")),
+        "minWspd": _to_float(item.get("minWspd")),
+        "maxWspd": _to_float(item.get("maxWspd")),
+        "totalIndex": item.get("totalIndex"),
+        "lastScr": _to_float(item.get("lastScr")),
+    }

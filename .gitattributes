@@ -1,0 +1,8 @@
+# 기본: 텍스트 파일은 LF로 정규화
+* text=auto eol=lf
+
+# docs 산출물(문서/스키마)은 LF 유지
+docs/*.yaml  text eol=lf
+docs/*.yml   text eol=lf
+docs/*.json  text eol=lf
+docs/*.html  text eol=lf

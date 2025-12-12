@@ -68,18 +68,13 @@ class EgiRecommendSerializer(serializers.Serializer):
     - requested_at: 요청 시각 (옵션, 없으면 서버 현재 시각 사용)
     """
 
-    # 파일 입력 필드
-    image = serializers.ImageField(help_text="물색 분석을 위한 바다 사진")
-
-    # 위치 정보
-    lat = serializers.FloatField(help_text="위도")
-    lon = serializers.FloatField(help_text="경도")
-
-    # 대상 어종 (옵션)
+    image = serializers.ImageField(
+        required=True, help_text="물색(바다 색)을 촬영한 이미지 파일"
+    )
+    lat = serializers.FloatField(required=True, help_text="사용자 현재 위도")
+    lon = serializers.FloatField(required=True, help_text="사용자 현재 경도")
     target_fish = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        help_text="대상 어종 (쭈꾸미 / 갑오징어 / 쭈갑), 미선택시 기본 쭈갑",
+        required=False, allow_blank=True, help_text="대상 어종 (예: 쭈꾸미, 갑오징어)"
     )
 
     # 요청 시각 (옵션, ISO 8601 형식: 2025-12-06T09:00:00)
@@ -88,6 +83,10 @@ class EgiRecommendSerializer(serializers.Serializer):
         allow_null=True,
         help_text="요청 시각 (ISO 8601, 미전송 시 서버 시간이 사용됨)",
     )
+
+
+class WaterColorAnalyzeSerializer(serializers.Serializer):
+    image = serializers.ImageField(required=True, help_text="물색 분석용 이미지 파일")
 
 
 class OceanDataRequestSerializer(serializers.Serializer):

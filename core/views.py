@@ -35,6 +35,7 @@ from .serializers import (
     OceanDataRequestSerializer,
     SignupSerializer,
     LoginSerializer,
+    WaterColorAnalyzeSerializer,
 )
 from .utils.integrated_data_collector import collect_all_marine_data
 from .utils.fishing_index_api import SUPPORTED_FISH
@@ -175,18 +176,28 @@ class WaterColorAnalyzeView(APIView):
     """
 
     parser_classes = (MultiPartParser, FormParser)
-    serializer_class = EgiRecommendSerializer
+    serializer_class = EgiRecommendSerializer  # image 필드 재사용
 
+    @extend_schema(
+        summary="물색 분석 (YOLO Mock)",
+        description=(
+            "이미지 한 장을 받아 YOLO 물색 분석 결과를 돌려주는 Mock API입니다. "
+            "지금은 랜덤 결과를 반환하지만, 나중에 실제 YOLO inference로 교체 예정입니다."
+        ),
+        request=WaterColorAnalyzeSerializer,
+        responses={
+            200: OpenApiResponse(description="분석 결과 반환"),
+            400: OpenApiResponse(description="잘못된 요청"),
+        },
+    )
     def post(self, request):
-        if "image" not in request.FILES:
-            return Response(
-                {"error": "이미지 파일이 없습니다."}, status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = WaterColorAnalyzeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        image_file = request.FILES["image"]
+        image_file = serializer.validated_data["image"]
         print(f"📸 YOLO 분석 요청: {image_file.name}")
 
-        # 여기서는 간단 mock (랜덤) - 필요하면 analyze_water_color(image)로 교체 가능
+        # 여기서는 간단 mock (랜덤)
         import random
 
         class_names = ["Clear", "Muddy", "Moderate"]
@@ -219,6 +230,10 @@ class WaterColorAnalyzeView(APIView):
 
 class EgiRecommendView(APIView):
     """
+    물색 + 환경 데이터 + RAG 기반 에기 추천 API
+
+    ---
+
     Request (multipart/form-data):
       - image: 파일 (물색 사진)
       - lat: float
@@ -249,91 +264,68 @@ class EgiRecommendView(APIView):
         ]
       }
     }
+
     """
 
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = EgiRecommendSerializer
 
+    @extend_schema(
+        summary="에기 추천 (RAG + 물색 분석)",
+        description=(
+            "이미지(물색), 대상 어종(쭈꾸미/갑오징어/쭈갑), "
+            "사용자 위치(lat, lon)를 받아서\n"
+            "1) YOLO 물색 분석 → 2) 해양/기상 데이터 수집 → 3) RAG 기반 에기 추천을 수행합니다."
+        ),
+        request=EgiRecommendSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="성공적으로 에기 추천을 반환",
+                # 필요하면 샘플 JSON 예제도 추가 가능
+            ),
+            400: OpenApiResponse(description="요청 검증 실패"),
+            500: OpenApiResponse(description="서버 내부 오류"),
+        },
+    )
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
-
+        serializer = EgiRecommendSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1) 입력 값 추출
         uploaded_file = serializer.validated_data.get("image")
-        lat = serializer.validated_data.get("lat")
-        lon = serializer.validated_data.get("lon")
-        raw_target_fish = serializer.validated_data.get("target_fish")
-        requested_at = serializer.validated_data.get("requested_at")
+        lat = serializer.validated_data["lat"]
+        lon = serializer.validated_data["lon"]
+        target_fish = serializer.validated_data.get("target_fish") or "쭈갑"
 
-        print("====== [EGI RECOMMEND] 요청 수신 ======")
-        print(f"  위치: ({lat}, {lon})")
-        print(f"  대상 어종(raw): {raw_target_fish}")
-        print(f"  요청 시각: {requested_at}")
+        image = Image.open(uploaded_file)
 
-        try:
-            # ---------------------------------------------------------
-            # [Step 1] 이미지 → YOLO 물색 분석 (현재는 Mock 함수)
-            # ---------------------------------------------------------
-            image = Image.open(uploaded_file)
-            water_color_info = analyze_water_color(image)
-            water_color = water_color_info.get("water_color")
-            confidence = water_color_info.get("confidence")
+        # 1) YOLO 물색 분석 (현재는 mock or 실제 analyze_water_color 사용)
+        water_result = analyze_water_color(image)
+        water_color = water_result["water_color"]
+        confidence = water_result["confidence"]
 
-            print(f"  물색 분석 결과: {water_color} (confidence={confidence})")
+        # 2) 환경 데이터 수집 (바다낚시지수 + 부이 + KMA + 조석)
+        env = build_environment_context(lat, lon, target_fish)
 
-            # ---------------------------------------------------------
-            # [Step 2] 환경 데이터 수집 (collect_all_marine_data 사용)
-            # ---------------------------------------------------------
-            env_data = build_environment_context(lat, lon, raw_target_fish)
-            # env_data 안에는 water_temp, wave_height, wind_speed, weather, tide 등 들어있다고 가정
+        # 3) RAG 기반 에기 추천 (현재는 mock 또는 간단한 LLM 호출)
+        egi_recos = run_egi_rag(
+            water_color=water_color,
+            target_fish=target_fish,
+            env_data=env,
+        )
 
-            # 대상 어종 정규화: env_data > raw_target_fish > 기본 '쭈갑'
-            target_fish = env_data.get("target_fish") or raw_target_fish or "쭈갑"
-
-            print(f"  정규화된 대상 어종: {target_fish}")
-            print(f"  환경 데이터 키: {list(env_data.keys())}")
-
-            # ---------------------------------------------------------
-            # [Step 3] 에기 추천 (RAG 파이프라인)
-            # ---------------------------------------------------------
-            recommendations = run_egi_rag(
-                target_fish=target_fish,
-                water_color=water_color,
-                env_data=env_data,
-                limit=3,
-            )
-
-            # ---------------------------------------------------------
-            # [Step 4] 최종 응답 JSON 구성
-            # ---------------------------------------------------------
-            analysis_result = {
-                "water_color": water_color,
-                "confidence": confidence,
-            }
-
-            response_data = {
-                "status": "success",
-                "data": {
-                    "analysis_result": analysis_result,
-                    "environment": env_data,
-                    "recommendations": recommendations,
+        response_data = {
+            "status": "success",
+            "data": {
+                "analysis_result": {
+                    "water_color": water_color,
+                    "confidence": confidence,
                 },
-            }
-
-            print("====== [EGI RECOMMEND] 응답 생성 완료 ======")
-            return Response(response_data, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            print(f"❌ 에기 추천 처리 중 에러 발생: {e}")
-            import traceback
-
-            traceback.print_exc()
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+                "environment": env,
+                "recommendations": egi_recos,
+            },
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class SignupView(APIView):

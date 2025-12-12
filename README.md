@@ -180,6 +180,13 @@
 - 
 
 ---
+
+### 📜 API 문서
+- Swagger UI: `/api/schema/swagger-ui/`
+- OpenAPI JSON: `docs/openapi-schema.json`
+- ReDoc HTML: `docs/openapi-schema.html`
+
+C:\vs_code_prj\navis_project\docs\Navis Fishing Assistant API.yaml
 ### 🖨️ 백엔드 환경 세팅
 - `conda create --name navisenv python=3.9 --no-default-packages`
 - `conda activate navisenv`
