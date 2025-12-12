@@ -1,45 +1,49 @@
 # core/views.py
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+from datetime import datetime, date
 
-from .utils.integrated_data_collector import collect_all_marine_data
-from .utils.fishing_index_api import SUPPORTED_FISH
-from rest_framework import generics
-from .models import Diary
-from .serializers import (
-    DiarySerializer,
-    EgiRecommendSerializer,
-    OceanDataRequestSerializer,
-)
+# Django
+from django.contrib.auth import authenticate, get_user_model
+from django.core.paginator import Paginator
+from django.db.models import Q
+
+# Django REST framework
+from rest_framework import generics, status
+from rest_framework.authtoken.models import Token
 from rest_framework.parsers import MultiPartParser, FormParser
-from PIL import Image
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
+# drf-spectacular (OpenAPI / Swagger)
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     extend_schema,
     OpenApiParameter,
     OpenApiExample,
     OpenApiResponse,
 )
-from drf_spectacular.types import OpenApiTypes
 
-from .utils.egi_rag import run_egi_rag
-from .utils.egi_service import (
-    analyze_water_color,
-    build_environment_context,
+# 외부 라이브러리
+from PIL import Image
+
+# 앱 내부 모델 / 시리얼라이저 / 유틸
+from .models import User, Diary, Boat
+from .serializers import (
+    DiarySerializer,
+    EgiRecommendSerializer,
+    OceanDataRequestSerializer,
+    SignupSerializer,
+    LoginSerializer,
 )
-
-from django.contrib.auth import authenticate
-from django.contrib.auth import get_user_model
-from rest_framework.authtoken.models import Token
-from rest_framework.permissions import IsAuthenticated
-
-from .serializers import SignupSerializer, LoginSerializer
-
-from rest_framework.permissions import AllowAny, IsAuthenticated
-
-from core.models import User
+from .utils.integrated_data_collector import collect_all_marine_data
+from .utils.fishing_index_api import SUPPORTED_FISH
+from .utils.egi_rag import run_egi_rag
+from .utils.egi_service import analyze_water_color, build_environment_context
+from .utils.boat_schedule_service import (
+    find_nearest_available_schedule,
+    get_schedules_in_range,
+)
 
 
 class DiaryListView(generics.ListCreateAPIView):
@@ -441,6 +445,270 @@ class MeView(APIView):
                 "username": user.username,
                 "nickname": user.nickname,
                 "email": user.email,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class BoatSearchView(APIView):
+    """
+    보트 검색 + 보트별 가장 가까운 예약 가능 스케줄 1건 요약
+    """
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="area_main",
+                type=OpenApiTypes.STR,
+                description="광역 지역 (예: 경남, 전남, 제주 등)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="area_sub",
+                type=OpenApiTypes.STR,
+                description="세부 지역 (예: 통영, 완도, 제주시 등)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="area_sea",
+                type=OpenApiTypes.STR,
+                description="해역 (예: 동해안, 서해안, 남해안, 제주도, 기타)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="fish",
+                type=OpenApiTypes.STR,
+                description="타겟 어종 (부분 검색, 예: 주꾸미, 갑오징어, 시즌어종 등)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="date",
+                type=OpenApiTypes.DATE,
+                description="기준 날짜 (YYYY-MM-DD, 기본: 오늘). 이 날짜 기준 7일 내 스케줄 검색",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                description="페이지 번호(1부터, 기본 1)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                description="페이지 크기(기본 10, 최대 30)",
+                required=False,
+            ),
+        ],
+        responses=OpenApiTypes.OBJECT,
+    )
+    def get(self, request):
+        qs = Boat.objects.all()
+
+        area_main = request.query_params.get("area_main")
+        area_sub = request.query_params.get("area_sub")
+        area_sea = request.query_params.get("area_sea")
+        fish_raw = request.query_params.get("fish")
+        date_str = request.query_params.get("date")
+
+        page = int(request.query_params.get("page", 1))
+        page_size = int(request.query_params.get("page_size", 10))
+        if page_size > 30:
+            page_size = 30
+        if page_size < 1:
+            page_size = 10
+
+        # -----------------------
+        # 1) 지역 필터
+        # -----------------------
+        if area_main:
+            qs = qs.filter(area_main__icontains=area_main)
+        if area_sub:
+            qs = qs.filter(area_sub__icontains=area_sub)
+        if area_sea:
+            qs = qs.filter(area_sea__icontains=area_sea)
+
+        # -----------------------
+        # 2) 어종 필터
+        # -----------------------
+        if fish_raw:
+            keywords = [fish_raw]
+
+            if "쭈꾸미" in fish_raw:
+                normalized = fish_raw.replace("쭈꾸미", "주꾸미")
+                keywords.append(normalized)
+
+            if "쭈갑" in fish_raw:
+                normalized = fish_raw.replace("주꾸미", "갑오징어")
+                keywords.append(normalized)
+
+            if "시즌 어종" in fish_raw:
+                normalized = fish_raw.replace("시즌", "시즌어종")
+                keywords.append(normalized)
+
+            q_obj = Q()
+            for word in keywords:
+                q_obj |= Q(target_fish__icontains=word)
+
+            qs = qs.filter(q_obj)
+
+        # -----------------------
+        # 3) 날짜 파싱
+        # -----------------------
+        if date_str:
+            try:
+                base_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except ValueError:
+                return Response(
+                    {"error": "date 형식은 YYYY-MM-DD 여야 합니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            base_date = date.today()
+
+        paginator = Paginator(qs.order_by("boat_id"), page_size)
+        page_obj = paginator.get_page(page)
+
+        results = []
+        for boat in page_obj.object_list:
+            # ship_no 기반으로 근접 스케줄 1건 조회
+            schedule_summary = None
+            if boat.ship_no:
+                schedule_summary = find_nearest_available_schedule(
+                    ship_no=boat.ship_no,
+                    base_date=base_date,
+                    max_days=7,
+                )
+
+            results.append(
+                {
+                    "boat_id": boat.boat_id,
+                    "ship_no": boat.ship_no,
+                    "name": boat.name,
+                    "port": boat.port,
+                    "contact": boat.contact,
+                    "target_fish": boat.target_fish,
+                    "booking_url": boat.booking_url,
+                    "source_site": boat.source_site,
+                    "area_main": boat.area_main,
+                    "area_sub": boat.area_sub,
+                    "area_sea": boat.area_sea,
+                    "address": boat.address,
+                    "nearest_schedule": schedule_summary,
+                }
+            )
+
+        return Response(
+            {
+                "status": "success",
+                "filters": {
+                    "area_main": area_main,
+                    "area_sub": area_sub,
+                    "area_sea": area_sea,
+                    "fish": fish_raw,
+                    "date": base_date.isoformat(),
+                },
+                "pagination": {
+                    "page": page_obj.number,
+                    "page_size": page_size,
+                    "total_pages": paginator.num_pages,
+                    "total_boats": paginator.count,
+                    "has_next": page_obj.has_next(),
+                    "has_previous": page_obj.has_previous(),
+                },
+                "results": results,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class BoatScheduleView(APIView):
+    """
+    특정 보트의 기간별(기본 7일) 스케줄 조회
+    """
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="date",
+                type=OpenApiTypes.DATE,
+                description="기준 날짜 (YYYY-MM-DD, 기본: 오늘)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="days",
+                type=OpenApiTypes.INT,
+                description="조회 일수 (기본 7, 최대 14)",
+                required=False,
+            ),
+        ],
+        responses=OpenApiTypes.OBJECT,
+    )
+    def get(self, request, boat_id: int):
+        # Boat 조회
+        try:
+            boat = Boat.objects.get(pk=boat_id)
+        except Boat.DoesNotExist:
+            return Response(
+                {"error": "해당 boat_id를 찾을 수 없습니다.", "boat_id": boat_id},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not boat.ship_no:
+            return Response(
+                {
+                    "error": "이 보트에는 ship_no 정보가 없어 스케줄 조회가 불가능합니다."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        date_str = request.query_params.get("date")
+        days_str = request.query_params.get("days")
+
+        if date_str:
+            try:
+                base_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except ValueError:
+                return Response(
+                    {"error": "date 형식은 YYYY-MM-DD 여야 합니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            base_date = date.today()
+
+        days = 7
+        if days_str:
+            try:
+                days = int(days_str)
+            except ValueError:
+                pass
+
+        schedules = get_schedules_in_range(
+            ship_no=boat.ship_no,
+            base_date=base_date,
+            days=days,
+        )
+
+        return Response(
+            {
+                "status": "success",
+                "boat": {
+                    "boat_id": boat.boat_id,
+                    "ship_no": boat.ship_no,
+                    "name": boat.name,
+                    "port": boat.port,
+                    "contact": boat.contact,
+                    "target_fish": boat.target_fish,
+                    "booking_url": boat.booking_url,
+                    "source_site": boat.source_site,
+                    "area_main": boat.area_main,
+                    "area_sub": boat.area_sub,
+                    "area_sea": boat.area_sea,
+                    "address": boat.address,
+                },
+                "base_date": base_date.isoformat(),
+                "days": days,
+                "schedules": schedules,
             },
             status=status.HTTP_200_OK,
         )

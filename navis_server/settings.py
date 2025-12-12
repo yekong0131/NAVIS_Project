@@ -169,7 +169,7 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Navis Fishing Assistant API",
-    "DESCRIPTION": "낚시 포인트 환경 정보, 에기 추천 API 문서",
+    "DESCRIPTION": "낚시 도우미 어플 (용왕의 한 수) API 문서",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }

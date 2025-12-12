@@ -9,6 +9,8 @@ from .views import (
     SignupView,
     LoginView,
     MeView,
+    BoatSearchView,
+    BoatScheduleView,
 )
 
 urlpatterns = [
@@ -23,4 +25,10 @@ urlpatterns = [
     path("auth/signup/", SignupView.as_view(), name="auth-signup"),
     path("auth/login/", LoginView.as_view(), name="auth-login"),
     path("auth/me/", MeView.as_view(), name="auth-me"),
+    path("boats/search/", BoatSearchView.as_view(), name="boat-search"),
+    path(
+        "boats/<int:boat_id>/schedules/",
+        BoatScheduleView.as_view(),
+        name="boat-schedules",
+    ),
 ]

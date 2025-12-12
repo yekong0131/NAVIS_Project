@@ -91,7 +91,7 @@ def build_environment_context(
 
     # collect_all_marine_data 의 최종 결과 구조를 기반으로 매핑
     env: Dict[str, Any] = {
-        # 질문에서 제시한 핵심 3개
+        # 핵심 3개
         "water_temp": marine.get("water_temp"),
         "tide": marine.get("moon_phase"),  # 아직 없으면 None, 나중에 추가 가능
         "weather": _rain_to_text(marine.get("rain_type")),
