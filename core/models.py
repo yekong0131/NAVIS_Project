@@ -51,10 +51,9 @@ class FishingSpot(models.Model):
     # 좌표 (변환된 십진수 좌표)
     lat = models.FloatField()
     lon = models.FloatField()
-
-    # 원본 DMS 좌표
-    lat_dms = models.CharField(max_length=50, blank=True)
-    lon_dms = models.CharField(max_length=50, blank=True)
+    area_main = models.CharField(max_length=100, blank=True)
+    area_sub = models.CharField(max_length=100, blank=True)
+    area_sea = models.CharField(max_length=50, blank=True)
 
     # 상세 정보
     depth = models.TextField(blank=True)

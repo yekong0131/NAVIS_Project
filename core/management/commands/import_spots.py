@@ -79,14 +79,19 @@ class Command(BaseCommand):
                     name = row.get("포인트명1", "").strip()
                     detail_name = row.get("포인트명2", "").strip()
 
+                area_main, area_sub = split_area(row.get("행정구역명", ""))
+                area_sea = infer_area_sea(area_main, area_sub)
+
                 FishingSpot.objects.create(
                     name=name,
                     detail_name=detail_name,
                     address=row.get("행정구역명", ""),
+                    area_main=area_main,
+                    area_sub=area_sub,
+                    area_sea=area_sea,
                     lat=lat,
                     lon=lon,
                     depth=row.get("수심범위내용", ""),
-                    bottom_type=row.get("주원료내용", ""),
                     tide=row.get("조수물때내용", ""),
                     target_fish=row.get("낚시방법대상내용", ""),
                     method=method_text,
@@ -96,3 +101,67 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"[{method_text}] 포인트 {count}개 저장 완료!")
         )
+
+
+def split_area(address: str) -> str:
+    """
+    주소 문자열을 광역/세부 지역명으로 분리
+    """
+    address = (address or "").strip()
+    parts = address.split()
+
+    if len(parts) >= 2:
+        area_main = parts[0]  # 도/특별시/광역시
+        area_sub = parts[1]  # 시/군/구
+    elif len(parts) == 1:
+        area_main = parts[0]
+        area_sub = ""
+    else:
+        area_main = ""
+        area_sub = ""
+
+    return area_main, area_sub
+
+
+def infer_area_sea(area_main: str, area_sub: str) -> str:
+    """
+    area_main / area_sub 를 기반으로
+    서해안 / 동해안 / 남해안 / 제주도 / 기타 로 해역을 추정한다.
+    """
+    area_main = (area_main or "").strip()
+    area_sub = (area_sub or "").strip()
+
+    # 1차: 광역 기준
+    if area_main in ["인천광역시", "경기도", "충청남도", "전라북도", "서울특별시"]:
+        return "서해안"
+    if area_main in ["강원도", "경상북도", "울산광역시"]:
+        return "동해안"
+    if area_main in ["전라남도", "경상남도", "부산광역시"]:
+        return "남해안"
+    if area_main == "제주특별자치도":
+        return "제주도"
+
+    # 2차: 세부 지역명 기준(대충 키워드 매칭)
+    west_keywords = ["군산시", "목포시", "보령시", "태안시", "평택시", "영광군"]
+    east_keywords = [
+        "속초시",
+        "양양군",
+        "강릉시",
+        "동해시",
+        "포항시",
+        "울진군",
+        "영덕군",
+    ]
+    south_keywords = ["통영시", "여수시", "완도군", "진도군", "남해군", "거제시"]
+    jeju_keywords = ["제주시", "서귀포시"]
+
+    if any(k in area_sub for k in west_keywords):
+        return "서해안"
+    if any(k in area_sub for k in east_keywords):
+        return "동해안"
+    if any(k in area_sub for k in south_keywords):
+        return "남해안"
+    if any(k in area_sub for k in jeju_keywords):
+        return "제주도"
+
+    return "기타"

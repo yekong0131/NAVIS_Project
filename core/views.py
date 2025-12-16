@@ -70,7 +70,8 @@ class OceanDataView(APIView):
             "- 해양수산부 바다낚시지수 API\n"
             "- 해양관측부이 최신 관측 데이터\n"
             "- 기상청 초단기실황 API\n"
-            "- 조석(물때) API\n"
+            "- 조석예보 API\n"
+            "- 음력 변환(물때 계산) API\n"
             "를 통합한 환경 정보를 반환합니다.\n\n"
             "target_fish를 생략하면 기본값으로 '쭈갑'(쭈꾸미+갑오징어) 이 사용됩니다."
         ),
@@ -127,7 +128,9 @@ class OceanDataView(APIView):
                     "humidity": 51.0,
                     "rain_type": 0,
                     "record_time": "2025-12-09 오전",
-                    "moon_phase": "4물",
+                    "moon_phase": "4",
+                    "tide_formula": "8",
+                    "sol_date": "2025-12-09",
                     "next_high_tide": "20:04",
                     "next_low_tide": "13:36",
                     "tide_station": "덕적도",
@@ -488,7 +491,7 @@ class BoatSearchView(APIView):
             OpenApiParameter(
                 name="page_size",
                 type=OpenApiTypes.INT,
-                description="페이지 크기(기본 10, 최대 30)",
+                description="페이지 크기(기본 50, 최대 100)",
                 required=False,
             ),
         ],
@@ -505,10 +508,10 @@ class BoatSearchView(APIView):
 
         page = int(request.query_params.get("page", 1))
         page_size = int(request.query_params.get("page_size", 10))
-        if page_size > 30:
-            page_size = 30
-        if page_size < 1:
-            page_size = 10
+        if page_size > 100:
+            page_size = 100
+        if page_size < 50:
+            page_size = 50
 
         # -----------------------
         # 1) 지역 필터

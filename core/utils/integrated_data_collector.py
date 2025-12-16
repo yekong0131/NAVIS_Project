@@ -3,6 +3,7 @@
 통합 해양/기상 데이터 수집기
 """
 
+from core.utils.lun_cal_api import get_multtae_by_location
 from .fishing_index_api import get_fishing_index_data
 from .ocean_api import get_buoy_data
 from .kma_api import get_kma_weather
@@ -113,24 +114,41 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
         print(f"⚠️ 기상청 데이터 없음")
 
     # ================================================================
-    # [4순위] 조석예보 API (물때 정보)
+    # [4순위] 조석예보 API (만조/간조 시간 정보)
     # ================================================================
-    print(f"\n[4단계] 조석예보 API 시도 (물때 계산)")
+    print(f"\n[4단계] 조석예보 API 시도 (만조/간조 시간)")
     print("-" * 70)
 
     tide_data = get_tide_info(user_lat, user_lon)
 
     if tide_data:
-        print(f"✅ 물때 정보 수집 성공!")
-        final_result["moon_phase"] = tide_data.get("moon_phase")
+        print(f"✅ 조석 정보 수집 성공!")
         final_result["next_high_tide"] = tide_data.get("next_high_tide")
         final_result["next_low_tide"] = tide_data.get("next_low_tide")
         final_result["tide_station"] = tide_data.get("station_name")
-        print(f"    → 물때: {tide_data.get('moon_phase')}")
         print(f"    → 다음 만조: {tide_data.get('next_high_tide')}")
         print(f"    → 다음 간조: {tide_data.get('next_low_tide')}")
     else:
-        print(f"⚠️ 물때 정보 없음")
+        print(f"⚠️ 조석 정보 없음")
+
+    # ================================================================
+    # [5순위] 음력 변환 API (물때 계산)
+    # ================================================================
+    print(f"\n[5단계] 음력 변환 API 시도 (물때 계산)")
+    print("-" * 70)
+
+    luncal_data = get_multtae_by_location(user_lat, user_lon)
+
+    if luncal_data:
+        print(f"✅ 음력 정보 수집 성공!")
+        final_result["moon_phase"] = luncal_data.get("moon_phase")
+        final_result["tide_formula"] = luncal_data.get("tide_formula")
+        final_result["sol_date"] = luncal_data.get("sol_date")
+        print(f"    → 요청 날짜: {luncal_data.get('sol_date')}")
+        print(f"    → 물때: {luncal_data.get('moon_phase')}")
+        print(f"    → 계산 방법: {luncal_data.get('tide_formula')}")
+    else:
+        print(f"⚠️ 음력 정보 없음")
 
     # ================================================================
     # 최종 결과 출력
@@ -162,7 +180,8 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     print(f"  🎯 낚시점수: {final_result.get('fishing_score', 'N/A')}")
 
     print(f"\n  [물때 정보] ⭐")
-    print(f"  🌙 물때: {final_result.get('moon_phase', 'N/A')}")
+    print(f"  🌙 물때: {final_result.get('moon_phase', 'N/A')}물")
+    print(f"  🧮 계산 방법: {final_result.get('tide_formula', 'N/A')}물때 계산법")
     print(f"  ⬆️  다음 만조: {final_result.get('next_high_tide', 'N/A')}")
     print(f"  ⬇️  다음 간조: {final_result.get('next_low_tide', 'N/A')}")
     print(f"  📍 조위 관측소: {final_result.get('tide_station', 'N/A')}")
