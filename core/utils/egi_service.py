@@ -76,6 +76,7 @@ def build_environment_context(
     lat: float,
     lon: float,
     target_fish: Optional[str] = None,
+    requested_at: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """
     collect_all_marine_data 를 호출해서
@@ -83,7 +84,7 @@ def build_environment_context(
     """
 
     norm_target = normalize_target_fish(target_fish)
-    marine = collect_all_marine_data(lat, lon, norm_target)
+    marine = collect_all_marine_data(lat, lon, norm_target, requested_at)
 
     if not marine:
         print("[ENV] collect_all_marine_data 결과 없음, 빈 환경 데이터 반환")

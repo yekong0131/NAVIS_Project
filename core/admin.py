@@ -62,8 +62,32 @@ class DiaryCatchInline(admin.TabularInline):
     extra = 0
 
 
+class WeatherSnapshotInline(admin.TabularInline):
+    model = WeatherSnapshot
+    extra = 0
+
+
+class DiaryUsedEgiInline(admin.TabularInline):
+    model = DiaryUsedEgi
+    extra = 0
+
+
 @admin.register(Diary)
 class DiaryAdmin(admin.ModelAdmin):
-    list_display = ("user", "fishing_date", "location", "created_at")
+    list_display = (
+        "user",
+        "fishing_date",
+        "lon",
+        "lat",
+        "location_name",
+        "boat_name",
+        "created_at",
+        "updated_at",
+    )
     list_filter = ("fishing_date",)
-    inlines = [DiaryImageInline, DiaryCatchInline]  # 사진, 조과를 일지 안에서 같이 봄
+    inlines = [
+        DiaryImageInline,
+        DiaryCatchInline,
+        WeatherSnapshotInline,
+        DiaryUsedEgiInline,
+    ]

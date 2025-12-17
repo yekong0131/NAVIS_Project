@@ -146,20 +146,23 @@
   - 해양수산부 바다낚시지수 OpenAPI [[해양수산부-1]]
     - 수온, 파고, 유속, 바다낚시지수/점수 수집
   
-  - 해양수산부 해양관측부이 최신관측데이터 [[해양수산부-2]] 
+  - 해양수산부 해양관측부이 최신관측데이터 OpenAPI [[해양수산부-2]] 
     - 실시간 수온, 파고, 풍속·풍향 보완
   
-  - 기상청 초단기실황 API [[기상청-1]]
+  - 기상청 초단기실황 OpenAPI [[기상청-1]]
     - 기온, 습도, 강수형태, 풍속·풍향 보정용
   
-  - 해양수산부 조석예보 API [[조석-1]]
-    - 물때(○물), 만조/간조 시각 계산
+  - 해양수산부 조석예보 OpenAPI [[조석-1]]
+    - 만조/간조 시각 계산
+
+  - 한국천문연구원 음양력 정보 OpenAPI [[음양력-1]]
+    - 물때 계산
 
 [해양수산부-1]: https://www.data.go.kr/data/15142486/openapi.do
 [해양수산부-2]: https://www.khoa.go.kr/oceangrid/khoa/takepart/openapi/openApiObsBuRecentDataInfo.do
 [기상청-1]: https://www.data.go.kr/data/15084084/openapi.do
 [조석-1]: https://www.khoa.go.kr/oceangrid/khoa/takepart/openapi/openApiTideInfo.do
-
+[음양력-1]: https://www.data.go.kr/data/15012679/openapi.do
 
 ---
 
@@ -194,6 +197,9 @@ C:\vs_code_prj\navis_project\docs\Navis Fishing Assistant API.yaml
 
 ---
 ### ⚖️ Git Commit Convention
+
+- \[Tag\]: 설명
+
 | Tag Name | Description |
 | :--- | :--- |
 | **Feat** | 새로운 기능을 추가 |

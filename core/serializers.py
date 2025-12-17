@@ -1,28 +1,412 @@
 # core/serializers.py
 
+import json
 from rest_framework import serializers
-from .models import Diary, DiaryCatch, DiaryImage
-
 from django.contrib.auth import get_user_model
-from rest_framework import serializers
-
 from drf_spectacular.utils import extend_schema_field
+import os
+
+from core.utils.stt_service import STTParser
+from core.utils.location_service import get_coordinates_from_port
+from core.utils.weather_collector import (
+    should_collect_weather,
+    collect_and_save_weather,
+)
+from .models import (
+    Diary,
+    DiaryCatch,
+    DiaryImage,
+    DiaryUsedEgi,
+    EgiColor,
+    WeatherSnapshot,
+)
 
 User = get_user_model()
 
 
-class DiarySerializer(serializers.ModelSerializer):
-    date = serializers.SerializerMethodField()
-    fishCount = serializers.SerializerMethodField()
-    species = serializers.SerializerMethodField()
-    images = serializers.SerializerMethodField()
+# ========================
+# 기본 Serializers
+# ========================
+
+
+class EgiColorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EgiColor
+        fields = ["color_id", "color_name"]
+
+
+class DiaryImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.ImageField(use_url=True)
+
+    class Meta:
+        model = DiaryImage
+        fields = ["image_id", "image_url", "is_main"]
+
+
+class DiaryCatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiaryCatch
+        fields = ["catch_id", "fish_name", "count", "size"]
+
+
+class DiaryUsedEgiSerializer(serializers.ModelSerializer):
+    color_name = serializers.CharField(source="color_name.color_name", read_only=True)
+    color_id = serializers.IntegerField(source="color_name.color_id", read_only=True)
+
+    class Meta:
+        model = DiaryUsedEgi
+        fields = ["used_id", "color_id", "color_name"]
+
+
+class WeatherSnapshotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WeatherSnapshot
+        fields = [
+            "weather_id",
+            "temperature",
+            "water_temp",
+            "moon_phase",
+            "wind_speed",
+            "wind_direction_deg",
+            "wave_height",
+            "current_speed",
+            "weather_status",
+        ]
+
+
+# ========================
+# 낚시 일지 생성 Serializer
+# ========================
+
+
+# ==========================================
+# 조과 입력용 Serializer (검증용으로 사용)
+# ==========================================
+class DiaryCatchInputSerializer(serializers.Serializer):
+    fish_name = serializers.CharField(max_length=50)
+    count = serializers.IntegerField(min_value=0)
+    size = serializers.FloatField(required=False, allow_null=True)
+
+
+# ==========================================
+# 낚시 일지 생성 Serializer
+# ==========================================
+class DiaryCreateSerializer(serializers.ModelSerializer):
+    # 1. 이미지 (빈 리스트 허용)
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False,
+        allow_empty=True,
+        help_text="일지 사진",
+    )
+
+    # 2. 음성 파일
+    audio_file = serializers.FileField(
+        write_only=True, required=False, help_text="음성 녹음 파일"
+    )
+
+    # 3. 에기 색상 (유연한 입력 허용)
+    used_egi_colors = serializers.CharField(
+        write_only=True, required=False, help_text="예: [1, 2] 또는 1, 2"
+    )
+
+    # 4. 조과 데이터 (유연한 입력 허용)
+    catches = serializers.CharField(
+        write_only=True,
+        required=False,
+        help_text='예: [{"fish_name": "갑오징어", "count": 2}]',
+    )
+
+    class Meta:
+        model = Diary
+        fields = [
+            "fishing_date",
+            "location_name",
+            "lat",
+            "lon",
+            "boat_name",
+            "content",
+            "images",
+            "audio_file",
+            "used_egi_colors",
+            "catches",
+        ]
+        extra_kwargs = {
+            "fishing_date": {"required": False},
+            "location_name": {"required": False},
+            "lat": {"required": False},
+            "lon": {"required": False},
+            "boat_name": {"required": False},
+            "content": {"required": False},
+        }
+
+    # ----------------------------------------------------------------
+    # 1. 필드별 검증 및 파싱 (Validation)
+    # ----------------------------------------------------------------
+
+    def validate_used_egi_colors(self, value):
+        """다양한 포맷(JSON, Comma, Int)을 List[int]로 변환"""
+        if not value:
+            return []
+        if isinstance(value, list):
+            return value
+        if isinstance(value, int):
+            return [value]
+
+        # 문자열 처리
+        if isinstance(value, str):
+            value = value.strip()
+            # JSON 시도
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return parsed
+                if isinstance(parsed, int):
+                    return [parsed]
+            except:
+                pass
+            # 콤마 시도
+            if "," in value:
+                try:
+                    return [int(i.strip()) for i in value.split(",") if i.strip()]
+                except:
+                    pass
+            # 단일 숫자 시도
+            try:
+                return [int(value)]
+            except:
+                pass
+
+        raise serializers.ValidationError(
+            "올바른 형식이 아닙니다. (예: [1, 2] 또는 1, 2)"
+        )
+
+    def validate_catches(self, value):
+        """JSON 문자열을 파싱하고 구조 검증"""
+        if not value:
+            return []
+        try:
+            data = value if isinstance(value, list) else json.loads(value)
+            # 단일 객체면 리스트로 포장
+            if isinstance(data, dict):
+                data = [data]
+
+            input_serializer = DiaryCatchInputSerializer(data=data, many=True)
+            if input_serializer.is_valid():
+                return input_serializer.validated_data
+            raise serializers.ValidationError(input_serializer.errors)
+        except ValueError:
+            raise serializers.ValidationError("올바른 JSON 형식이 아닙니다.")
+
+    # ----------------------------------------------------------------
+    # 2. 전체 검증 (여기가 항구 좌표 자동 설정의 핵심!)
+    # ----------------------------------------------------------------
+    def validate(self, attrs):
+        location_name = attrs.get("location_name")
+        lat = attrs.get("lat")
+        lon = attrs.get("lon")
+
+        # [핵심 로직] 항구 이름은 있는데 좌표가 없으면 -> 좌표 자동 조회
+        if location_name and (lat is None or lon is None):
+            coords = get_coordinates_from_port(location_name)
+            if coords:
+                attrs["lat"] = coords[0]
+                attrs["lon"] = coords[1]
+                print(f"📍 좌표 자동 설정 완료: {location_name} -> {coords}")
+            else:
+                # 좌표를 못 찾으면 에러 발생 (또는 그냥 통과시키고 싶으면 pass)
+                raise serializers.ValidationError(
+                    f"'{location_name}'의 위치 정보를 찾을 수 없습니다."
+                )
+
+        # 최종 확인: 이름도 없고 좌표도 없으면 에러
+        # (단, audio_file이 있으면 STT로 찾을 수도 있으므로 통과)
+        if (
+            not attrs.get("location_name")
+            and (attrs.get("lat") is None)
+            and not attrs.get("audio_file")
+        ):
+            raise serializers.ValidationError(
+                "항구명, 좌표, 또는 음성 파일 중 하나는 필수입니다."
+            )
+
+        return attrs
+
+    # ----------------------------------------------------------------
+    # 3. 저장 로직 (Create)
+    # ----------------------------------------------------------------
+    def create(self, validated_data):
+        print(f"\n{'='*70} \n📝 낚시 일지 생성 시작 \n{'='*70}")
+
+        # 데이터 추출
+        images = validated_data.pop("images", [])
+        audio_file = validated_data.pop("audio_file", None)
+        egi_colors = validated_data.pop("used_egi_colors", [])
+        catches_data = validated_data.pop("catches", [])
+
+        # 사용자 할당
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            validated_data["user"] = request.user
+
+        # 1. Diary 생성 (이미 validate에서 좌표가 채워져 있음)
+        diary = Diary.objects.create(**validated_data)
+        print(f"✅ Diary 생성 완료: {diary.location_name} ({diary.lat}, {diary.lon})")
+
+        # 2. STT 처리 (음성 파일이 있는 경우)
+        stt_parsed_data = None
+        if audio_file:
+            try:
+                # STT 실행
+                stt_text = self._process_stt(audio_file)
+                diary.stt_text = stt_text
+                diary.stt_provider = os.getenv("STT_PROVIDER", "mock")
+
+                # 파싱 (GPT)
+                stt_parsed_data = STTParser.parse_all(stt_text)
+                updated = False
+
+                # [STT 핵심] 음성에서 나온 항구명으로 좌표 업데이트
+                if not diary.location_name and stt_parsed_data.get("location_name"):
+                    new_loc = stt_parsed_data["location_name"]
+                    diary.location_name = new_loc
+                    updated = True
+
+                    # 좌표 다시 조회
+                    coords = get_coordinates_from_port(new_loc)
+                    if coords:
+                        diary.lat, diary.lon = coords
+                        print(f"📍 STT 항구명으로 좌표 설정: {new_loc} -> {coords}")
+
+                if not diary.boat_name and stt_parsed_data.get("boat_name"):
+                    diary.boat_name = stt_parsed_data["boat_name"]
+                    updated = True
+
+                if updated:
+                    diary.save()
+
+            except Exception as e:
+                print(f"❌ STT 처리 실패: {e}")
+
+        # 3. 조과 데이터 저장
+        # 직접 입력이 있으면 그거 쓰고, 없으면 STT 결과 사용
+        final_catches = (
+            catches_data
+            if catches_data
+            else (stt_parsed_data.get("catches") if stt_parsed_data else [])
+        )
+        for c in final_catches:
+            DiaryCatch.objects.create(diary=diary, **c)
+
+        # 4. 에기 색상 저장
+        final_colors = egi_colors  # 직접 입력 우선
+        if not final_colors and stt_parsed_data and stt_parsed_data.get("colors"):
+            # STT 결과는 [{'color_id':1, ...}] 형태이므로 ID만 추출
+            final_colors = [c["color_id"] for c in stt_parsed_data["colors"]]
+
+        # 중복 제거 후 저장
+        for cid in set(final_colors):
+            try:
+                DiaryUsedEgi.objects.create(diary=diary, color_name_id=cid)
+            except:
+                pass
+
+        # 5. 이미지 저장
+        for idx, img in enumerate(images):
+            DiaryImage.objects.create(diary=diary, image_url=img, is_main=(idx == 0))
+
+        # 6. 날씨 수집
+        if diary.lat and diary.lon and should_collect_weather(diary.fishing_date):
+            collect_and_save_weather(diary, diary.lat, diary.lon, "쭈갑")
+
+        return diary
+
+    def _process_stt(self, audio_file):
+        """STT 실행 로직"""
+        stt_provider = os.getenv("STT_PROVIDER", "mock")
+        if stt_provider == "whisper":
+            from openai import OpenAI
+
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            # 튜플로 변환하여 전송 (중요!)
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=(audio_file.name, audio_file.read()),
+                language="ko",
+            )
+            return transcript.text
+        else:
+            from core.utils.mock_stt import mock_transcribe
+
+            return mock_transcribe(audio_file)
+
+
+# ========================
+# 낚시 일지 수정 Serializer
+# ========================
+class DiaryUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Diary
+        fields = [
+            "fishing_date",
+            "location_name",
+            "lat",
+            "lon",
+            "boat_name",
+            "content",
+        ]
+
+
+# ========================
+# 낚시 일지 상세보기 Serializer
+# ========================
+class DiaryDetailSerializer(serializers.ModelSerializer):
+    images = DiaryImageSerializer(many=True, read_only=True)
+    catches = DiaryCatchSerializer(many=True, read_only=True)
+    used_egis = DiaryUsedEgiSerializer(many=True, read_only=True)
+    weather = WeatherSnapshotSerializer(read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
 
     class Meta:
         model = Diary
         fields = [
             "diary_id",
+            "username",
+            "fishing_date",
+            "location_name",
+            "lat",
+            "lon",
+            "boat_name",
+            "content",
+            "stt_text",
+            "stt_provider",
+            "images",
+            "catches",
+            "used_egis",
+            "weather",
+            "created_at",
+            "updated_at",
+        ]
+
+
+# ========================
+# 낚시 일지 목록 Serializer
+# ========================
+class DiaryListSerializer(serializers.ModelSerializer):
+    date = serializers.SerializerMethodField()
+    fishCount = serializers.SerializerMethodField()
+    species = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
+    username = serializers.CharField(source="user.username", read_only=True)
+
+    class Meta:
+        model = Diary
+        fields = [
+            "diary_id",
+            "username",
             "date",
-            "location",
+            "location_name",
             "fishCount",
             "species",
             "content",
@@ -33,82 +417,54 @@ class DiarySerializer(serializers.ModelSerializer):
     def get_date(self, obj):
         return obj.fishing_date.strftime("%Y-%m-%d")
 
-    @extend_schema_field(serializers.IntegerField)
+    @extend_schema_field(serializers.CharField)
     def get_fishCount(self, obj):
-        total_count = sum(catch.count for catch in obj.catches.all())
-        return f"{total_count} 마리"
+        total = sum(catch.count for catch in obj.catches.all())
+        return f"{total}마리" if total > 0 else "0마리"
 
     @extend_schema_field(serializers.CharField)
     def get_species(self, obj):
-        first_catch = obj.catches.first()
-        return first_catch.fish_name if first_catch else "정보 없음"
+        catches = obj.catches.all()
+        if catches:
+            return ", ".join([f"{c.fish_name} {c.count}마리" for c in catches])
+        return "정보 없음"
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField()))
-    # 이미지가 없을 때도 안전하게 처리
     def get_images(self, obj):
         image_urls = []
         for img in obj.images.all():
-            # img.image_url은 ImageFieldFile 객체
-            # .url 속성을 호출해야 S3의 '진짜 주소(String)'가 나옴
             try:
                 if img.image_url:
                     image_urls.append(img.image_url.url)
             except ValueError:
-                # 파일이 없거나 깨진 경우 무시
                 continue
         return image_urls
 
 
+# ========================
+# 기타 Serializers
+# ========================
 class EgiRecommendSerializer(serializers.Serializer):
-    """에기 추천 요청용 Serializer
-
-    - image: 물 색 사진
-    - lat, lon: 사용자 위치
-    - target_fish: 쭈꾸미 / 갑오징어 / 쭈갑 (미선택시 쭈갑)
-    - requested_at: 요청 시각 (옵션, 없으면 서버 현재 시각 사용)
-    """
-
-    image = serializers.ImageField(
-        required=True, help_text="물색(바다 색)을 촬영한 이미지 파일"
-    )
-    lat = serializers.FloatField(required=True, help_text="사용자 현재 위도")
-    lon = serializers.FloatField(required=True, help_text="사용자 현재 경도")
-    target_fish = serializers.CharField(
-        required=False, allow_blank=True, help_text="대상 어종 (예: 쭈꾸미, 갑오징어)"
-    )
-
-    # 요청 시각 (옵션, ISO 8601 형식: 2025-12-06T09:00:00)
-    requested_at = serializers.DateTimeField(
-        required=False,
-        allow_null=True,
-        help_text="요청 시각 (ISO 8601, 미전송 시 서버 시간이 사용됨)",
-    )
+    image = serializers.ImageField(required=True)
+    lat = serializers.FloatField(required=True)
+    lon = serializers.FloatField(required=True)
+    target_fish = serializers.CharField(required=False, allow_blank=True)
+    requested_at = serializers.DateTimeField(required=False, allow_null=True)
 
 
 class WaterColorAnalyzeSerializer(serializers.Serializer):
-    image = serializers.ImageField(required=True, help_text="물색 분석용 이미지 파일")
+    image = serializers.ImageField(required=True)
 
 
 class OceanDataRequestSerializer(serializers.Serializer):
-    lat = serializers.FloatField(help_text="위도")
-    lon = serializers.FloatField(help_text="경도")
-    target_fish = serializers.CharField(
-        help_text="대상 어종 (쭈꾸미 / 갑오징어 / 쭈갑), 미선택시 기본 쭈갑",
-        required=False,
-        allow_blank=True,
-    )
+    lat = serializers.FloatField()
+    lon = serializers.FloatField()
+    target_fish = serializers.CharField(required=False, allow_blank=True)
 
 
 class SignupSerializer(serializers.ModelSerializer):
-    """
-    회원가입용 Serializer
-    username, password, nickname, email 을 입력받아 User 생성
-    """
-
     password = serializers.CharField(write_only=True, min_length=8)
-    password2 = serializers.CharField(
-        write_only=True, min_length=8, help_text="비밀번호 확인"
-    )
+    password2 = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = User
@@ -122,19 +478,10 @@ class SignupSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop("password")
         validated_data.pop("password2", None)
-
-        user = User.objects.create_user(
-            **validated_data,  # username, nickname, email
-            password=password,
-        )
+        user = User.objects.create_user(**validated_data, password=password)
         return user
 
 
 class LoginSerializer(serializers.Serializer):
-    """
-    로그인용 Serializer
-    username + password 조합으로 로그인
-    """
-
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)

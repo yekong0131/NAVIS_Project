@@ -10,7 +10,7 @@ from .kma_api import get_kma_weather
 from .tide_api import get_tide_info
 
 
-def collect_all_marine_data(user_lat, user_lon, target_fish=None):
+def collect_all_marine_data(user_lat, user_lon, target_fish=None, requested_at=None):
     """
     모든 소스에서 해양/기상 데이터 수집 (우선순위 적용)
 
@@ -29,6 +29,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     print(f"\n{'='*70}")
     print(f"🌊 통합 데이터 수집 시작")
     print(f"  📍 위치: ({user_lat}, {user_lon})")
+    print(f"  🕰️ 요청 시각: {requested_at}")
     print(f"  🎯 대상 어종: {target_fish}")
     print(f"{'='*70}")
 
@@ -61,7 +62,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     print(f"\n[1단계] 바다낚시지수 API 시도")
     print("-" * 70)
 
-    fishing_data = get_fishing_index_data(user_lat, user_lon, target_fish=target_fish)
+    fishing_data = get_fishing_index_data(user_lat, user_lon, target_fish=target_fish, requested_at=requested_at)
 
     if fishing_data:
         print(f"✅ 낚시지수 데이터 수집 성공!")
@@ -164,16 +165,16 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None):
     print(f"  🌡️  수온: {final_result.get('water_temp', 'N/A')}°C")
     print(f"  🌊 파고: {final_result.get('wave_height', 'N/A')}m")
     print(f"  💨 풍속: {final_result.get('wind_speed', 'N/A')}m/s")
+    print(
+        f"  🧭 풍향: {final_result.get('wind_direction_16', 'N/A')} "
+        f"({final_result.get('wind_direction_deg', 'N/A')}°)"
+    )
     print(f"  🌀 유속: {final_result.get('current_speed', 'N/A')}")
 
     print(f"\n  [기상 정보]")
     print(f"  🌡️  기온: {final_result.get('air_temp', 'N/A')}°C")
     print(f"  💧 습도: {final_result.get('humidity', 'N/A')}%")
     print(f"  ☔ 강수: {_rain_type_to_text(final_result.get('rain_type'))}")
-    print(
-        f"  🧭 풍향: {final_result.get('wind_direction_16', 'N/A')} "
-        f"({final_result.get('wind_direction_deg', 'N/A')}°)"
-    )
 
     print(f"\n  [낚시 정보]")
     print(f"  🎣 낚시지수: {final_result.get('fishing_index', 'N/A')}")

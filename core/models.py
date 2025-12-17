@@ -2,6 +2,7 @@
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
 
 
 # 0-1. 해양 관측 부이 (CSV 업로드용)
@@ -83,6 +84,21 @@ class TideStation(models.Model):
         return self.name
 
 
+# 0-5. 항구 정보 (CSV 업로드용)
+class Port(models.Model):
+    port_name = models.CharField(max_length=100, verbose_name="어항명")
+    address = models.CharField(max_length=255, verbose_name="주소")
+    lat = models.FloatField(verbose_name="위도")
+    lon = models.FloatField(verbose_name="경도")
+    remarks = models.TextField(null=True, blank=True, verbose_name="비고")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "ports"
+
+
 # 1. 사용자 (기본 User 모델 확장)
 class User(AbstractUser):
     nickname = models.CharField(max_length=50, unique=True)
@@ -120,7 +136,23 @@ class Boat(models.Model):
         ]
 
 
-# 3. 에기 기본 정보
+# 3. 에기 색상 마스터 테이블
+class EgiColor(models.Model):
+    """
+    에기 색상 마스터 테이블.
+    """
+
+    color_id = models.AutoField(primary_key=True)
+    color_name = models.CharField(max_length=50)
+
+    class Meta:
+        db_table = "egi_colors"
+
+    def __str__(self):
+        return self.color_name
+
+
+# 3-1. 에기 기본 정보
 class Egi(models.Model):
     """
     에기 기본 정보만 저장하는 테이블.
@@ -138,7 +170,7 @@ class Egi(models.Model):
         blank=True,
         help_text="S3에 업로드된 에기 이미지 URL",
     )
-    color = models.CharField(max_length=50, blank=True)  # 색상명
+    color = models.ForeignKey(EgiColor, on_delete=models.PROTECT)
     size = models.CharField(max_length=50, blank=True)  # 사이즈 (호수)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -150,7 +182,7 @@ class Egi(models.Model):
         return self.name
 
 
-# 3-1. 에기 추천 조건 (정규화: 에기 1개에 여러 조건 가능)
+# 3-2. 에기 추천 조건 (정규화: 에기 1개에 여러 조건 가능)
 class EgiCondition(models.Model):
     """
     하나의 에기에 대한 '상황별 추천 조건'을 저장하는 테이블.
@@ -243,11 +275,25 @@ class FishingInsight(models.Model):
 class Diary(models.Model):
     diary_id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    boat = models.ForeignKey(Boat, on_delete=models.SET_NULL, null=True, blank=True)
-    fishing_date = models.DateTimeField()
-    location = models.CharField(max_length=100)
-    content = models.TextField(blank=True)  # 메모
+
+    boat_name = models.CharField(max_length=100, blank=True, default="")
+
+    # 위치는 좌표로 저장(필수), 장소명은 옵션
+    lat = models.FloatField()
+    lon = models.FloatField()
+    location_name = models.CharField(max_length=100, blank=True, default="")
+
+    # 날짜/시간: 말 안 하면 now
+    fishing_date = models.DateTimeField(default=timezone.now)
+
+    content = models.TextField(blank=True, default="")
+
+    # STT 결과 저장
+    stt_text = models.TextField(blank=True, default="")
+    stt_provider = models.CharField(max_length=30, blank=True, default="mock")
+
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 # 5-1. 날씨 스냅샷 (일지 작성 시점)
@@ -258,9 +304,11 @@ class WeatherSnapshot(models.Model):
     )
     temperature = models.FloatField(null=True)
     water_temp = models.FloatField(null=True)
-    tide = models.CharField(max_length=50, blank=True)  # 물때
+    moon_phase = models.CharField(max_length=50, blank=True)  # 물때
     wind_speed = models.FloatField(null=True)
+    wind_direction_deg = models.CharField(max_length=30, null=True)
     wave_height = models.FloatField(null=True)
+    current_speed = models.FloatField(null=True)
     weather_status = models.CharField(max_length=50, blank=True)  # 맑음/흐림
 
 
@@ -287,4 +335,4 @@ class DiaryCatch(models.Model):
 class DiaryUsedEgi(models.Model):
     used_id = models.AutoField(primary_key=True)
     diary = models.ForeignKey(Diary, on_delete=models.CASCADE, related_name="used_egis")
-    color_name = models.CharField(max_length=50)  # 사용한 색상
+    color_name = models.ForeignKey(EgiColor, on_delete=models.PROTECT)  # 사용한 색상

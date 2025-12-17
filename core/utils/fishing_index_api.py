@@ -281,6 +281,7 @@ def get_fishing_index_data(
     user_lon: float,
     target_fish: Optional[str] = None,
     max_spots: int = 3,
+    requested_at: Optional[Any] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     사용자 위치 기준으로 가장 가까운 FishingSpot 들과
@@ -322,7 +323,9 @@ def get_fishing_index_data(
         print("  {}. {} ({}, ~{:.1f}km)".format(idx, spot.name, spot.method, dist))
 
     # 2) 바다낚시지수 API를 선상 + 갯바위 모두 호출
-    items = _get_all_items_for_both_gubun()
+    items = _get_all_items_for_both_gubun(
+        req_date=requested_at.strftime("%Y%m%d") if requested_at else None
+    )
     if not items:
         print("[낚시지수] ❌ 바다낚시지수 API 에서 데이터를 가져오지 못했습니다.")
         return None
