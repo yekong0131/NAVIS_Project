@@ -334,20 +334,6 @@ class DiaryCreateSerializer(serializers.ModelSerializer):
             return mock_transcribe(audio_file)
 
 
-# 수정
-class DiaryUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Diary
-        fields = [
-            "fishing_date",
-            "location_name",
-            "lat",
-            "lon",
-            "boat_name",
-            "content",
-        ]
-
-
 # 상세보기
 class DiaryDetailSerializer(serializers.ModelSerializer):
     images = DiaryImageSerializer(many=True, read_only=True)
@@ -431,6 +417,165 @@ class DiaryListSerializer(serializers.ModelSerializer):
 class DiaryCatchInputSerializer(serializers.Serializer):
     fish_name = serializers.CharField(max_length=50)
     count = serializers.IntegerField(min_value=0)
+
+
+# 수정
+class DiaryUpdateSerializer(serializers.ModelSerializer):
+    """
+    낚시 일지 수정용 Serializer
+    - 텍스트 데이터: 부분 수정 (Partial Update)
+    - 조과/에기 색상: 기존 데이터 삭제 후 재생성 (Replace)
+    - 이미지: 새 이미지 추가(images) + 기존 이미지 삭제(delete_image_ids) 지원
+    """
+
+    # 1. 새 이미지 업로드 (추가될 사진들)
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False,
+        allow_empty=True,
+    )
+
+    # 2. 삭제할 이미지 ID 목록 (예: "1, 3, 5" 또는 JSON 문자열)
+    delete_image_ids = serializers.CharField(
+        write_only=True,
+        required=False,
+        help_text="삭제할 기존 이미지의 ID 목록 (예: [10, 12] 또는 10,12)",
+    )
+
+    # 3. 조과/에기 데이터 (Create와 동일하게 JSON 문자열 처리)
+    used_egi_colors = serializers.CharField(write_only=True, required=False)
+    catches = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = Diary
+        fields = [
+            "fishing_date",
+            "location_name",
+            "lat",
+            "lon",
+            "boat_name",
+            "content",
+            "images",
+            "delete_image_ids",
+            "used_egi_colors",
+            "catches",
+        ]
+
+    # ----------------------------------------------------------------
+    # 검증 로직 (CreateSerializer와 동일한 파싱 로직 재사용 권장)
+    # ----------------------------------------------------------------
+    def validate_used_egi_colors(self, value):
+        """다양한 포맷(JSON, Comma, Int)을 List[int]로 변환"""
+        if not value:
+            return []
+        if isinstance(value, list):
+            return value
+        if isinstance(value, int):
+            return [value]
+
+        # 문자열 처리
+        if isinstance(value, str):
+            value = value.strip()
+            # JSON 시도
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return parsed
+                if isinstance(parsed, int):
+                    return [parsed]
+            except:
+                pass
+            # 콤마 시도
+            if "," in value:
+                try:
+                    return [int(i.strip()) for i in value.split(",") if i.strip()]
+                except:
+                    pass
+            # 단일 숫자 시도
+            try:
+                return [int(value)]
+            except:
+                pass
+
+        raise serializers.ValidationError(
+            "올바른 형식이 아닙니다. (예: [1, 2] 또는 1, 2)"
+        )
+
+    def validate_catches(self, value):
+        """JSON 문자열을 파싱하고 구조 검증"""
+        if not value:
+            return []
+        try:
+            data = value if isinstance(value, list) else json.loads(value)
+            # 단일 객체면 리스트로 포장
+            if isinstance(data, dict):
+                data = [data]
+
+            input_serializer = DiaryCatchInputSerializer(data=data, many=True)
+            if input_serializer.is_valid():
+                return input_serializer.validated_data
+            raise serializers.ValidationError(input_serializer.errors)
+        except ValueError:
+            raise serializers.ValidationError("올바른 JSON 형식이 아닙니다.")
+
+    # ----------------------------------------------------------------
+    # 수정 로직
+    # ----------------------------------------------------------------
+    def update(self, instance, validated_data):
+        print(f"🛠️ 일지 수정 시작: ID {instance.diary_id}")
+
+        # 1. 별도 처리할 필드들 추출
+        new_images = validated_data.pop("images", [])
+        delete_image_ids_str = validated_data.pop("delete_image_ids", None)
+        new_egi_colors = validated_data.pop("used_egi_colors", None)
+        new_catches = validated_data.pop("catches", None)
+
+        # 2. 기본 필드 업데이트 (content, location_name 등)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # 3. 이미지 삭제 처리
+        if delete_image_ids_str:
+            try:
+                # "[1, 2]" -> [1, 2] 파싱 로직 (CreateSerializer의 로직 활용)
+                if isinstance(delete_image_ids_str, list):
+                    ids = delete_image_ids_str
+                else:
+                    ids = json.loads(delete_image_ids_str)  # 혹은 콤마 분리
+
+                # 본인 일지의 이미지만 삭제
+                DiaryImage.objects.filter(diary=instance, image_id__in=ids).delete()
+                print(f"🗑️ 이미지 삭제 완료: {ids}")
+            except Exception as e:
+                print(f"⚠️ 이미지 삭제 중 오류: {e}")
+
+        # 4. 새 이미지 추가
+        for img in new_images:
+            DiaryImage.objects.create(diary=instance, image_url=img)
+            print(f"📸 새 이미지 추가: {img.name}")
+
+        # 5. 조과 정보 업데이트 (전체 삭제 후 재생성 전략)
+        if new_catches is not None:
+            # 기존 조과 삭제
+            instance.catches.all().delete()
+            # 새 조과 등록
+            for c in new_catches:
+                DiaryCatch.objects.create(diary=instance, **c)
+            print("🐟 조과 정보 업데이트 완료")
+
+        # 6. 에기 색상 업데이트 (전체 삭제 후 재생성)
+        if new_egi_colors is not None:
+            instance.used_egis.all().delete()
+            saved_ids = set()
+            for cid in new_egi_colors:
+                if cid not in saved_ids:
+                    DiaryUsedEgi.objects.create(diary=instance, color_name_id=cid)
+                    saved_ids.add(cid)
+            print("🎨 에기 정보 업데이트 완료")
+
+        instance.save()
+        return instance
 
 
 # ========================
@@ -599,8 +744,6 @@ class LoginSerializer(serializers.Serializer):
 # ========================
 # 선박 검색 Serializers
 # ========================
-
-
 class BoatItemSerializer(serializers.Serializer):
     """개별 선박 정보"""
 

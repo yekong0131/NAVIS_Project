@@ -112,10 +112,29 @@ class DiaryListCreateView(generics.ListCreateAPIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        # Serializer가 알아서 JSON 파싱까지 처리하므로 로직 단순화 가능
-        # 다만, 이미지 파일 처리를 위해 request.data 복사본을 넘기는 것은 권장 (선택 사항)
+        data = request.data.copy()
 
-        serializer = self.get_serializer(data=request.data)
+        # 'images' 필드 전처리 (빈 값 필터링)
+        # 클라이언트가 이미지를 보내지 않았을 때 [''] 형태로 들어오는 더미 데이터를 제거합니다.
+        if "images" in data:
+            raw_images = data.getlist("images")
+            cleaned_images = []
+
+            for img in raw_images:
+                # Case A: 문자열인 경우 (Swagger나 Postman이 빈 값을 ""로 보낼 때) -> 무시
+                if isinstance(img, str):
+                    continue
+
+                # Case B: 파일 객체지만 용량이 0인 경우 -> 무시
+                if hasattr(img, "size") and img.size == 0:
+                    continue
+
+                # 유효한 파일만 리스트에 추가
+                cleaned_images.append(img)
+            data.setlist("images", cleaned_images)
+
+        # Serializer 호출 (정제된 data 사용)
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         diary = serializer.save()
 
