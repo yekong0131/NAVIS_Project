@@ -278,9 +278,9 @@ class Diary(models.Model):
 
     boat_name = models.CharField(max_length=100, blank=True, default="")
 
-    # 위치는 좌표로 저장(필수), 장소명은 옵션
-    lat = models.FloatField()
-    lon = models.FloatField()
+    # 위치는 좌표로 저장, 장소명은 옵션
+    lat = models.FloatField(null=True, blank=True)
+    lon = models.FloatField(null=True, blank=True)
     location_name = models.CharField(max_length=100, blank=True, default="")
 
     # 날짜/시간: 말 안 하면 now
@@ -328,7 +328,6 @@ class DiaryCatch(models.Model):
     diary = models.ForeignKey(Diary, on_delete=models.CASCADE, related_name="catches")
     fish_name = models.CharField(max_length=50)  # 어종 (enum 대신 텍스트로)
     count = models.IntegerField(default=0)
-    size = models.FloatField(null=True, blank=True)
 
 
 # 5-4. 사용 에기

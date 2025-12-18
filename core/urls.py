@@ -6,6 +6,7 @@ from .views import (
     DiaryListCreateView,
     MyDiaryListView,
     OceanDataView,
+    PortSearchView,
     WaterColorAnalyzeView,
     EgiRecommendView,
     SignupView,
@@ -37,4 +38,6 @@ urlpatterns = [
         BoatScheduleView.as_view(),
         name="boat-schedules",
     ),
+    # 항구 검색 URL 추가
+    path("ports/search/", PortSearchView.as_view(), name="port-search"),
 ]

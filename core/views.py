@@ -34,15 +34,20 @@ from drf_spectacular.utils import (
 from PIL import Image
 
 # 앱 내부 모델 / 시리얼라이저 / 유틸
-from .models import EgiColor, User, Diary, Boat
+from .models import EgiColor, Port, User, Diary, Boat
 from .serializers import (
+    BoatScheduleResponseSerializer,
+    BoatSearchResponseSerializer,
     DiaryCreateSerializer,
     DiaryUpdateSerializer,
     DiaryDetailSerializer,
     DiaryListSerializer,
     EgiColorSerializer,
+    EgiRecommendResponseSerializer,
     EgiRecommendSerializer,
     OceanDataRequestSerializer,
+    OceanDataResponseSerializer,
+    PortSearchResultSerializer,
     SignupSerializer,
     LoginSerializer,
     WaterColorAnalyzeSerializer,
@@ -81,26 +86,6 @@ class EgiColorListView(generics.ListAPIView):
 # ========================
 # 낚시 일지 API
 # ========================
-# class DiaryCreateView(APIView):
-#     def post(self, request, *args, **kwargs):
-#         data = request.data.copy()  # request.data는 불변(immutable)이므로 복사
-
-#         # 'catches' 데이터가 문자열로 들어왔다면 JSON으로 변환(파싱)
-#         catches_data = data.get("catches")
-#         if catches_data and isinstance(catches_data, str):
-#             try:
-#                 data["catches"] = json.loads(catches_data)
-#             except ValueError:
-#                 return Response({"error": "Invalid JSON format in catches"}, status=400)
-
-#         # 변환된 data를 Serializer에 전달
-#         serializer = DiaryCreateSerializer(data=data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data, status=201)
-#         return Response(serializer.errors, status=400)
-
-
 class DiaryListCreateView(generics.ListCreateAPIView):
     """
     낚시 일지 목록 조회 / 생성 API
@@ -118,6 +103,14 @@ class DiaryListCreateView(generics.ListCreateAPIView):
             return DiaryCreateSerializer
         return DiaryListSerializer
 
+    @extend_schema(
+        summary="낚시 일지 등록",
+        description="낚시 일지를 등록합니다.",
+        responses={
+            201: OpenApiResponse(description="등록 성공"),
+            401: OpenApiResponse(description="로그인 후 작성 가능"),
+        },
+    )
     def post(self, request, *args, **kwargs):
         # Serializer가 알아서 JSON 파싱까지 처리하므로 로직 단순화 가능
         # 다만, 이미지 파일 처리를 위해 request.data 복사본을 넘기는 것은 권장 (선택 사항)
@@ -164,7 +157,7 @@ class DiaryDetailView(generics.RetrieveUpdateDestroyAPIView):
     lookup_url_kwarg = "diary_id"
 
     def get_serializer_class(self):
-        if self.request.method in ["PATCH", "PUT"]:
+        if self.request.method in ["PATCH"]:
             return DiaryUpdateSerializer
         return DiaryDetailSerializer
 
@@ -224,6 +217,79 @@ class DiaryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 # ========================
+# 항구 목록 검색
+# ========================
+class PortSearchView(APIView):
+    """
+    항구 이름으로 검색하여 목록 반환 (주소 포함)
+    GET /api/ports/search?q=덕포
+    """
+
+    @extend_schema(
+        summary="항구 이름 검색",
+        description="항구 이름을 기반으로 항구 목록을 반환합니다.",
+        responses={
+            200: PortSearchResultSerializer,
+            500: OpenApiResponse(description="서버 내부 오류"),
+        },
+        parameters=[
+            OpenApiParameter(
+                name="query",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="항구 이름",
+                required=True,
+            ),
+        ],
+        examples=[
+            OpenApiExample(
+                "성공 응답 예시",
+                value=[
+                    {
+                        "port_name": "구덕포항",
+                        "address": "부산광역시 해운대구 송정동 799-23번지 일원",
+                        "lat": 35.1696129,
+                        "lon": 129.1978433,
+                    },
+                    {
+                        "port_name": "덕포항",
+                        "address": "전라남도 여수시 남면 연도리",
+                        "lat": 34.4340186,
+                        "lon": 127.7999179,
+                    },
+                    {
+                        "port_name": "덕포항",
+                        "address": "경상남도 거제시 덕포동 81-6",
+                        "lat": 34.9123269,
+                        "lon": 128.7146413,
+                    },
+                ],
+            )
+        ],
+    )
+    def get(self, request):
+        query = request.query_params.get("query").strip()
+        if not query:
+            return Response({"error": "검색어를 입력해주세요."}, status=400)
+
+        # 이름에 검색어가 포함된 항구 찾기
+        ports = Port.objects.filter(port_name__contains=query)
+
+        results = []
+        for port in ports:
+            results.append(
+                {
+                    "port_name": port.port_name,  # 항구명
+                    "address": port.address,  # 주소 (사용자 구분용)
+                    "lat": port.lat,  # 위도
+                    "lon": port.lon,  # 경도
+                }
+            )
+
+        return Response(results, status=200)
+
+
+# ========================
 # 해양 데이터 API
 # ========================
 class OceanDataView(APIView):
@@ -268,9 +334,37 @@ class OceanDataView(APIView):
             ),
         ],
         responses={
-            200: OpenApiTypes.OBJECT,
+            200: OceanDataResponseSerializer,
             400: OpenApiTypes.OBJECT,
         },
+        examples=[
+            OpenApiExample(
+                "정상 응답 예시",
+                value={
+                    "source": "바다낚시지수 API",
+                    "location_name": "제주도 남동부",
+                    "target_fish": "쭈갑",
+                    "water_temp": 17.1,
+                    "wave_height": 0.1,
+                    "wind_speed": 3.9,
+                    "current_speed": 0.2,
+                    "fishing_index": "매우좋음",
+                    "fishing_score": 94.56,
+                    "air_temp": 12.2,
+                    "humidity": 61,
+                    "rain_type": 0,
+                    "record_time": "2025-12-18 오전",
+                    "moon_phase": "6",
+                    "next_high_tide": "20:28",
+                    "next_low_tide": "15:22",
+                    "tide_station": "성산포",
+                    "wind_direction_deg": 354,
+                    "wind_direction_16": "N",
+                    "tide_formula": "8",
+                    "sol_date": "2025-12-18",
+                },
+            )
+        ],
     )
     def get(self, request):
         try:
@@ -372,10 +466,48 @@ class EgiRecommendView(APIView):
         ),
         request=EgiRecommendSerializer,
         responses={
-            200: OpenApiResponse(description="성공적으로 에기 추천을 반환"),
+            200: EgiRecommendResponseSerializer,
             400: OpenApiResponse(description="요청 검증 실패"),
+            401: OpenApiResponse(description="로그인 후 사용 가능"),
             500: OpenApiResponse(description="서버 내부 오류"),
         },
+        examples=[
+            OpenApiExample(
+                "성공 응답 예시",
+                value={
+                    "status": "success",
+                    "data": {
+                        "analysis_result": {"water_color": "Muddy", "confidence": 95.5},
+                        "environment": {
+                            "water_temp": 17.1,
+                            "tide": "6",
+                            "tide_formula": "7",
+                            "weather": "없음/맑음",
+                            "wave_height": 0.1,
+                            "wind_speed": 4.2,
+                            "air_temp": 12.2,
+                            "humidity": 60,
+                            "current_speed": 0.2,
+                            "wind_direction_deg": 341,
+                            "wind_direction_16": "NNW",
+                            "fishing_index": "매우좋음",
+                            "fishing_score": 94.56,
+                            "source": "바다낚시지수 API",
+                            "location_name": "제주도 남동부",
+                            "record_time": "2025-12-18 오전",
+                            "target_fish": "쭈갑",
+                        },
+                        "recommendations": [
+                            {
+                                "color_name": "고추장 (Red)",
+                                "reason": "탁한 물색(Muddy)에서는 붉은 계열의 파장이 길어 시인성이 확보되며...",
+                                "score": 98.5,
+                            }
+                        ],
+                    },
+                },
+            )
+        ],
     )
     def post(self, request, *args, **kwargs):
         serializer = EgiRecommendSerializer(data=request.data)
@@ -537,6 +669,8 @@ class BoatSearchView(APIView):
     """
 
     @extend_schema(
+        summary="선박 검색",
+        description="검색 필터를 기반으로 선박을 검색합니다. (지역, 해역, 날짜, 어종)",
         parameters=[
             OpenApiParameter(
                 name="area_main",
@@ -581,7 +715,48 @@ class BoatSearchView(APIView):
                 required=False,
             ),
         ],
-        responses=OpenApiTypes.OBJECT,
+        responses={
+            200: BoatSearchResponseSerializer,
+            400: OpenApiTypes.OBJECT,
+        },
+        examples=[
+            OpenApiExample(
+                "검색 성공 예시",
+                value={
+                    "status": "success",
+                    "filters": {
+                        "area_main": "충남",
+                        "fish": "쭈꾸미",
+                        "date": "2024-10-01",
+                    },
+                    "pagination": {
+                        "page": 1,
+                        "page_size": 10,
+                        "total_pages": 5,
+                        "total_boats": 48,
+                        "has_next": True,
+                        "has_previous": False,
+                    },
+                    "results": [
+                        {
+                            "boat_id": 101,
+                            "ship_no": 12345,
+                            "name": "오천항 대박호",
+                            "port": "오천항",
+                            "contact": "010-1234-5678",
+                            "target_fish": "쭈꾸미, 갑오징어",
+                            "booking_url": "http://...",
+                            "source_site": "TheFishing",
+                            "area_main": "충남",
+                            "area_sub": "보령시",
+                            "area_sea": "서해",
+                            "address": "충남 보령시 오천면...",
+                            "nearest_schedule": {"date": "2024-10-05", "available": 3},
+                        }
+                    ],
+                },
+            )
+        ],
     )
     def get(self, request):
         qs = Boat.objects.all()
@@ -690,6 +865,8 @@ class BoatScheduleView(APIView):
     """
 
     @extend_schema(
+        summary="특정 선박 스케줄 조회",
+        description="선박 id를 기반으로 해당 선박의 스케줄을 조회합니다. (7~14일)",
         parameters=[
             OpenApiParameter(
                 name="date",
@@ -704,7 +881,50 @@ class BoatScheduleView(APIView):
                 required=False,
             ),
         ],
-        responses=OpenApiTypes.OBJECT,
+        responses={
+            200: BoatScheduleResponseSerializer,
+            400: OpenApiTypes.OBJECT,
+            404: OpenApiTypes.OBJECT,
+        },
+        examples=[
+            OpenApiExample(
+                "스케줄 조회 성공 예시",
+                value={
+                    "status": "success",
+                    "boat": {
+                        "boat_id": 101,
+                        "ship_no": 12345,
+                        "name": "오천항 대박호",
+                        "port": "오천항",
+                        "contact": "010-1234-5678",
+                        "target_fish": "쭈갑",
+                        "booking_url": "http://...",
+                    },
+                    "base_date": "2024-10-01",
+                    "days": 3,
+                    "schedules": [
+                        {
+                            "date": "2024-10-01",
+                            "day_of_week": "화",
+                            "status": "마감",
+                            "available_count": 0,
+                        },
+                        {
+                            "date": "2024-10-02",
+                            "day_of_week": "수",
+                            "status": "예약가능",
+                            "available_count": 5,
+                        },
+                        {
+                            "date": "2024-10-03",
+                            "day_of_week": "목",
+                            "status": "예약가능",
+                            "available_count": 2,
+                        },
+                    ],
+                },
+            )
+        ],
     )
     def get(self, request, boat_id: int):
         try:

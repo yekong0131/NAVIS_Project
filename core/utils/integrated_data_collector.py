@@ -49,6 +49,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None, requested_at=N
         "rain_type": None,
         "record_time": None,
         "moon_phase": None,
+        "tide_formula": None,
         "next_high_tide": None,
         "next_low_tide": None,
         "tide_station": None,
@@ -62,7 +63,9 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None, requested_at=N
     print(f"\n[1단계] 바다낚시지수 API 시도")
     print("-" * 70)
 
-    fishing_data = get_fishing_index_data(user_lat, user_lon, target_fish=target_fish, requested_at=requested_at)
+    fishing_data = get_fishing_index_data(
+        user_lat, user_lon, target_fish=target_fish, requested_at=requested_at
+    )
 
     if fishing_data:
         print(f"✅ 낚시지수 데이터 수집 성공!")

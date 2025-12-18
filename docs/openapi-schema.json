@@ -7,27 +7,26 @@ paths:
   /api/analyze/color/:
     post:
       operationId: analyze_color_create
-      description: 물색 분석 Mock API (단독 테스트용)
+      description: 이미지를 받아 YOLO 물색 분석 결과를 반환합니다.
+      summary: 물색 분석 (YOLO Mock)
       tags:
       - analyze
       requestBody:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/EgiRecommend'
+              $ref: '#/components/schemas/WaterColorAnalyzeRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/EgiRecommend'
+              $ref: '#/components/schemas/WaterColorAnalyzeRequest'
         required: true
       security:
       - tokenAuth: []
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EgiRecommend'
-          description: ''
+          description: 분석 결과 반환
+        '400':
+          description: 잘못된 요청
   /api/auth/login/:
     post:
       operationId: auth_login_create
@@ -39,24 +38,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Login'
+              $ref: '#/components/schemas/LoginRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Login'
+              $ref: '#/components/schemas/LoginRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Login'
+              $ref: '#/components/schemas/LoginRequest'
         required: true
       security:
       - tokenAuth: []
       - {}
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: {}
           description: 로그인 성공
         '400':
           description: 입력 오류 / 인증 실패
@@ -78,7 +72,7 @@ paths:
                 additionalProperties: {}
           description: ''
         '401':
-          description: 인증 필요 / 토큰 없음
+          description: 인증 필요
   /api/auth/signup/:
     post:
       operationId: auth_signup_create
@@ -90,30 +84,27 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Signup'
+              $ref: '#/components/schemas/SignupRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Signup'
+              $ref: '#/components/schemas/SignupRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Signup'
+              $ref: '#/components/schemas/SignupRequest'
         required: true
       security:
       - tokenAuth: []
       - {}
       responses:
         '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Signup'
           description: 회원 생성 성공
         '400':
           description: 유효성 검사 실패
   /api/boats/{boat_id}/schedules/:
     get:
       operationId: boats_schedules_retrieve
-      description: 특정 보트의 기간별(기본 7일) 스케줄 조회
+      description: 선박 id를 기반으로 해당 선박의 스케줄을 조회합니다. (7~14일)
+      summary: 특정 선박 스케줄 조회
       parameters:
       - in: path
         name: boat_id
@@ -125,12 +116,12 @@ paths:
         schema:
           type: string
           format: date
-        description: '기준 날짜 (YYYY-MM-DD, 기본: 오늘)'
+        description: 기준 날짜
       - in: query
         name: days
         schema:
           type: integer
-        description: 조회 일수 (기본 7, 최대 14)
+        description: 조회 일수
       tags:
       - boats
       security:
@@ -138,6 +129,47 @@ paths:
       - {}
       responses:
         '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoatScheduleResponse'
+              examples:
+                스케줄조회성공예시:
+                  value:
+                    status: success
+                    boat:
+                      boat_id: 101
+                      ship_no: 12345
+                      name: 오천항 대박호
+                      port: 오천항
+                      contact: 010-1234-5678
+                      target_fish: 쭈갑
+                      booking_url: http://...
+                    base_date: '2024-10-01'
+                    days: 3
+                    schedules:
+                    - date: '2024-10-01'
+                      day_of_week: 화
+                      status: 마감
+                      available_count: 0
+                    - date: '2024-10-02'
+                      day_of_week: 수
+                      status: 예약가능
+                      available_count: 5
+                    - date: '2024-10-03'
+                      day_of_week: 목
+                      status: 예약가능
+                      available_count: 2
+                  summary: 스케줄 조회 성공 예시
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
           content:
             application/json:
               schema:
@@ -147,44 +179,45 @@ paths:
   /api/boats/search/:
     get:
       operationId: boats_search_retrieve
-      description: 보트 검색 + 보트별 가장 가까운 예약 가능 스케줄 1건 요약
+      description: 검색 필터를 기반으로 선박을 검색합니다. (지역, 해역, 날짜, 어종)
+      summary: 선박 검색
       parameters:
       - in: query
         name: area_main
         schema:
           type: string
-        description: '광역 지역 (예: 경남, 전남, 제주 등)'
+        description: 광역 지역
       - in: query
         name: area_sea
         schema:
           type: string
-        description: '해역 (예: 동해안, 서해안, 남해안, 제주도, 기타)'
+        description: 해역
       - in: query
         name: area_sub
         schema:
           type: string
-        description: '세부 지역 (예: 통영, 완도, 제주시 등)'
+        description: 세부 지역
       - in: query
         name: date
         schema:
           type: string
           format: date
-        description: '기준 날짜 (YYYY-MM-DD, 기본: 오늘). 이 날짜 기준 7일 내 스케줄 검색'
+        description: 기준 날짜 (YYYY-MM-DD)
       - in: query
         name: fish
         schema:
           type: string
-        description: '타겟 어종 (부분 검색, 예: 주꾸미, 갑오징어, 시즌어종 등)'
+        description: 타겟 어종
       - in: query
         name: page
         schema:
           type: integer
-        description: 페이지 번호(1부터, 기본 1)
+        description: 페이지 번호
       - in: query
         name: page_size
         schema:
           type: integer
-        description: 페이지 크기(기본 10, 최대 30)
+        description: 페이지 크기
       tags:
       - boats
       security:
@@ -195,13 +228,55 @@ paths:
           content:
             application/json:
               schema:
+                $ref: '#/components/schemas/BoatSearchResponse'
+              examples:
+                검색성공예시:
+                  value:
+                    status: success
+                    filters:
+                      area_main: 충남
+                      fish: 쭈꾸미
+                      date: '2024-10-01'
+                    pagination:
+                      page: 1
+                      page_size: 10
+                      total_pages: 5
+                      total_boats: 48
+                      has_next: true
+                      has_previous: false
+                    results:
+                    - boat_id: 101
+                      ship_no: 12345
+                      name: 오천항 대박호
+                      port: 오천항
+                      contact: 010-1234-5678
+                      target_fish: 쭈꾸미, 갑오징어
+                      booking_url: http://...
+                      source_site: TheFishing
+                      area_main: 충남
+                      area_sub: 보령시
+                      area_sea: 서해
+                      address: 충남 보령시 오천면...
+                      nearest_schedule:
+                        date: '2024-10-05'
+                        available: 3
+                  summary: 검색 성공 예시
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
                 type: object
                 additionalProperties: {}
           description: ''
   /api/diaries/:
     get:
       operationId: diaries_list
-      description: 낚시 일지 목록 조회/생성 API
+      description: |-
+        낚시 일지 목록 조회 / 생성 API
+
+        - GET: 전체 낚시 일지 목록 (페이징)
+        - POST: 새 낚시 일지 등록 (인증 필요)
       tags:
       - diaries
       security:
@@ -214,78 +289,182 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Diary'
+                  $ref: '#/components/schemas/DiaryList'
           description: ''
     post:
       operationId: diaries_create
-      description: 낚시 일지 목록 조회/생성 API
+      description: 낚시 일지를 등록합니다.
+      summary: 낚시 일지 등록
+      tags:
+      - diaries
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DiaryCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DiaryCreateRequest'
+      security:
+      - tokenAuth: []
+      responses:
+        '201':
+          description: 등록 성공
+        '401':
+          description: 로그인 후 작성 가능
+  /api/diaries/{diary_id}/:
+    get:
+      operationId: diaries_retrieve
+      description: 낚시 일지의 상세 정보를 조회합니다. (날씨, 사진, 조과, 에기 정보 포함)
+      summary: 낚시 일지 상세보기
+      parameters:
+      - in: path
+        name: diary_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - diaries
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiaryDetail'
+          description: ''
+        '404':
+          description: 일지를 찾을 수 없음
+    put:
+      operationId: diaries_update
+      description: |-
+        낚시 일지 상세보기 / 수정 / 삭제 API
+
+        - GET: 일지 상세 정보 (모든 사용자 가능)
+        - PATCH: 일지 수정 (작성자만 가능)
+        - DELETE: 일지 삭제 (작성자만 가능)
+      parameters:
+      - in: path
+        name: diary_id
+        schema:
+          type: integer
+        required: true
       tags:
       - diaries
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Diary'
+              $ref: '#/components/schemas/DiaryDetailRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Diary'
+              $ref: '#/components/schemas/DiaryDetailRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Diary'
-        required: true
+              $ref: '#/components/schemas/DiaryDetailRequest'
       security:
       - tokenAuth: []
       responses:
-        '201':
+        '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Diary'
+                $ref: '#/components/schemas/DiaryDetail'
+          description: ''
+    patch:
+      operationId: diaries_partial_update
+      description: 자신이 작성한 낚시 일지를 수정합니다.
+      summary: 낚시 일지 수정
+      parameters:
+      - in: path
+        name: diary_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - diaries
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDiaryUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDiaryUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDiaryUpdateRequest'
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiaryDetail'
+          description: ''
+        '403':
+          description: 권한 없음 (작성자만 가능)
+        '404':
+          description: 일지를 찾을 수 없음
+    delete:
+      operationId: diaries_destroy
+      description: 자신이 작성한 낚시 일지를 삭제합니다.
+      summary: 낚시 일지 삭제
+      parameters:
+      - in: path
+        name: diary_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - diaries
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: 삭제 성공
+        '403':
+          description: 권한 없음 (작성자만 가능)
+        '404':
+          description: 일지를 찾을 수 없음
+  /api/diaries/my/:
+    get:
+      operationId: diaries_my_list
+      description: 로그인한 사용자가 작성한 낚시 일지 목록을 조회합니다.
+      summary: 내 낚시 일지 목록 조회
+      tags:
+      - diaries
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DiaryList'
           description: ''
   /api/egi/recommend/:
     post:
       operationId: egi_recommend_create
       description: |-
-        Request (multipart/form-data):
-          - image: 파일 (물색 사진)
-          - lat: float
-          - lon: float
-          - target_fish: str (옵션, 쭈꾸미/갑오징어/쭈갑, 기본 쭈갑)
-          - requested_at: datetime (옵션, ISO 8601)
-
-        Response (JSON):
-
-        {
-          "status": "success",
-          "data": {
-            "analysis_result": {
-              "water_color": "Muddy",
-              "confidence": 95.5
-            },
-            "environment": { ... collect_all_marine_data 기반 ... },
-            "recommendations": [
-              {
-                "rank": 1,
-                "name": "에기 이름",
-                "brand": "브랜드",
-                "image_url": "https://.../egi_image/10.jpg",
-                "score": 90,
-                "reason": "이유 설명..."
-              },
-              ...
-            ]
-          }
-        }
+        이미지(물색), 대상 어종, 사용자 위치를 받아서
+        1) YOLO 물색 분석 → 2) 해양/기상 데이터 수집 → 3) RAG 기반 에기 추천
+      summary: 에기 추천 (RAG + 물색 분석)
       tags:
       - egi
       requestBody:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/EgiRecommend'
+              $ref: '#/components/schemas/EgiRecommendRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/EgiRecommend'
+              $ref: '#/components/schemas/EgiRecommendRequest'
         required: true
       security:
       - tokenAuth: []
@@ -294,8 +473,45 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EgiRecommend'
+                $ref: '#/components/schemas/EgiRecommendResponse'
+              examples:
+                성공응답예시:
+                  value:
+                    status: success
+                    data:
+                      analysis_result:
+                        water_color: Muddy
+                        confidence: 95.5
+                      environment:
+                        water_temp: 17.1
+                        tide: '6'
+                        tide_formula: '7'
+                        weather: 없음/맑음
+                        wave_height: 0.1
+                        wind_speed: 4.2
+                        air_temp: 12.2
+                        humidity: 60
+                        current_speed: 0.2
+                        wind_direction_deg: 341
+                        wind_direction_16: NNW
+                        fishing_index: 매우좋음
+                        fishing_score: 94.56
+                        source: 바다낚시지수 API
+                        location_name: 제주도 남동부
+                        record_time: 2025-12-18 오전
+                        target_fish: 쭈갑
+                      recommendations:
+                      - color_name: 고추장 (Red)
+                        reason: 탁한 물색(Muddy)에서는 붉은 계열의 파장이 길어 시인성이 확보되며...
+                        score: 98.5
+                  summary: 성공 응답 예시
           description: ''
+        '400':
+          description: 요청 검증 실패
+        '401':
+          description: 로그인 후 사용 가능
+        '500':
+          description: 서버 내부 오류
   /api/ocean/:
     get:
       operationId: ocean_retrieve
@@ -304,10 +520,9 @@ paths:
         - 해양수산부 바다낚시지수 API
         - 해양관측부이 최신 관측 데이터
         - 기상청 초단기실황 API
-        - 조석(물때) API
+        - 조석예보 API
+        - 음력 변환(물때 계산) API
         를 통합한 환경 정보를 반환합니다.
-
-        target_fish를 생략하면 기본값으로 '쭈갑'(쭈꾸미+갑오징어) 이 사용됩니다.
       summary: 통합 해양/기상 데이터 조회
       parameters:
       - in: query
@@ -315,20 +530,20 @@ paths:
         schema:
           type: number
           format: float
-        description: '사용자 위치 위도 (예: 35.1)'
+        description: 사용자 위치 위도
         required: true
       - in: query
         name: lon
         schema:
           type: number
           format: float
-        description: '사용자 위치 경도 (예: 129.0)'
+        description: 사용자 위치 경도
         required: true
       - in: query
         name: target_fish
         schema:
           type: string
-        description: 대상 어종 (쭈꾸미, 갑오징어, 쭈갑). 미입력 시 기본값 '쭈갑'
+        description: '대상 어종 (기본: 쭈갑)'
       tags:
       - ocean
       security:
@@ -339,31 +554,32 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: {}
+                $ref: '#/components/schemas/OceanDataResponse'
               examples:
-                성공응답예시:
+                정상응답예시:
                   value:
                     source: 바다낚시지수 API
-                    location_name: 문갑도·선갑도
-                    target_fish: 쭈꾸미
-                    water_temp: 11.7
-                    wave_height: 0.3
-                    wind_speed: 2.3
-                    current_speed: 2.2
-                    fishing_index: 보통
-                    fishing_score: 62.59
-                    air_temp: 6.9
-                    humidity: 51.0
+                    location_name: 제주도 남동부
+                    target_fish: 쭈갑
+                    water_temp: 17.1
+                    wave_height: 0.1
+                    wind_speed: 3.9
+                    current_speed: 0.2
+                    fishing_index: 매우좋음
+                    fishing_score: 94.56
+                    air_temp: 12.2
+                    humidity: 61
                     rain_type: 0
-                    record_time: 2025-12-09 오전
-                    moon_phase: 4물
-                    next_high_tide: '20:04'
-                    next_low_tide: '13:36'
-                    tide_station: 덕적도
-                    wind_direction_deg: 49.0
-                    wind_direction_16: NE
-                  summary: 성공 응답 예시
+                    record_time: 2025-12-18 오전
+                    moon_phase: '6'
+                    next_high_tide: '20:28'
+                    next_low_tide: '15:22'
+                    tide_station: 성산포
+                    wind_direction_deg: 354
+                    wind_direction_16: N
+                    tide_formula: '8'
+                    sol_date: '2025-12-18'
+                  summary: 정상 응답 예시
           description: ''
         '400':
           content:
@@ -372,22 +588,408 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/ports/search/:
+    get:
+      operationId: ports_search_retrieve
+      description: 항구 이름을 기반으로 항구 목록을 반환합니다.
+      summary: 항구 이름 검색
+      parameters:
+      - in: query
+        name: query
+        schema:
+          type: string
+        description: 항구 이름
+        required: true
+      tags:
+      - ports
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortSearchResult'
+              examples:
+                성공응답예시:
+                  value:
+                  - port_name: 구덕포항
+                    address: 부산광역시 해운대구 송정동 799-23번지 일원
+                    lat: 35.1696129
+                    lon: 129.1978433
+                  - port_name: 덕포항
+                    address: 전라남도 여수시 남면 연도리
+                    lat: 34.4340186
+                    lon: 127.7999179
+                  - port_name: 덕포항
+                    address: 경상남도 거제시 덕포동 81-6
+                    lat: 34.9123269
+                    lon: 128.7146413
+                  summary: 성공 응답 예시
+          description: ''
+        '500':
+          description: 서버 내부 오류
 components:
   schemas:
-    Diary:
+    BoatItem:
+      type: object
+      description: 개별 선박 정보
+      properties:
+        boat_id:
+          type: integer
+        ship_no:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        port:
+          type: string
+        contact:
+          type: string
+          nullable: true
+        target_fish:
+          type: string
+        booking_url:
+          type: string
+          nullable: true
+        source_site:
+          type: string
+        area_main:
+          type: string
+        area_sub:
+          type: string
+        area_sea:
+          type: string
+        address:
+          type: string
+        nearest_schedule:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description: 가장 가까운 예약 가능일 정보
+      required:
+      - address
+      - area_main
+      - area_sea
+      - area_sub
+      - boat_id
+      - booking_url
+      - contact
+      - name
+      - nearest_schedule
+      - port
+      - ship_no
+      - source_site
+      - target_fish
+    BoatPagination:
+      type: object
+      description: 페이지네이션 정보
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_pages:
+          type: integer
+        total_boats:
+          type: integer
+        has_next:
+          type: boolean
+        has_previous:
+          type: boolean
+      required:
+      - has_next
+      - has_previous
+      - page
+      - page_size
+      - total_boats
+      - total_pages
+    BoatScheduleResponse:
+      type: object
+      description: 최종 스케줄 응답
+      properties:
+        status:
+          type: string
+          description: '응답 상태 (예: success)'
+        boat:
+          $ref: '#/components/schemas/BoatSimpleInfo'
+        base_date:
+          type: string
+          format: date
+          description: 조회 기준일
+        days:
+          type: integer
+          description: 조회 기간
+        schedules:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleItem'
+          description: 일자별 스케줄 목록
+      required:
+      - base_date
+      - boat
+      - days
+      - schedules
+      - status
+    BoatSearchResponse:
+      type: object
+      description: 최종 선박 검색 응답
+      properties:
+        status:
+          type: string
+          description: '응답 상태 (예: success)'
+        filters:
+          type: object
+          additionalProperties: {}
+          description: 적용된 필터
+        pagination:
+          $ref: '#/components/schemas/BoatPagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoatItem'
+      required:
+      - filters
+      - pagination
+      - results
+      - status
+    BoatSimpleInfo:
+      type: object
+      description: 스케줄 조회 시 반환되는 선박 요약 정보
+      properties:
+        boat_id:
+          type: integer
+        ship_no:
+          type: integer
+        name:
+          type: string
+        port:
+          type: string
+        contact:
+          type: string
+        target_fish:
+          type: string
+        booking_url:
+          type: string
+      required:
+      - boat_id
+      - booking_url
+      - contact
+      - name
+      - port
+      - ship_no
+      - target_fish
+    DiaryCatch:
+      type: object
+      properties:
+        catch_id:
+          type: integer
+          readOnly: true
+        fish_name:
+          type: string
+          maxLength: 50
+        count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+      required:
+      - catch_id
+      - fish_name
+    DiaryCatchRequest:
+      type: object
+      properties:
+        fish_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+      required:
+      - fish_name
+    DiaryCreateRequest:
+      type: object
+      properties:
+        fishing_date:
+          type: string
+          format: date-time
+        location_name:
+          type: string
+          maxLength: 100
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lon:
+          type: number
+          format: double
+          nullable: true
+        boat_name:
+          type: string
+          maxLength: 100
+        content:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
+          writeOnly: true
+          description: 일지 사진
+        audio_file:
+          type: string
+          format: binary
+          writeOnly: true
+          description: 음성 녹음 파일
+        used_egi_colors:
+          type: string
+          writeOnly: true
+          minLength: 1
+          description: '예: [1, 2] 또는 1, 2'
+        catches:
+          type: string
+          writeOnly: true
+          minLength: 1
+          description: '예: [{"fish_name": "갑오징어", "count": 2}]'
+    DiaryDetail:
       type: object
       properties:
         diary_id:
           type: integer
           readOnly: true
+        username:
+          type: string
+          readOnly: true
+        fishing_date:
+          type: string
+          format: date-time
+        location_name:
+          type: string
+          maxLength: 100
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lon:
+          type: number
+          format: double
+          nullable: true
+        boat_name:
+          type: string
+          maxLength: 100
+        content:
+          type: string
+        stt_text:
+          type: string
+        stt_provider:
+          type: string
+          maxLength: 30
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiaryImage'
+          readOnly: true
+        catches:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiaryCatch'
+          readOnly: true
+        used_egis:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiaryUsedEgi'
+          readOnly: true
+        weather:
+          allOf:
+          - $ref: '#/components/schemas/WeatherSnapshot'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - catches
+      - created_at
+      - diary_id
+      - images
+      - updated_at
+      - used_egis
+      - username
+      - weather
+    DiaryDetailRequest:
+      type: object
+      properties:
+        fishing_date:
+          type: string
+          format: date-time
+        location_name:
+          type: string
+          maxLength: 100
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lon:
+          type: number
+          format: double
+          nullable: true
+        boat_name:
+          type: string
+          maxLength: 100
+        content:
+          type: string
+        stt_text:
+          type: string
+        stt_provider:
+          type: string
+          maxLength: 30
+    DiaryImage:
+      type: object
+      properties:
+        image_id:
+          type: integer
+          readOnly: true
+        image_url:
+          type: string
+          format: uri
+        is_main:
+          type: boolean
+      required:
+      - image_id
+      - image_url
+    DiaryImageRequest:
+      type: object
+      properties:
+        image_url:
+          type: string
+          format: binary
+        is_main:
+          type: boolean
+      required:
+      - image_url
+    DiaryList:
+      type: object
+      properties:
+        diary_id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
         date:
           type: string
           readOnly: true
-        location:
+        location_name:
           type: string
           maxLength: 100
         fishCount:
-          type: integer
+          type: string
           readOnly: true
         species:
           type: string
@@ -405,22 +1007,329 @@ components:
       - diary_id
       - fishCount
       - images
-      - location
       - species
-    EgiRecommend:
+      - username
+    DiaryUsedEgi:
       type: object
-      description: |-
-        에기 추천 요청용 Serializer
-
-        - image: 물 색 사진
-        - lat, lon: 사용자 위치
-        - target_fish: 쭈꾸미 / 갑오징어 / 쭈갑 (미선택시 쭈갑)
-        - requested_at: 요청 시각 (옵션, 없으면 서버 현재 시각 사용)
+      properties:
+        used_id:
+          type: integer
+          readOnly: true
+        color_id:
+          type: integer
+          readOnly: true
+        color_name:
+          type: string
+          readOnly: true
+      required:
+      - color_id
+      - color_name
+      - used_id
+    EgiEnvironment:
+      type: object
+      properties:
+        water_temp:
+          type: number
+          format: double
+          description: 수온
+        tide:
+          type: string
+          description: 물때
+        tide_formula:
+          type: string
+          description: 물때 계산법
+        weather:
+          type: string
+          description: 날씨
+        wave_height:
+          type: number
+          format: double
+          description: 파고
+        wind_speed:
+          type: number
+          format: double
+          description: 풍속
+        air_temp:
+          type: number
+          format: double
+          description: 기온
+        humidity:
+          type: number
+          format: double
+          description: 습도
+        current_speed:
+          type: number
+          format: double
+          description: 유속
+        wind_direction_deg:
+          type: integer
+          description: 풍향 (각도)
+        wind_direction_16:
+          type: string
+          description: 풍향 (16방위)
+        fishing_index:
+          type: string
+          description: 낚시 지수
+        fishing_score:
+          type: number
+          format: double
+          description: 낚시 점수
+        source:
+          type: string
+          description: 데이터 출처
+        location_name:
+          type: string
+          description: 지역명
+        record_time:
+          type: string
+          description: 기준 시간
+        target_fish:
+          type: string
+          description: 대상 어종
+      required:
+      - air_temp
+      - current_speed
+      - fishing_index
+      - fishing_score
+      - humidity
+      - location_name
+      - record_time
+      - source
+      - target_fish
+      - tide
+      - tide_formula
+      - water_temp
+      - wave_height
+      - weather
+      - wind_direction_16
+      - wind_direction_deg
+      - wind_speed
+    EgiRecommendData:
+      type: object
+      properties:
+        analysis_result:
+          $ref: '#/components/schemas/WaterAnalysisResult'
+        environment:
+          $ref: '#/components/schemas/EgiEnvironment'
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/EgiRecommendationItem'
+          description: 에기 추천 목록
+      required:
+      - analysis_result
+      - environment
+      - recommendations
+    EgiRecommendRequest:
+      type: object
       properties:
         image:
           type: string
-          format: uri
-          description: 물색 분석을 위한 바다 사진
+          format: binary
+        lat:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+        target_fish:
+          type: string
+        requested_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - image
+      - lat
+      - lon
+    EgiRecommendResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: 응답 상태 (success)
+        data:
+          $ref: '#/components/schemas/EgiRecommendData'
+      required:
+      - data
+      - status
+    EgiRecommendationItem:
+      type: object
+      properties:
+        color_name:
+          type: string
+          description: 추천 색상명
+        reason:
+          type: string
+          description: 추천 사유
+        score:
+          type: number
+          format: double
+          description: 추천 점수
+      required:
+      - color_name
+      - reason
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
+    OceanDataResponse:
+      type: object
+      description: Swagger 문서화를 위한 응답 전용 Serializer
+      properties:
+        source:
+          type: string
+          nullable: true
+          description: 데이터 출처
+        location_name:
+          type: string
+          nullable: true
+          description: 항구/지역명
+        target_fish:
+          type: string
+          description: 대상 어종
+        water_temp:
+          type: number
+          format: double
+          nullable: true
+          description: 수온
+        wave_height:
+          type: number
+          format: double
+          nullable: true
+          description: 파고
+        wind_speed:
+          type: number
+          format: double
+          nullable: true
+          description: 풍속
+        current_speed:
+          type: number
+          format: double
+          nullable: true
+          description: 유속
+        fishing_index:
+          type: string
+          nullable: true
+          description: '낚시 지수 (예: 좋음, 나쁨)'
+        fishing_score:
+          type: number
+          format: double
+          nullable: true
+          description: 낚시 점수
+        air_temp:
+          type: number
+          format: double
+          nullable: true
+          description: 기온
+        humidity:
+          type: number
+          format: double
+          nullable: true
+          description: 습도
+        rain_type:
+          type: string
+          nullable: true
+          description: 강수 형태
+        record_time:
+          type: string
+          nullable: true
+          description: 관측 시간
+        next_high_tide:
+          type: string
+          nullable: true
+          description: 다음 만조 시간
+        next_low_tide:
+          type: string
+          nullable: true
+          description: 다음 간조 시간
+        tide_station:
+          type: string
+          nullable: true
+          description: 관측소 정보
+        wind_direction_deg:
+          type: number
+          format: double
+          nullable: true
+          description: 풍향 (각도)
+        wind_direction_16:
+          type: string
+          nullable: true
+          description: 풍향 (16방위)
+        moon_phase:
+          type: string
+          nullable: true
+          description: '물때 (예: 7물)'
+        tide_formula:
+          type: string
+          nullable: true
+          description: 물때 계산법
+        sol_date:
+          type: string
+          nullable: true
+          description: 기준 날짜
+      required:
+      - air_temp
+      - current_speed
+      - fishing_index
+      - fishing_score
+      - humidity
+      - location_name
+      - moon_phase
+      - next_high_tide
+      - next_low_tide
+      - rain_type
+      - record_time
+      - sol_date
+      - source
+      - target_fish
+      - tide_formula
+      - tide_station
+      - water_temp
+      - wave_height
+      - wind_direction_16
+      - wind_direction_deg
+      - wind_speed
+    PatchedDiaryUpdateRequest:
+      type: object
+      properties:
+        fishing_date:
+          type: string
+          format: date-time
+        location_name:
+          type: string
+          maxLength: 100
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lon:
+          type: number
+          format: double
+          nullable: true
+        boat_name:
+          type: string
+          maxLength: 100
+        content:
+          type: string
+    PortSearchResult:
+      type: object
+      properties:
+        port_name:
+          type: string
+          description: 항구 이름
+        address:
+          type: string
+          description: 주소
         lat:
           type: number
           format: double
@@ -429,46 +1338,45 @@ components:
           type: number
           format: double
           description: 경도
-        target_fish:
-          type: string
-          description: 대상 어종 (쭈꾸미 / 갑오징어 / 쭈갑), 미선택시 기본 쭈갑
-        requested_at:
-          type: string
-          format: date-time
-          nullable: true
-          description: 요청 시각 (ISO 8601, 미전송 시 서버 시간이 사용됨)
       required:
-      - image
+      - address
       - lat
       - lon
-    Login:
+      - port_name
+    ScheduleItem:
       type: object
-      description: |-
-        로그인용 Serializer
-        username + password 조합으로 로그인
+      description: 일자별 예약 정보 (예시 구조)
       properties:
-        username:
+        date:
           type: string
-        password:
+          format: date
+        day_of_week:
           type: string
-          writeOnly: true
+          description: 요일 (월, 화...)
+        status:
+          type: string
+          description: 예약 상태 (예약가능, 마감 등)
+        available_count:
+          type: integer
+          description: 잔여석
       required:
-      - password
-      - username
-    Signup:
+      - available_count
+      - date
+      - day_of_week
+      - status
+    SignupRequest:
       type: object
-      description: |-
-        회원가입용 Serializer
-        username, password, nickname, email 을 입력받아 User 생성
       properties:
         username:
           type: string
+          minLength: 1
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
           pattern: ^[\w.@+-]+$
           maxLength: 150
         nickname:
           type: string
+          minLength: 1
           maxLength: 50
         email:
           type: string
@@ -482,13 +1390,105 @@ components:
         password2:
           type: string
           writeOnly: true
-          description: 비밀번호 확인
           minLength: 8
       required:
       - nickname
       - password
       - password2
       - username
+    WaterAnalysisResult:
+      type: object
+      properties:
+        water_color:
+          type: string
+          description: '분석된 물색 (예: Muddy)'
+        confidence:
+          type: number
+          format: double
+          description: 분석 신뢰도 (%)
+      required:
+      - confidence
+      - water_color
+    WaterColorAnalyzeRequest:
+      type: object
+      properties:
+        image:
+          type: string
+          format: binary
+      required:
+      - image
+    WeatherSnapshot:
+      type: object
+      properties:
+        weather_id:
+          type: integer
+          readOnly: true
+        temperature:
+          type: number
+          format: double
+          nullable: true
+        water_temp:
+          type: number
+          format: double
+          nullable: true
+        moon_phase:
+          type: string
+          maxLength: 50
+        wind_speed:
+          type: number
+          format: double
+          nullable: true
+        wind_direction_deg:
+          type: string
+          nullable: true
+          maxLength: 30
+        wave_height:
+          type: number
+          format: double
+          nullable: true
+        current_speed:
+          type: number
+          format: double
+          nullable: true
+        weather_status:
+          type: string
+          maxLength: 50
+      required:
+      - weather_id
+    WeatherSnapshotRequest:
+      type: object
+      properties:
+        temperature:
+          type: number
+          format: double
+          nullable: true
+        water_temp:
+          type: number
+          format: double
+          nullable: true
+        moon_phase:
+          type: string
+          maxLength: 50
+        wind_speed:
+          type: number
+          format: double
+          nullable: true
+        wind_direction_deg:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 30
+        wave_height:
+          type: number
+          format: double
+          nullable: true
+        current_speed:
+          type: number
+          format: double
+          nullable: true
+        weather_status:
+          type: string
+          maxLength: 50
   securitySchemes:
     tokenAuth:
       type: apiKey

@@ -94,8 +94,9 @@ def build_environment_context(
     env: Dict[str, Any] = {
         # 핵심 3개
         "water_temp": marine.get("water_temp"),
-        "tide": marine.get("moon_phase"),  # 아직 없으면 None, 나중에 추가 가능
         "weather": _rain_to_text(marine.get("rain_type")),
+        "tide": marine.get("moon_phase"),
+        "tide_formula": marine.get("tide_formula"),
         # 추가로 갖고 있으면 좋은 값들
         "wave_height": marine.get("wave_height"),
         "wind_speed": marine.get("wind_speed"),

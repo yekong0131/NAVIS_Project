@@ -27,37 +27,16 @@ User = get_user_model()
 # ========================
 # 기본 Serializers
 # ========================
-
-
 class EgiColorSerializer(serializers.ModelSerializer):
     class Meta:
         model = EgiColor
         fields = ["color_id", "color_name"]
 
 
-class DiaryImageSerializer(serializers.ModelSerializer):
-    image_url = serializers.ImageField(use_url=True)
-
-    class Meta:
-        model = DiaryImage
-        fields = ["image_id", "image_url", "is_main"]
-
-
-class DiaryCatchSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DiaryCatch
-        fields = ["catch_id", "fish_name", "count", "size"]
-
-
-class DiaryUsedEgiSerializer(serializers.ModelSerializer):
-    color_name = serializers.CharField(source="color_name.color_name", read_only=True)
-    color_id = serializers.IntegerField(source="color_name.color_id", read_only=True)
-
-    class Meta:
-        model = DiaryUsedEgi
-        fields = ["used_id", "color_id", "color_name"]
-
-
+# ========================
+# 낚시 일지 기본 Serializers
+# ========================
+# 기상 정보
 class WeatherSnapshotSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeatherSnapshot
@@ -74,23 +53,36 @@ class WeatherSnapshotSerializer(serializers.ModelSerializer):
         ]
 
 
-# ========================
-# 낚시 일지 생성 Serializer
-# ========================
+# 사진
+class DiaryImageSerializer(serializers.ModelSerializer):
+    image_url = serializers.ImageField(use_url=True)
+
+    class Meta:
+        model = DiaryImage
+        fields = ["image_id", "image_url", "is_main"]
+
+
+# 조과
+class DiaryCatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiaryCatch
+        fields = ["catch_id", "fish_name", "count"]
+
+
+# 에기
+class DiaryUsedEgiSerializer(serializers.ModelSerializer):
+    color_name = serializers.CharField(source="color_name.color_name", read_only=True)
+    color_id = serializers.IntegerField(source="color_name.color_id", read_only=True)
+
+    class Meta:
+        model = DiaryUsedEgi
+        fields = ["used_id", "color_id", "color_name"]
 
 
 # ==========================================
-# 조과 입력용 Serializer (검증용으로 사용)
+# 낚시 일지 Serializer
 # ==========================================
-class DiaryCatchInputSerializer(serializers.Serializer):
-    fish_name = serializers.CharField(max_length=50)
-    count = serializers.IntegerField(min_value=0)
-    size = serializers.FloatField(required=False, allow_null=True)
-
-
-# ==========================================
-# 낚시 일지 생성 Serializer
-# ==========================================
+# 생성
 class DiaryCreateSerializer(serializers.ModelSerializer):
     # 1. 이미지 (빈 리스트 허용)
     images = serializers.ListField(
@@ -342,9 +334,7 @@ class DiaryCreateSerializer(serializers.ModelSerializer):
             return mock_transcribe(audio_file)
 
 
-# ========================
-# 낚시 일지 수정 Serializer
-# ========================
+# 수정
 class DiaryUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Diary
@@ -358,9 +348,7 @@ class DiaryUpdateSerializer(serializers.ModelSerializer):
         ]
 
 
-# ========================
-# 낚시 일지 상세보기 Serializer
-# ========================
+# 상세보기
 class DiaryDetailSerializer(serializers.ModelSerializer):
     images = DiaryImageSerializer(many=True, read_only=True)
     catches = DiaryCatchSerializer(many=True, read_only=True)
@@ -390,9 +378,7 @@ class DiaryDetailSerializer(serializers.ModelSerializer):
         ]
 
 
-# ========================
-# 낚시 일지 목록 Serializer
-# ========================
+# 목록
 class DiaryListSerializer(serializers.ModelSerializer):
     date = serializers.SerializerMethodField()
     fishCount = serializers.SerializerMethodField()
@@ -441,8 +427,26 @@ class DiaryListSerializer(serializers.ModelSerializer):
         return image_urls
 
 
+# 조과 입력
+class DiaryCatchInputSerializer(serializers.Serializer):
+    fish_name = serializers.CharField(max_length=50)
+    count = serializers.IntegerField(min_value=0)
+
+
 # ========================
-# 기타 Serializers
+# 물색 Serializers
+# ========================
+class WaterColorAnalyzeSerializer(serializers.Serializer):
+    image = serializers.ImageField(required=True)
+
+
+class WaterAnalysisResultSerializer(serializers.Serializer):
+    water_color = serializers.CharField(help_text="분석된 물색 (예: Muddy)")
+    confidence = serializers.FloatField(help_text="분석 신뢰도 (%)")
+
+
+# ========================
+# 에기 Serializers
 # ========================
 class EgiRecommendSerializer(serializers.Serializer):
     image = serializers.ImageField(required=True)
@@ -452,16 +456,121 @@ class EgiRecommendSerializer(serializers.Serializer):
     requested_at = serializers.DateTimeField(required=False, allow_null=True)
 
 
-class WaterColorAnalyzeSerializer(serializers.Serializer):
-    image = serializers.ImageField(required=True)
+class EgiEnvironmentSerializer(serializers.Serializer):
+    water_temp = serializers.FloatField(help_text="수온")
+    tide = serializers.CharField(help_text="물때")
+    tide_formula = serializers.CharField(help_text="물때 계산법")
+    weather = serializers.CharField(help_text="날씨")
+    wave_height = serializers.FloatField(help_text="파고")
+    wind_speed = serializers.FloatField(help_text="풍속")
+    air_temp = serializers.FloatField(help_text="기온")
+    humidity = serializers.FloatField(help_text="습도")
+    current_speed = serializers.FloatField(help_text="유속")
+    wind_direction_deg = serializers.IntegerField(help_text="풍향 (각도)")
+    wind_direction_16 = serializers.CharField(help_text="풍향 (16방위)")
+    fishing_index = serializers.CharField(help_text="낚시 지수")
+    fishing_score = serializers.FloatField(help_text="낚시 점수")
+    source = serializers.CharField(help_text="데이터 출처")
+    location_name = serializers.CharField(help_text="지역명")
+    record_time = serializers.CharField(help_text="기준 시간")
+    target_fish = serializers.CharField(help_text="대상 어종")
 
 
+class EgiRecommendationItemSerializer(serializers.Serializer):
+    # 수정 필요
+    color_name = serializers.CharField(help_text="추천 색상명")
+    reason = serializers.CharField(help_text="추천 사유")
+    score = serializers.FloatField(help_text="추천 점수", required=False)
+
+
+class EgiRecommendDataSerializer(serializers.Serializer):
+    analysis_result = WaterAnalysisResultSerializer()
+    environment = EgiEnvironmentSerializer()
+    recommendations = serializers.ListField(
+        child=EgiRecommendationItemSerializer(),
+        allow_empty=True,
+        help_text="에기 추천 목록",
+    )
+
+
+class EgiRecommendResponseSerializer(serializers.Serializer):
+    status = serializers.CharField(help_text="응답 상태 (success)")
+    data = EgiRecommendDataSerializer()
+
+
+# ========================
+# 해양 Serializers
+# ========================
 class OceanDataRequestSerializer(serializers.Serializer):
     lat = serializers.FloatField()
     lon = serializers.FloatField()
     target_fish = serializers.CharField(required=False, allow_blank=True)
 
 
+class OceanDataResponseSerializer(serializers.Serializer):
+    """
+    Swagger 문서화를 위한 응답 전용 Serializer
+    """
+
+    source = serializers.CharField(allow_null=True, help_text="데이터 출처")
+    location_name = serializers.CharField(allow_null=True, help_text="항구/지역명")
+    target_fish = serializers.CharField(help_text="대상 어종")
+
+    # 해양 데이터
+    water_temp = serializers.FloatField(allow_null=True, help_text="수온")
+    wave_height = serializers.FloatField(allow_null=True, help_text="파고")
+    wind_speed = serializers.FloatField(allow_null=True, help_text="풍속")
+    current_speed = serializers.FloatField(allow_null=True, help_text="유속")
+
+    # 낚시 지수
+    fishing_index = serializers.CharField(
+        allow_null=True, help_text="낚시 지수 (예: 좋음, 나쁨)"
+    )
+    fishing_score = serializers.FloatField(allow_null=True, help_text="낚시 점수")
+
+    # 기상 데이터
+    air_temp = serializers.FloatField(allow_null=True, help_text="기온")
+    humidity = serializers.FloatField(allow_null=True, help_text="습도")
+    rain_type = serializers.CharField(allow_null=True, help_text="강수 형태")
+    record_time = serializers.CharField(allow_null=True, help_text="관측 시간")
+
+    # 조석 데이터
+    next_high_tide = serializers.CharField(allow_null=True, help_text="다음 만조 시간")
+    next_low_tide = serializers.CharField(allow_null=True, help_text="다음 간조 시간")
+    tide_station = serializers.CharField(allow_null=True, help_text="관측소 정보")
+
+    # 바람 정보
+    wind_direction_deg = serializers.FloatField(
+        allow_null=True, help_text="풍향 (각도)"
+    )
+    wind_direction_16 = serializers.CharField(
+        allow_null=True, help_text="풍향 (16방위)"
+    )
+
+    # 물때
+    moon_phase = serializers.CharField(allow_null=True, help_text="물때 (예: 7물)")
+    tide_formula = serializers.CharField(allow_null=True, help_text="물때 계산법")
+
+    sol_date = serializers.CharField(allow_null=True, help_text="기준 날짜")
+
+
+# ========================
+# 항구 Serializers
+# ========================
+class PortSearchResultSerializer(serializers.Serializer):
+    port_name = serializers.CharField(help_text="항구 이름")
+    address = serializers.CharField(help_text="주소")
+    lat = serializers.FloatField(help_text="위도")
+    lon = serializers.FloatField(help_text="경도")
+
+
+class PortSearchSerializer(serializers.Serializer):
+    port_name = serializers.CharField(required=True)
+
+
+# ========================
+# 회원 Serializers
+# ========================
 class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     password2 = serializers.CharField(write_only=True, min_length=8)
@@ -485,3 +594,85 @@ class SignupSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+
+# ========================
+# 선박 검색 Serializers
+# ========================
+
+
+class BoatItemSerializer(serializers.Serializer):
+    """개별 선박 정보"""
+
+    boat_id = serializers.IntegerField()
+    ship_no = serializers.IntegerField(allow_null=True)
+    name = serializers.CharField()
+    port = serializers.CharField()
+    contact = serializers.CharField(allow_null=True)
+    target_fish = serializers.CharField()
+    booking_url = serializers.CharField(allow_null=True)
+    source_site = serializers.CharField()
+    area_main = serializers.CharField()
+    area_sub = serializers.CharField()
+    area_sea = serializers.CharField()
+    address = serializers.CharField()
+    # nearest_schedule은 구조가 유동적일 수 있어 DictField로 처리하거나 별도 Serializer 정의 가능
+    nearest_schedule = serializers.DictField(
+        allow_null=True, help_text="가장 가까운 예약 가능일 정보"
+    )
+
+
+class BoatPaginationSerializer(serializers.Serializer):
+    """페이지네이션 정보"""
+
+    page = serializers.IntegerField()
+    page_size = serializers.IntegerField()
+    total_pages = serializers.IntegerField()
+    total_boats = serializers.IntegerField()
+    has_next = serializers.BooleanField()
+    has_previous = serializers.BooleanField()
+
+
+class BoatSearchResponseSerializer(serializers.Serializer):
+    """최종 선박 검색 응답"""
+
+    status = serializers.CharField(help_text="응답 상태 (예: success)")
+    filters = serializers.DictField(help_text="적용된 필터")
+    pagination = BoatPaginationSerializer()
+    results = serializers.ListField(child=BoatItemSerializer())
+
+
+# ========================
+# 선박 스케줄 Serializers
+# ========================
+class BoatSimpleInfoSerializer(serializers.Serializer):
+    """스케줄 조회 시 반환되는 선박 요약 정보"""
+
+    boat_id = serializers.IntegerField()
+    ship_no = serializers.IntegerField()
+    name = serializers.CharField()
+    port = serializers.CharField()
+    contact = serializers.CharField()
+    target_fish = serializers.CharField()
+    booking_url = serializers.CharField()
+
+
+class ScheduleItemSerializer(serializers.Serializer):
+    """일자별 예약 정보 (예시 구조)"""
+
+    date = serializers.DateField()
+    day_of_week = serializers.CharField(help_text="요일 (월, 화...)")
+    status = serializers.CharField(help_text="예약 상태 (예약가능, 마감 등)")
+    available_count = serializers.IntegerField(help_text="잔여석")
+
+
+class BoatScheduleResponseSerializer(serializers.Serializer):
+    """최종 스케줄 응답"""
+
+    status = serializers.CharField(help_text="응답 상태 (예: success)")
+    boat = BoatSimpleInfoSerializer()
+    base_date = serializers.DateField(help_text="조회 기준일")
+    days = serializers.IntegerField(help_text="조회 기간")
+    schedules = serializers.ListField(
+        child=ScheduleItemSerializer(), help_text="일자별 스케줄 목록"
+    )
