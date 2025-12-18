@@ -47,8 +47,10 @@ class WeatherSnapshotSerializer(serializers.ModelSerializer):
             "moon_phase",
             "wind_speed",
             "wind_direction_deg",
+            "wind_direction_16",
             "wave_height",
             "current_speed",
+            "rain_type",
             "weather_status",
         ]
 
@@ -125,10 +127,10 @@ class DiaryCreateSerializer(serializers.ModelSerializer):
             "catches",
         ]
         extra_kwargs = {
-            "fishing_date": {"required": False},
+            "fishing_date": {"required": False, "allow_null": True},
             "location_name": {"required": False},
-            "lat": {"required": False},
-            "lon": {"required": False},
+            "lat": {"required": False, "allow_null": True},
+            "lon": {"required": False, "allow_null": True},
             "boat_name": {"required": False},
             "content": {"required": False},
         }
@@ -136,21 +138,54 @@ class DiaryCreateSerializer(serializers.ModelSerializer):
     # ----------------------------------------------------------------
     # 1. 필드별 검증 및 파싱 (Validation)
     # ----------------------------------------------------------------
+    def to_internal_value(self, data):
+        # QueryDict(수정 불가)인 경우를 대비해 복사본 생성
+        if hasattr(data, "copy"):
+            data = data.copy()
+        else:
+            data = dict(data)
+
+        # 1. 좌표값(lat, lon)이 빈 문자열이면 None으로 변환
+        # -> None이어야 validate()에서 "좌표 없음"으로 인식하고 항구명으로 찾음
+        for field in ["lat", "lon"]:
+            if field in data and data[field] == "":
+                data[field] = None
+
+        # 2. 날짜(fishing_date)가 빈 문자열이면 아예 삭제
+        # -> 삭제해야 모델의 default=timezone.now가 동작함
+        if "fishing_date" in data and data["fishing_date"] == "":
+            del data["fishing_date"]
+
+        # 3. 오디오 파일이 빈 문자열이면 삭제
+        if "audio_file" in data and data["audio_file"] == "":
+            del data["audio_file"]
+
+        return super().to_internal_value(data)
 
     def validate_used_egi_colors(self, value):
-        """다양한 포맷(JSON, Comma, Int)을 List[int]로 변환"""
+        """
+        입력값이 리스트/숫자면 그대로 ID로 사용하고,
+        문자열(예: '빨강, 고추장')이면 DB에서 이름을 검색해 ID로 변환합니다.
+        """
         if not value:
             return []
+
+        # 1. 이미 리스트거나 숫자인 경우 (ID로 간주)
         if isinstance(value, list):
             return value
         if isinstance(value, int):
             return [value]
 
-        # 문자열 처리
+        # 2. 문자열 처리
         if isinstance(value, str):
             value = value.strip()
-            # JSON 시도
+            if not value:
+                return []
+
+            # (1) JSON 리스트 형식인지 확인 ("[1, 2]")
             try:
+                import json
+
                 parsed = json.loads(value)
                 if isinstance(parsed, list):
                     return parsed
@@ -158,21 +193,33 @@ class DiaryCreateSerializer(serializers.ModelSerializer):
                     return [parsed]
             except:
                 pass
-            # 콤마 시도
-            if "," in value:
-                try:
-                    return [int(i.strip()) for i in value.split(",") if i.strip()]
-                except:
-                    pass
-            # 단일 숫자 시도
+
+            # (2) 콤마로 구분된 숫자 문자열인지 확인 ("1, 2")
             try:
-                return [int(value)]
+                return [int(i.strip()) for i in value.split(",") if i.strip().isdigit()]
             except:
                 pass
 
-        raise serializers.ValidationError(
-            "올바른 형식이 아닙니다. (예: [1, 2] 또는 1, 2)"
-        )
+            # (3) ⭐ 텍스트(색상명) 검색 로직 추가 ⭐
+            # "빨강, 고추장" -> DB에서 검색하여 ID 추출
+            names = [n.strip() for n in value.split(",") if n.strip()]
+            found_ids = []
+
+            for name in names:
+                # 색상 이름에 검색어가 포함된 것이 있는지 확인 (예: '빨강' 검색 -> '빨강색', '진빨강' 등)
+                # 정확도를 위해 icontains 사용 (대소문자 무시 포함 검색)
+                color = EgiColor.objects.filter(color_name__icontains=name).first()
+                if color:
+                    found_ids.append(color.color_id)
+                else:
+                    # (선택) 없는 색상이면 새로 만들어서 저장할 수도 있음
+                    # new_color = EgiColor.objects.create(color_name=name)
+                    # found_ids.append(new_color.color_id)
+                    print(f"⚠️ '{name}' 색상을 찾을 수 없어 건너뜁니다.")
+
+            return found_ids
+
+        return []
 
     def validate_catches(self, value):
         """JSON 문자열을 파싱하고 구조 검증"""
@@ -366,10 +413,13 @@ class DiaryDetailSerializer(serializers.ModelSerializer):
 
 # 목록
 class DiaryListSerializer(serializers.ModelSerializer):
-    date = serializers.SerializerMethodField()
-    fishCount = serializers.SerializerMethodField()
-    species = serializers.SerializerMethodField()
-    images = serializers.SerializerMethodField()
+    # 중첩된 정보를 가져오기 위해 기존 Detail용 시리얼라이저 재사용
+    weather = WeatherSnapshotSerializer(read_only=True)
+    catches = DiaryCatchSerializer(many=True, read_only=True)
+    used_egis = DiaryUsedEgiSerializer(many=True, read_only=True)
+    images = DiaryImageSerializer(many=True, read_only=True)
+
+    # 날짜 포맷팅 등은 유지
     username = serializers.CharField(source="user.username", read_only=True)
 
     class Meta:
@@ -377,11 +427,13 @@ class DiaryListSerializer(serializers.ModelSerializer):
         fields = [
             "diary_id",
             "username",
-            "date",
+            "fishing_date",
             "location_name",
-            "fishCount",
-            "species",
+            "boat_name",
             "content",
+            "weather",
+            "catches",
+            "used_egis",
             "images",
         ]
 
@@ -610,7 +662,8 @@ class EgiEnvironmentSerializer(serializers.Serializer):
     wind_speed = serializers.FloatField(help_text="풍속")
     air_temp = serializers.FloatField(help_text="기온")
     humidity = serializers.FloatField(help_text="습도")
-    current_speed = serializers.FloatField(help_text="유속")
+    rain_type = serializers.CharField(help_text="날씨")
+    current_speed = serializers.FloatField(help_text="조류")
     wind_direction_deg = serializers.IntegerField(help_text="풍향 (각도)")
     wind_direction_16 = serializers.CharField(help_text="풍향 (16방위)")
     fishing_index = serializers.CharField(help_text="낚시 지수")

@@ -68,12 +68,19 @@ def collect_and_save_weather(
             wind_direction_deg=(
                 str(weather_data.get("wind_direction_deg"))
                 if weather_data.get("wind_direction_deg")
-                else None
+                else ""
+            ),
+            wind_direction_16=(
+                str(weather_data.get("wind_direction_16"))
+                if weather_data.get("wind_direction_16")
+                else ""
             ),
             wave_height=weather_data.get("wave_height"),
             current_speed=weather_data.get("current_speed"),
             weather_status=weather_data.get("fishing_index")
-            or weather_data.get("weather_status"),
+            or weather_data.get("weather_status")
+            or "",
+            rain_type=weather_data.get("rain_type_text") or "",
         )
 
         print(

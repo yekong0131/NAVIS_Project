@@ -157,6 +157,9 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None, requested_at=N
     # ================================================================
     # 최종 결과 출력
     # ================================================================
+    rain_type_text = _rain_type_to_text(final_result.get("rain_type"))
+    final_result["rain_type_text"] = rain_type_text
+
     print(f"\n{'='*70}")
     print(f"📊 최종 수집 결과")
     print(f"{'='*70}")
@@ -177,7 +180,7 @@ def collect_all_marine_data(user_lat, user_lon, target_fish=None, requested_at=N
     print(f"\n  [기상 정보]")
     print(f"  🌡️  기온: {final_result.get('air_temp', 'N/A')}°C")
     print(f"  💧 습도: {final_result.get('humidity', 'N/A')}%")
-    print(f"  ☔ 강수: {_rain_type_to_text(final_result.get('rain_type'))}")
+    print(f"  ☔ 강수: {(rain_type_text)}")
 
     print(f"\n  [낚시 정보]")
     print(f"  🎣 낚시지수: {final_result.get('fishing_index', 'N/A')}")

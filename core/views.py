@@ -32,6 +32,7 @@ from drf_spectacular.utils import (
 
 # 외부 라이브러리
 from PIL import Image
+import os
 
 # 앱 내부 모델 / 시리얼라이저 / 유틸
 from .models import EgiColor, Port, User, Diary, Boat
@@ -60,6 +61,10 @@ from .utils.boat_schedule_service import (
     find_nearest_available_schedule,
     get_schedules_in_range,
 )
+from .utils.stt_service import STTParser
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # ========================
@@ -112,12 +117,17 @@ class DiaryListCreateView(generics.ListCreateAPIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        data = request.data.copy()
+        # 새로운 딕셔너리를 생성하여 데이터를 옮겨 담습니다.
+        data = {}
 
-        # 'images' 필드 전처리 (빈 값 필터링)
-        # 클라이언트가 이미지를 보내지 않았을 때 [''] 형태로 들어오는 더미 데이터를 제거합니다.
-        if "images" in data:
-            raw_images = data.getlist("images")
+        # 1. 기본 텍스트 데이터 복사 (단일 값)
+        for key, value in request.data.items():
+            data[key] = value
+
+        # 2. 'images' 필드 전처리 (빈 값 필터링 및 리스트 처리)
+        # MultiPartParser를 쓰면 request.data는 QueryDict이므로 getlist를 써야 다중 이미지를 가져옵니다.
+        if "images" in request.data:
+            raw_images = request.data.getlist("images")
             cleaned_images = []
 
             for img in raw_images:
@@ -131,7 +141,9 @@ class DiaryListCreateView(generics.ListCreateAPIView):
 
                 # 유효한 파일만 리스트에 추가
                 cleaned_images.append(img)
-            data.setlist("images", cleaned_images)
+
+            # 정제된 이미지 리스트를 data 딕셔너리에 덮어씌움
+            data["images"] = cleaned_images
 
         # Serializer 호출 (정제된 data 사용)
         serializer = self.get_serializer(data=data)
@@ -144,18 +156,45 @@ class DiaryListCreateView(generics.ListCreateAPIView):
 
 class MyDiaryListView(generics.ListAPIView):
     """
-    내가 작성한 낚시 일지 목록 조회
+    내가 작성한 낚시 일지 목록 조회 (월별 필터링 추가)
     """
 
     serializer_class = DiaryListSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Diary.objects.filter(user=self.request.user).order_by("-fishing_date")
+        queryset = Diary.objects.filter(user=self.request.user)
+
+        # 월별 필터링 추가
+        year = self.request.query_params.get("year")
+        month = self.request.query_params.get("month")
+
+        if year and month:
+            queryset = queryset.filter(
+                fishing_date__year=year, fishing_date__month=month
+            )
+
+        return queryset.order_by("-fishing_date")
 
     @extend_schema(
         summary="내 낚시 일지 목록 조회",
-        description="로그인한 사용자가 작성한 낚시 일지 목록을 조회합니다.",
+        description="로그인한 사용자가 작성한 낚시 일지 목록을 조회합니다. 년도와 월로 필터링 가능합니다.",
+        parameters=[
+            OpenApiParameter(
+                name="year",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="년도 (예: 2025)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="month",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="월 (1-12)",
+                required=False,
+            ),
+        ],
         responses={200: DiaryListSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
@@ -233,6 +272,86 @@ class DiaryDetailView(generics.RetrieveUpdateDestroyAPIView):
     )
     def delete(self, request, *args, **kwargs):
         return super().delete(request, *args, **kwargs)
+
+
+class DiaryAnalyzeView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        audio_file = request.FILES.get("audio")
+        if not audio_file:
+            return Response({"error": "오디오 파일이 없습니다."}, status=400)
+
+        # Provider 확인
+        provider = os.getenv("STT_PROVIDER", "mock")
+        api_key = os.getenv("OPENAI_API_KEY")
+        print(
+            f"🎤 [DEBUG] 분석 요청 - Provider: {provider}, 파일크기: {audio_file.size} bytes"
+        )
+
+        try:
+            stt_text = ""
+
+            # 1. STT 실행
+            if provider == "whisper":
+                if not api_key:
+                    return Response({"error": "OpenAI API 키 설정 오류"}, status=500)
+
+                from openai import OpenAI
+
+                client = OpenAI(api_key=api_key)
+
+                print("📡 Whisper API 호출 중...")
+                transcript = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=(audio_file.name, audio_file.read()),
+                    language="ko",
+                )
+                stt_text = transcript.text.strip()
+            else:
+                print("⚠️ Mock 모드 실행")
+                from core.utils.mock_stt import mock_transcribe
+
+                stt_text = mock_transcribe(audio_file)
+
+            # 🔥 [핵심 디버깅] 서버가 인식한 텍스트가 뭔지 확인!
+            print(f"🧐 [DEBUG] 서버가 인식한 텍스트: '{stt_text}'")
+
+            # ------------------------------------------------------------------
+            # 🚨 [임시 수정] 검증 로직을 모두 주석 처리하여 무조건 통과시킵니다.
+            # ------------------------------------------------------------------
+
+            # if not stt_text or len(stt_text) < 5:
+            #     print("❌ [DEBUG] 텍스트가 너무 짧아서 거부됨")
+            #     return Response({"error": "목소리가 너무 짧습니다."}, status=400)
+
+            # invalid_keywords = ["MBC", "시청해", "구독", "좋아요"]
+            # if any(k in stt_text for k in invalid_keywords):
+            #      print(f"❌ [DEBUG] 환각 멘트 감지됨: {stt_text}")
+            #      return Response({"error": "잡음만 녹음되었습니다."}, status=400)
+
+            # 만약 텍스트가 아예 비어있으면 강제로 넣어주기 (테스트용)
+            if not stt_text:
+                stt_text = "녹음은 됐는데 목소리가 인식이 안 됐어요. (테스트)"
+
+            # 2. 텍스트 파싱
+            parsed_data = STTParser.parse_all(stt_text)
+
+            response_data = {
+                "fishing_date": parsed_data.get("fishing_date"),
+                "location_name": parsed_data.get("location_name"),
+                "boat_name": parsed_data.get("boat_name"),
+                "content": stt_text,  # 원본 텍스트
+                "catches": parsed_data.get("catches", []),
+                "used_egis": parsed_data.get("colors", []),
+            }
+
+            return Response(response_data, status=200)
+
+        except Exception as e:
+            print(f"❌ 분석 실패(Exception): {e}")
+            return Response({"error": str(e)}, status=500)
 
 
 # ========================

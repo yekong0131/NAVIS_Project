@@ -307,9 +307,11 @@ class WeatherSnapshot(models.Model):
     moon_phase = models.CharField(max_length=50, blank=True)  # 물때
     wind_speed = models.FloatField(null=True)
     wind_direction_deg = models.CharField(max_length=30, null=True)
+    wind_direction_16 = models.CharField(max_length=30, blank=True)
     wave_height = models.FloatField(null=True)
     current_speed = models.FloatField(null=True)
     weather_status = models.CharField(max_length=50, blank=True)  # 맑음/흐림
+    rain_type = models.CharField(max_length=50, blank=True)
 
 
 # 5-2. 일지 사진

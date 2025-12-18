@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -58,6 +59,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
 
 ROOT_URLCONF = "navis_server.urls"
 
@@ -179,3 +181,24 @@ SPECTACULAR_SETTINGS = {
         "rest_framework.fields.FileField": OpenApiTypes.BINARY,
     },
 }
+# Authorization 헤더 허용 설정 (필수)
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",  # ⭐ 이 부분이 있어야 토큰 헤더를 허용함
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+# CORS 설정 추가
+CORS_ALLOW_ALL_ORIGINS = (
+    True  # 개발 중에는 모든 도메인 허용 (배포 시 False로 변경 권장)
+)
+# 또는 특정 도메인만 허용하려면:
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+# ]
