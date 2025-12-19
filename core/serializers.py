@@ -813,7 +813,9 @@ class BoatItemSerializer(serializers.Serializer):
     area_sea = serializers.CharField()
     address = serializers.CharField()
 
-    main_image_url = serializers.URLField(allow_null=True, help_text="대표 이미지 URL")
+    main_image_url = serializers.URLField(allow_null=True)
+
+    is_liked = serializers.BooleanField(default=False, read_only=True)
 
     nearest_schedule = serializers.DictField(
         allow_null=True, help_text="가장 가까운 예약 가능일 정보"
@@ -854,10 +856,10 @@ class BoatSimpleInfoSerializer(serializers.Serializer):
     target_fish = serializers.CharField()
     booking_url = serializers.CharField()
 
-    main_image_url = serializers.URLField(allow_null=True, help_text="대표 이미지 URL")
-    intro_memo = serializers.CharField(
-        allow_null=True, help_text="선박 소개글 (HTML 포함)"
-    )
+    main_image_url = serializers.URLField(allow_null=True)
+    intro_memo = serializers.CharField(allow_null=True)
+
+    is_liked = serializers.BooleanField(default=False, read_only=True)
 
 
 class ScheduleItemSerializer(serializers.Serializer):
@@ -867,6 +869,11 @@ class ScheduleItemSerializer(serializers.Serializer):
     day_of_week = serializers.CharField(help_text="요일 (월, 화...)")
     status = serializers.CharField(help_text="예약 상태 (예약가능, 마감 등)")
     available_count = serializers.IntegerField(help_text="잔여석")
+    available_count = serializers.IntegerField(help_text="잔여석")
+    total_count = serializers.IntegerField(help_text="총 정원")
+    price = serializers.IntegerField(help_text="가격")
+    fish_type = serializers.CharField(allow_null=True, help_text="대상 어종")
+    schedule_no = serializers.IntegerField(allow_null=True)
 
 
 class BoatScheduleResponseSerializer(serializers.Serializer):
@@ -878,4 +885,38 @@ class BoatScheduleResponseSerializer(serializers.Serializer):
     days = serializers.IntegerField(help_text="조회 기간")
     schedules = serializers.ListField(
         child=ScheduleItemSerializer(), help_text="일자별 스케줄 목록"
+    )
+
+
+# ========================
+# 낚시 일지 분석 Serializers
+# ========================
+class DiaryAnalyzeRequestSerializer(serializers.Serializer):
+    """음성 분석 요청 (파일 업로드)"""
+
+    audio = serializers.FileField(required=True, help_text="분석할 음성 파일")
+
+
+class DiaryAnalyzeResponseSerializer(serializers.Serializer):
+    """음성 분석 결과 응답"""
+
+    fishing_date = serializers.DateTimeField(
+        allow_null=True, help_text="추출된 낚시 날짜"
+    )
+    location_name = serializers.CharField(
+        allow_null=True, help_text="추출된 장소/항구명"
+    )
+    boat_name = serializers.CharField(allow_null=True, help_text="추출된 선박명")
+    content = serializers.CharField(
+        allow_null=True, help_text="음성 인식 텍스트 (STT 결과)"
+    )
+    catches = serializers.ListField(
+        child=serializers.DictField(),
+        allow_null=True,
+        help_text="추출된 조과 정보 목록",
+    )
+    used_egis = serializers.ListField(
+        child=serializers.DictField(),
+        allow_null=True,
+        help_text="추출된 사용 에기 목록",
     )

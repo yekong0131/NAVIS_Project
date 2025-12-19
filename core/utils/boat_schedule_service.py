@@ -34,43 +34,69 @@ def fetch_month_schedule(ship_no: int, year_month: str) -> List[Dict[str, Any]]:
         "possible": "",
         "eyyyymm": "",
     }
-    logger.info(f"[BoatSchedule] 요청: {url}")
+
+    print(f"🚀 [요청시작] {ship_no}번 선박 / {year_month} 조회 중...")
 
     try:
-        resp = requests.get(url, params=params, timeout=10)
-        resp.raise_for_status()
+        resp = requests.get(url, params=params, timeout=5)  # 타임아웃 5초로 늘림
+
+        # 1. 응답 실패 시
+        if resp.status_code != 200:
+            print(f"❌ [응답실패] Status Code: {resp.status_code}")
+            return []
+
         data = resp.json()
+
+        # 2. 데이터 구조 확인 (가장 중요!)
+        # 데이터가 너무 길 수 있으니 앞부분만 출력하거나, 키값만 출력
+        # print(f"📥 [데이터수신] {str(data)[:200]}...")
+
+        # 리스트인지 딕셔너리인지 확인해서 실제 스케줄 리스트 추출
+        schedules = []
+        if isinstance(data, list):
+            schedules = data
+        elif isinstance(data, dict):
+            schedules = data.get("data") or data.get("list") or data.get("schedules")
+
+        # 3. 상세 필드 확인 (첫 번째 스케줄만)
+        if schedules and len(schedules) > 0:
+            sample = schedules[0]
+            print(f"✅ [필드확인] 날짜: {sample.get('sdate')}")
+            print(
+                f"   - remain_embarkation_num (잔여): {sample.get('remain_embarkation_num')}"
+            )
+            print(f"   - embarkation_num (총원): {sample.get('embarkation_num')}")
+            print(
+                f"   - reserve_embarkation_num (예약): {sample.get('reserve_embarkation_num')}"
+            )
+            print(
+                f"   - wait_embarkation_num (대기): {sample.get('wait_embarkation_num')}"
+            )  # 대기자 확인
+            print(f"   - status_code: {sample.get('status_code')}")
+        else:
+            print(f"⚠️ [데이터없음] {year_month} 스케줄 리스트가 비어있습니다.")
+
+        return schedules or []
+
     except Exception as e:
-        logger.warning(f"[BoatSchedule] 요청 실패 ship_no={ship_no}, err={e}")
+        # 4. 에러 발생 시 로그 출력
+        print(f"🔥 [에러발생] {e}")
         return []
-
-    # 선상24 스케줄은 보통 list 형태로 바로 떨어지므로 그대로 반환
-    if isinstance(data, list):
-        return data
-
-    # 혹시 dict로 감싸져 오는 상황 대비
-    if isinstance(data, dict):
-        schedules = data.get("data") or data.get("list") or data.get("schedules")
-        if isinstance(schedules, list):
-            return schedules
-
-    logger.warning(f"[BoatSchedule] 알 수 없는 응답 포맷 ship_no={ship_no}: {type(data)}")
-    return []
 
 
 def find_nearest_available_schedule(
     ship_no: int,
     base_date: date,
     max_days: int = 7,
+    min_passengers: int = 1,  # [수정] 최소 인원 파라미터 추가
 ) -> Optional[Dict[str, Any]]:
     """
     base_date ~ base_date + max_days 범위 안에서
-    예약 가능(ING) + 남은 자리 > 0 인 스케줄 중 가장 가까운 1건.
+    예약 가능(ING) + 남은 자리 >= min_passengers 인 스케줄 중 가장 가까운 1건.
     """
     start_date = base_date
     end_date = base_date + timedelta(days=max_days)
 
-    # 필요한 month(YYYYMM) 세트 계산
     months = set()
     cur = start_date
     while cur <= end_date:
@@ -81,11 +107,7 @@ def find_nearest_available_schedule(
     for ym in sorted(months):
         all_schedules.extend(fetch_month_schedule(ship_no, ym))
 
-    logger.info(
-        f"[BoatSchedule] ship_no={ship_no}, {start_date}~{end_date} 기간 스케줄 수: {len(all_schedules)}"
-    )
-
-    # 필터링: 날짜 범위 + 예약가능(ING) + 잔여자리 > 0
+    # 필터링
     candidates: List[Dict[str, Any]] = []
     for sc in all_schedules:
         sdate_str = _safe_get(sc, "sdate")
@@ -97,22 +119,30 @@ def find_nearest_available_schedule(
 
         status_code = _safe_get(sc, "status_code", "")
         remain = _safe_get(sc, "remain_embarkation_num", 0) or 0
+        total = _safe_get(sc, "embarkation_num", 0) or 0
+
         try:
             remain = int(remain)
+            total = int(total)
         except Exception:
             remain = 0
 
+        # 예약 가능 상태 체크
         if status_code != "ING":
             continue
-        if remain <= 0:
+
+        # [핵심] 잔여석 체크: 요청 인원보다 적으면 제외
+        if remain < min_passengers:
             continue
 
+        sc["parsed_remain"] = remain
+        sc["parsed_total"] = total
         candidates.append(sc)
 
     if not candidates:
         return None
 
-    # 가장 가까운 (날짜, 출항시각) 기준으로 정렬
+    # 정렬 (날짜 -> 시간)
     def sort_key(sc):
         d = _parse_date(_safe_get(sc, "sdate", "")) or date(2100, 1, 1)
         stime_str = _safe_get(sc, "stime", "00:00:00")
@@ -124,7 +154,6 @@ def find_nearest_available_schedule(
 
     best = sorted(candidates, key=sort_key)[0]
 
-    # 요약 형태로 리턴
     return {
         "sdate": _safe_get(best, "sdate"),
         "stime": _safe_get(best, "stime"),
@@ -132,6 +161,7 @@ def find_nearest_available_schedule(
         "status": _safe_get(best, "status"),
         "status_code": _safe_get(best, "status_code"),
         "remain_embarkation_num": _safe_get(best, "remain_embarkation_num"),
+        "embarkation_num": best.get("parsed_total"),
         "price": _safe_get(best, "price"),
         "fish_type": _safe_get(best, "fish_type"),
         "fishing_method": _safe_get(best, "fishing_method"),
@@ -145,10 +175,7 @@ def get_schedules_in_range(
     base_date: date,
     days: int = 7,
 ) -> List[Dict[str, Any]]:
-    """
-    base_date ~ base_date + days-1 기간의 스케줄 리스트.
-    예약 가능/불가능 상관없이 전부 반환. (화면에서 색깔로 구분 가능)
-    """
+    """특정 기간 스케줄 전체 조회 (상세페이지용)"""
     if days < 1:
         days = 1
     if days > 14:
@@ -176,14 +203,23 @@ def get_schedules_in_range(
         if d < start_date or d > end_date:
             continue
 
+        try:
+            remain = int(_safe_get(sc, "remain_embarkation_num", 0) or 0)
+            total = int(_safe_get(sc, "embarkation_num", 0) or 0)
+            price = int(_safe_get(sc, "price", 0) or 0)
+        except:
+            remain = 0
+            total = 0
+            price = 0
+
         result.append(
             {
                 "sdate": _safe_get(sc, "sdate"),
-                "stime": _safe_get(sc, "stime"),
-                "etime": _safe_get(sc, "etime"),
+                "day_of_week": ["월", "화", "수", "목", "금", "토", "일"][d.weekday()],
                 "status": _safe_get(sc, "status"),
                 "status_code": _safe_get(sc, "status_code"),
-                "remain_embarkation_num": _safe_get(sc, "remain_embarkation_num"),
+                "available_count": remain,
+                "total_count": total,
                 "price": _safe_get(sc, "price"),
                 "fish_type": _safe_get(sc, "fish_type"),
                 "fishing_method": _safe_get(sc, "fishing_method"),
@@ -191,16 +227,5 @@ def get_schedules_in_range(
                 "schedule_no": _safe_get(sc, "schedule_no"),
             }
         )
-
-    # 날짜 + 시간 순으로 정렬
-    def sort_key(sc):
-        d = _parse_date(sc.get("sdate", "")) or date(2100, 1, 1)
-        stime_str = sc.get("stime") or "00:00:00"
-        try:
-            t = datetime.strptime(stime_str, "%H:%M:%S").time()
-        except Exception:
-            t = datetime.strptime("23:59:59", "%H:%M:%S").time()
-        return (d, t)
-
-    result.sort(key=sort_key)
+    result.sort(key=lambda x: x["sdate"])
     return result

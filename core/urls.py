@@ -16,6 +16,8 @@ from .views import (
     MeView,
     BoatSearchView,
     BoatScheduleView,
+    BoatLikeToggleView,
+    MyLikedBoatsView,
 )
 
 urlpatterns = [
@@ -44,6 +46,12 @@ urlpatterns = [
         BoatScheduleView.as_view(),
         name="boat-schedules",
     ),
-    # 항구 검색 URL 추가
+    path(
+        "boats/like/<int:boat_id>/",
+        BoatLikeToggleView.as_view(),
+        name="boat-like-toggle",
+    ),
+    path("boats/my-likes/", MyLikedBoatsView.as_view(), name="my-liked-boats"),
+    # 항구 검색
     path("ports/search/", PortSearchView.as_view(), name="port-search"),
 ]

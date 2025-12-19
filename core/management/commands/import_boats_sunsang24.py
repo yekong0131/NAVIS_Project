@@ -63,7 +63,7 @@ def upload_image_to_s3(image_url: str, folder="ships") -> str:
             if not ext:
                 ext = ".jpg"
 
-            # S3 경로: ports/폴더/UUID.jpg
+            # S3 경로: boats/폴더/UUID.jpg
             file_name = f"{folder}/{uuid.uuid4()}{ext}"
 
             s3_client.put_object(
@@ -278,7 +278,7 @@ class Command(BaseCommand):
                     if target_url:
                         # 이미지가 있으면 S3 업로드 시도
                         main_image_s3_url = upload_image_to_s3(
-                            target_url, folder="ports/thumbnail"
+                            target_url, folder="boats/thumbnail"
                         )
 
             # ==========================================================
@@ -296,7 +296,7 @@ class Command(BaseCommand):
                     for img in img_tags:
                         src = img.get("src")
                         if src and "http" in src:  # 유효한 URL인 경우만
-                            new_src = upload_image_to_s3(src, folder="ports/intro")
+                            new_src = upload_image_to_s3(src, folder="boats/intro")
                             if new_src:
                                 img["src"] = new_src
                                 changed = True

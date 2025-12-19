@@ -35,7 +35,7 @@ from PIL import Image
 import os
 
 # 앱 내부 모델 / 시리얼라이저 / 유틸
-from .models import EgiColor, Port, User, Diary, Boat
+from .models import EgiColor, Port, User, Diary, Boat, BoatLike
 from .serializers import (
     BoatScheduleResponseSerializer,
     BoatSearchResponseSerializer,
@@ -52,6 +52,8 @@ from .serializers import (
     SignupSerializer,
     LoginSerializer,
     WaterColorAnalyzeSerializer,
+    DiaryAnalyzeRequestSerializer,
+    DiaryAnalyzeResponseSerializer,
 )
 from .utils.integrated_data_collector import collect_all_marine_data
 from .utils.fishing_index_api import SUPPORTED_FISH
@@ -63,6 +65,7 @@ from .utils.boat_schedule_service import (
 )
 from .utils.stt_service import STTParser
 from dotenv import load_dotenv
+from django.shortcuts import get_object_or_404
 
 load_dotenv()
 
@@ -278,6 +281,16 @@ class DiaryAnalyzeView(APIView):
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        summary="낚시 일지 음성 분석",
+        description="음성 파일(.mp3, .m4a, .wav 등)을 업로드하면 STT 변환 및 GPT 분석을 통해 일지 데이터를 추출합니다.",
+        request=DiaryAnalyzeRequestSerializer,
+        responses={
+            200: DiaryAnalyzeResponseSerializer,
+            400: OpenApiResponse(description="파일 없음 또는 유효하지 않음"),
+            500: OpenApiResponse(description="분석 실패"),
+        },
+    )
     def post(self, request):
         audio_file = request.FILES.get("audio")
         if not audio_file:
@@ -799,7 +812,7 @@ class MeView(APIView):
 
 
 # ========================
-# 선박 검색 API
+# 선박 API
 # ========================
 class BoatSearchView(APIView):
     """
@@ -808,7 +821,7 @@ class BoatSearchView(APIView):
 
     @extend_schema(
         summary="선박 검색",
-        description="검색 필터를 기반으로 선박을 검색합니다. (지역, 해역, 날짜, 어종)",
+        description="검색 필터를 기반으로 선박을 검색합니다. (지역, 해역, 날짜, 어종, 인원)",
         parameters=[
             OpenApiParameter(
                 name="area_main",
@@ -825,7 +838,7 @@ class BoatSearchView(APIView):
             OpenApiParameter(
                 name="area_sea",
                 type=OpenApiTypes.STR,
-                description="해역",
+                description="해역 (서해안, 남해안 등)",
                 required=False,
             ),
             OpenApiParameter(
@@ -838,6 +851,12 @@ class BoatSearchView(APIView):
                 name="date",
                 type=OpenApiTypes.DATE,
                 description="기준 날짜 (YYYY-MM-DD)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="people",
+                type=OpenApiTypes.INT,
+                description="필요 인원 수 (기본 1)",
                 required=False,
             ),
             OpenApiParameter(
@@ -857,45 +876,6 @@ class BoatSearchView(APIView):
             200: BoatSearchResponseSerializer,
             400: OpenApiTypes.OBJECT,
         },
-        examples=[
-            OpenApiExample(
-                "검색 성공 예시",
-                value={
-                    "status": "success",
-                    "filters": {
-                        "area_main": "충남",
-                        "fish": "쭈꾸미",
-                        "date": "2024-10-01",
-                    },
-                    "pagination": {
-                        "page": 1,
-                        "page_size": 10,
-                        "total_pages": 5,
-                        "total_boats": 48,
-                        "has_next": True,
-                        "has_previous": False,
-                    },
-                    "results": [
-                        {
-                            "boat_id": 101,
-                            "ship_no": 12345,
-                            "name": "오천항 대박호",
-                            "port": "오천항",
-                            "contact": "010-1234-5678",
-                            "target_fish": "쭈꾸미, 갑오징어",
-                            "booking_url": "http://...",
-                            "source_site": "TheFishing",
-                            "area_main": "충남",
-                            "area_sub": "보령시",
-                            "area_sea": "서해",
-                            "address": "충남 보령시 오천면...",
-                            "main_image_url": "s3 url",
-                            "nearest_schedule": {"date": "2024-10-05", "available": 3},
-                        }
-                    ],
-                },
-            )
-        ],
     )
     def get(self, request):
         qs = Boat.objects.all()
@@ -906,13 +886,18 @@ class BoatSearchView(APIView):
         fish_raw = request.query_params.get("fish")
         date_str = request.query_params.get("date")
 
+        # 인원 수 파싱
+        try:
+            people = int(request.query_params.get("people", 1))
+        except ValueError:
+            people = 1
+
         page = int(request.query_params.get("page", 1))
         page_size = int(request.query_params.get("page_size", 10))
-        if page_size > 100:
-            page_size = 100
-        if page_size < 10:
-            page_size = 10
 
+        # -------------------------------------------------------------
+        # 1. DB 필터링 (기본 메타데이터 검색)
+        # -------------------------------------------------------------
         if area_main:
             qs = qs.filter(area_main__icontains=area_main)
         if area_sub:
@@ -920,12 +905,16 @@ class BoatSearchView(APIView):
         if area_sea:
             qs = qs.filter(area_sea__icontains=area_sea)
 
+        if area_sea:
+            # DB에 "서해안"으로 저장되어 있어도 "서해"로 검색하면 매칭됨 (icontains)
+            qs = qs.filter(area_sea__icontains=area_sea)
+
         if fish_raw:
             keywords = [fish_raw]
             if "쭈꾸미" in fish_raw:
                 keywords.append(fish_raw.replace("쭈꾸미", "주꾸미"))
             if "쭈갑" in fish_raw:
-                keywords.append("갑오징어")
+                keywords.append("갑오징어", "쭈꾸미", "주꾸미")
 
             q_obj = Q()
             for word in keywords:
@@ -943,20 +932,49 @@ class BoatSearchView(APIView):
         else:
             base_date = date.today()
 
-        paginator = Paginator(qs.order_by("boat_id"), page_size)
+        # DB 조회 결과를 먼저 정렬
+        qs = qs.order_by("boat_id")
+
+        paginator = Paginator(qs, page_size)
         page_obj = paginator.get_page(page)
 
-        results = []
-        for boat in page_obj.object_list:
-            schedule_summary = None
-            if boat.ship_no:
-                schedule_summary = find_nearest_available_schedule(
-                    ship_no=boat.ship_no,
-                    base_date=base_date,
-                    max_days=7,
+        user_liked_ids = set()
+        if request.user.is_authenticated:
+            user_liked_ids = set(
+                BoatLike.objects.filter(user=request.user).values_list(
+                    "boat_id", flat=True
                 )
+            )
 
-            results.append(
+        print(f"\n🔎 [선박검색] Page {page} 요청")
+        print(f"   - 지역(Main): {area_main}")
+        print(f"   - 지역(Sub) : {area_sub}")
+        print(f"   - 해역(Sea) : {area_sea}")
+        print(f"   - 어종(Fish): {fish_raw}")
+        print(f"   - 날짜(Date): {date_str}")
+        print(f"   - 인원      : {people}명")
+        print(
+            f"  -> DB 후보군: 총 {paginator.count}개 중 이번 페이지 {len(page_obj.object_list)}개 조회 시작"
+        )
+
+        final_results = []
+
+        for boat in page_obj.object_list:
+            if not boat.ship_no:
+                continue
+
+            schedule_summary = find_nearest_available_schedule(
+                ship_no=boat.ship_no,
+                base_date=base_date,
+                max_days=7,
+                min_passengers=people,
+            )
+
+            # 스케줄이 없으면 결과 목록에서 제외 (이번 페이지 결과가 10개보다 적을 수 있음)
+            if not schedule_summary:
+                continue
+
+            final_results.append(
                 {
                     "boat_id": boat.boat_id,
                     "ship_no": boat.ship_no,
@@ -971,29 +989,31 @@ class BoatSearchView(APIView):
                     "area_sea": boat.area_sea,
                     "address": boat.address,
                     "main_image_url": boat.main_image_url,
+                    "intro_memo": boat.intro_memo,
                     "nearest_schedule": schedule_summary,
+                    "is_liked": boat.boat_id in user_liked_ids,
                 }
             )
+
+        print(f"✅ [완료] 유효한 선박 {len(final_results)}개 반환\n")
 
         return Response(
             {
                 "status": "success",
                 "filters": {
                     "area_main": area_main,
-                    "area_sub": area_sub,
-                    "area_sea": area_sea,
-                    "fish": fish_raw,
                     "date": base_date.isoformat(),
+                    "people": people,
                 },
                 "pagination": {
                     "page": page_obj.number,
                     "page_size": page_size,
                     "total_pages": paginator.num_pages,
-                    "total_boats": paginator.count,
+                    "total_boats": paginator.count,  # 주의: DB 기준 전체 개수입니다. (스케줄 필터링 전)
                     "has_next": page_obj.has_next(),
                     "has_previous": page_obj.has_previous(),
                 },
-                "results": results,
+                "results": final_results,
             },
             status=status.HTTP_200_OK,
         )
@@ -1085,6 +1105,10 @@ class BoatScheduleView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        is_liked = False
+        if request.user.is_authenticated:
+            is_liked = BoatLike.objects.filter(user=request.user, boat=boat).exists()
+
         date_str = request.query_params.get("date")
         days_str = request.query_params.get("days")
 
@@ -1125,10 +1149,92 @@ class BoatScheduleView(APIView):
                     "booking_url": boat.booking_url,
                     "main_image_url": boat.main_image_url,
                     "intro_memo": boat.intro_memo,
+                    "is_liked": is_liked,
                 },
                 "base_date": base_date.isoformat(),
                 "days": days,
                 "schedules": schedules,
             },
             status=status.HTTP_200_OK,
+        )
+
+
+class BoatLikeToggleView(APIView):
+    """
+    선박 좋아요 토글 (Toggle)
+    - 이미 좋아요 상태면 -> 취소 (삭제)
+    - 좋아요 안 한 상태면 -> 등록 (생성)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="선박 좋아요 토글",
+        description="해당 선박에 좋아요를 누르거나 취소합니다.",
+        responses={
+            200: OpenApiResponse(description="취소됨 (unliked)"),
+            201: OpenApiResponse(description="등록됨 (liked)"),
+        },
+    )
+    def post(self, request, boat_id: int):
+        boat = get_object_or_404(Boat, pk=boat_id)
+
+        # get_or_create로 찜 확인
+        like, created = BoatLike.objects.get_or_create(user=request.user, boat=boat)
+
+        if not created:
+            # 이미 있으면 삭제 (좋아요 취소)
+            like.delete()
+            return Response(
+                {"status": "unliked", "is_liked": False}, status=status.HTTP_200_OK
+            )
+        else:
+            # 새로 생성됨 (좋아요 등록)
+            return Response(
+                {"status": "liked", "is_liked": True}, status=status.HTTP_201_CREATED
+            )
+
+
+class MyLikedBoatsView(generics.ListAPIView):
+    """
+    내가 찜한 선박 목록 조회
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = BoatSearchResponseSerializer
+
+    @extend_schema(
+        summary="내가 찜한 선박 목록",
+        description="사용자가 좋아요 누른 선박들의 목록을 최신순으로 반환합니다.",
+    )
+    def get(self, request):
+        # 찜한 순서 역순(최신순)으로 가져오기
+        likes = (
+            BoatLike.objects.filter(user=request.user)
+            .select_related("boat")
+            .order_by("-created_at")
+        )
+
+        results = []
+        for like in likes:
+            boat = like.boat
+            results.append(
+                {
+                    "boat_id": boat.boat_id,
+                    "ship_no": boat.ship_no,
+                    "name": boat.name,
+                    "port": boat.port,
+                    "contact": boat.contact,
+                    "target_fish": boat.target_fish,
+                    "area_main": boat.area_main,
+                    "area_sub": boat.area_sub,
+                    "area_sea": boat.area_sea,
+                    "main_image_url": boat.main_image_url,
+                    "is_liked": True,
+                    "nearest_schedule": None,
+                }
+            )
+
+        return Response(
+            {"status": "success", "count": len(results), "results": results}
         )

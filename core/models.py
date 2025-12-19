@@ -138,6 +138,24 @@ class Boat(models.Model):
         ]
 
 
+# 2-1. 선박 좋아요 (찜하기)
+class BoatLike(models.Model):
+    like_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="boat_likes")
+    boat = models.ForeignKey(Boat, on_delete=models.CASCADE, related_name="likes")
+    created_at = models.DateTimeField(auto_now_add=True)  # 언제 찜했는지
+
+    class Meta:
+        db_table = "boat_likes"
+        unique_together = (("user", "boat"),)  # 중복 좋아요 방지
+        indexes = [
+            models.Index(fields=["user", "created_at"]),  # 마이페이지 조회 속도 향상
+        ]
+
+    def __str__(self):
+        return f"{self.user.nickname} likes {self.boat.name}"
+
+
 # 3. 에기 색상 마스터 테이블
 class EgiColor(models.Model):
     """
