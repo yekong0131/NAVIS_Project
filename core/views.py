@@ -889,6 +889,7 @@ class BoatSearchView(APIView):
                             "area_sub": "보령시",
                             "area_sea": "서해",
                             "address": "충남 보령시 오천면...",
+                            "main_image_url": "s3 url",
                             "nearest_schedule": {"date": "2024-10-05", "available": 3},
                         }
                     ],
@@ -969,6 +970,7 @@ class BoatSearchView(APIView):
                     "area_sub": boat.area_sub,
                     "area_sea": boat.area_sea,
                     "address": boat.address,
+                    "main_image_url": boat.main_image_url,
                     "nearest_schedule": schedule_summary,
                 }
             )
@@ -1037,6 +1039,8 @@ class BoatScheduleView(APIView):
                         "contact": "010-1234-5678",
                         "target_fish": "쭈갑",
                         "booking_url": "http://...",
+                        "main_image_url": "s3 url",
+                        "intro_memo": "사진이 포함된 html",
                     },
                     "base_date": "2024-10-01",
                     "days": 3,
@@ -1119,6 +1123,8 @@ class BoatScheduleView(APIView):
                     "contact": boat.contact,
                     "target_fish": boat.target_fish,
                     "booking_url": boat.booking_url,
+                    "main_image_url": boat.main_image_url,
+                    "intro_memo": boat.intro_memo,
                 },
                 "base_date": base_date.isoformat(),
                 "days": days,

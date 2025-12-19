@@ -798,7 +798,7 @@ class LoginSerializer(serializers.Serializer):
 # 선박 검색 Serializers
 # ========================
 class BoatItemSerializer(serializers.Serializer):
-    """개별 선박 정보"""
+    """개별 선박 정보 (목록용)"""
 
     boat_id = serializers.IntegerField()
     ship_no = serializers.IntegerField(allow_null=True)
@@ -812,7 +812,9 @@ class BoatItemSerializer(serializers.Serializer):
     area_sub = serializers.CharField()
     area_sea = serializers.CharField()
     address = serializers.CharField()
-    # nearest_schedule은 구조가 유동적일 수 있어 DictField로 처리하거나 별도 Serializer 정의 가능
+
+    main_image_url = serializers.URLField(allow_null=True, help_text="대표 이미지 URL")
+
     nearest_schedule = serializers.DictField(
         allow_null=True, help_text="가장 가까운 예약 가능일 정보"
     )
@@ -842,7 +844,7 @@ class BoatSearchResponseSerializer(serializers.Serializer):
 # 선박 스케줄 Serializers
 # ========================
 class BoatSimpleInfoSerializer(serializers.Serializer):
-    """스케줄 조회 시 반환되는 선박 요약 정보"""
+    """스케줄 조회 시 반환되는 선박 상세 정보"""
 
     boat_id = serializers.IntegerField()
     ship_no = serializers.IntegerField()
@@ -851,6 +853,11 @@ class BoatSimpleInfoSerializer(serializers.Serializer):
     contact = serializers.CharField()
     target_fish = serializers.CharField()
     booking_url = serializers.CharField()
+
+    main_image_url = serializers.URLField(allow_null=True, help_text="대표 이미지 URL")
+    intro_memo = serializers.CharField(
+        allow_null=True, help_text="선박 소개글 (HTML 포함)"
+    )
 
 
 class ScheduleItemSerializer(serializers.Serializer):

@@ -117,6 +117,8 @@ class Boat(models.Model):
     ship_no = models.IntegerField(unique=True)
     name = models.CharField(max_length=100)
     port = models.CharField(max_length=100)  # 출항지
+    main_image_url = models.URLField(max_length=500, blank=True, null=True)
+    intro_memo = models.TextField(blank=True, null=True)
     area_main = models.CharField(max_length=100)
     area_sub = models.CharField(max_length=100)
     address = models.CharField(max_length=200, blank=True)
