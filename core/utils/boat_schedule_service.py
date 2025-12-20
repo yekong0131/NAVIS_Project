@@ -178,8 +178,8 @@ def get_schedules_in_range(
     """특정 기간 스케줄 전체 조회 (상세페이지용)"""
     if days < 1:
         days = 1
-    if days > 14:
-        days = 14
+    if days > 7:
+        days = 7
 
     start_date = base_date
     end_date = base_date + timedelta(days=days - 1)

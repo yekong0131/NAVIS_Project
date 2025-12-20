@@ -18,6 +18,7 @@ from .models import (
     DiaryImage,
     DiaryUsedEgi,
     EgiColor,
+    ProfileCharacter,
     WeatherSnapshot,
 )
 
@@ -31,6 +32,12 @@ class EgiColorSerializer(serializers.ModelSerializer):
     class Meta:
         model = EgiColor
         fields = ["color_id", "color_name"]
+
+
+class ProfileCharacterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProfileCharacter
+        fields = ["character_id", "name", "image_url"]
 
 
 # ========================
@@ -770,28 +777,49 @@ class PortSearchSerializer(serializers.Serializer):
 # 회원 Serializers
 # ========================
 class SignupSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
-    password2 = serializers.CharField(write_only=True, min_length=8)
+    password = serializers.CharField(write_only=True)
+    character_id = serializers.IntegerField(required=False, write_only=True)
 
     class Meta:
         model = User
-        fields = ("username", "nickname", "email", "password", "password2")
-
-    def validate(self, attrs):
-        if attrs["password"] != attrs["password2"]:
-            raise serializers.ValidationError("비밀번호가 일치하지 않습니다.")
-        return attrs
+        fields = ["username", "password", "nickname", "email", "character_id"]
 
     def create(self, validated_data):
-        password = validated_data.pop("password")
-        validated_data.pop("password2", None)
-        user = User.objects.create_user(**validated_data, password=password)
+        char_id = validated_data.pop("character_id", None)
+        user = User.objects.create_user(**validated_data)
+
+        if char_id:
+            try:
+                character = ProfileCharacter.objects.get(pk=char_id)
+                user.profile_character = character
+                user.save()
+            except ProfileCharacter.DoesNotExist:
+                pass  # 잘못된 ID면 그냥 기본값(None) 유지
+
         return user
 
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    character_id = serializers.IntegerField(required=True, write_only=True)
+
+    class Meta:
+        model = User
+        fields = ["character_id"]
+
+    def update(self, instance, validated_data):
+        char_id = validated_data.get("character_id")
+        if char_id:
+            try:
+                instance.profile_character = ProfileCharacter.objects.get(pk=char_id)
+            except ProfileCharacter.DoesNotExist:
+                raise serializers.ValidationError("존재하지 않는 캐릭터 ID입니다.")
+        instance.save()
+        return instance
 
 
 # ========================

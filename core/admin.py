@@ -3,6 +3,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (
+    ProfileCharacter,
     User,
     Boat,
     Egi,
@@ -16,12 +17,26 @@ from .models import (
 )
 
 
+# 0. 프로필 캐릭터
+@admin.register(ProfileCharacter)
+class ProfileCharacterAdmin(admin.ModelAdmin):
+    list_display = ("character_id", "name", "image_url", "is_active", "order")
+    list_editable = ("is_active", "order")  # 목록에서 바로 수정 가능하게
+
+
 # 1. 사용자 관리 (기본 UserAdmin 상속)
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ("username", "email", "nickname", "apti_type", "is_staff")
+    list_display = (
+        "username",
+        "email",
+        "nickname",
+        "apti_type",
+        "is_staff",
+        "profile_character",
+    )
     fieldsets = UserAdmin.fieldsets + (
-        ("추가 정보", {"fields": ("nickname", "apti_type")}),
+        ("추가 정보", {"fields": ("nickname", "apti_type", "profile_character")}),
     )
 
 

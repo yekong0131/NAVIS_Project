@@ -35,7 +35,7 @@ from PIL import Image
 import os
 
 # 앱 내부 모델 / 시리얼라이저 / 유틸
-from .models import EgiColor, Port, User, Diary, Boat, BoatLike
+from .models import EgiColor, Port, User, Diary, Boat, BoatLike, ProfileCharacter
 from .serializers import (
     BoatScheduleResponseSerializer,
     BoatSearchResponseSerializer,
@@ -49,8 +49,10 @@ from .serializers import (
     OceanDataRequestSerializer,
     OceanDataResponseSerializer,
     PortSearchResultSerializer,
+    ProfileCharacterSerializer,
     SignupSerializer,
     LoginSerializer,
+    UserProfileUpdateSerializer,
     WaterColorAnalyzeSerializer,
     DiaryAnalyzeRequestSerializer,
     DiaryAnalyzeResponseSerializer,
@@ -703,7 +705,7 @@ class EgiRecommendView(APIView):
 
 
 # ========================
-# 인증 API
+# 회원 API
 # ========================
 class SignupView(APIView):
     """
@@ -729,10 +731,13 @@ class SignupView(APIView):
         user = serializer.save()
         token, _ = Token.objects.get_or_create(user=user)
 
+        char_url = user.profile_character.image_url if user.profile_character else None
+
         return Response(
             {
                 "user": SignupSerializer(user).data,
                 "token": token.key,
+                "profile_image": char_url,
             },
             status=status.HTTP_201_CREATED,
         )
@@ -771,6 +776,8 @@ class LoginView(APIView):
 
         token, _ = Token.objects.get_or_create(user=user)
 
+        char_url = user.profile_character.image_url if user.profile_character else None
+
         return Response(
             {
                 "token": token.key,
@@ -778,6 +785,7 @@ class LoginView(APIView):
                     "username": user.username,
                     "nickname": user.nickname,
                     "email": user.email,
+                    "profile_image": char_url,
                 },
             },
             status=status.HTTP_200_OK,
@@ -801,14 +809,57 @@ class MeView(APIView):
     )
     def get(self, request):
         user: User = request.user
+        char_url = user.profile_character.image_url if user.profile_character else None
         return Response(
             {
                 "username": user.username,
                 "nickname": user.nickname,
                 "email": user.email,
+                "profile_image": char_url,
+                "apti_type": user.apti_type,
             },
             status=status.HTTP_200_OK,
         )
+
+
+class ProfileCharacterListView(generics.ListAPIView):
+    """
+    선택 가능한 프로필 캐릭터 이미지 목록 조회
+    """
+
+    queryset = ProfileCharacter.objects.filter(is_active=True)
+    serializer_class = ProfileCharacterSerializer
+    permission_classes = [AllowAny]
+
+
+class MyProfileUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="내 프로필 캐릭터 변경",
+        request=UserProfileUpdateSerializer,
+        responses={200: OpenApiResponse(description="변경 성공")},
+    )
+    def patch(self, request):
+        serializer = UserProfileUpdateSerializer(
+            instance=request.user, data=request.data
+        )
+        if serializer.is_valid():
+            serializer.save()
+            # 변경된 정보 반환 (MeView 로직 재사용 가능)
+            user = request.user
+            char_url = (
+                user.profile_character.image_url if user.profile_character else None
+            )
+            return Response(
+                {
+                    "status": "success",
+                    "nickname": user.nickname,
+                    "profile_image": char_url,
+                },
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ========================
@@ -1230,6 +1281,10 @@ class MyLikedBoatsView(generics.ListAPIView):
                     "area_sub": boat.area_sub,
                     "area_sea": boat.area_sea,
                     "main_image_url": boat.main_image_url,
+                    "intro_memo": boat.intro_memo,
+                    "address": boat.address,  # 주소
+                    "booking_url": boat.booking_url,  # 예약 링크
+                    "source_site": boat.source_site,  # 출처
                     "is_liked": True,
                     "nearest_schedule": None,
                 }

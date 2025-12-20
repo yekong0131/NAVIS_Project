@@ -7,8 +7,10 @@ from .views import (
     DiaryListCreateView,
     EgiColorListView,
     MyDiaryListView,
+    MyProfileUpdateView,
     OceanDataView,
     PortSearchView,
+    ProfileCharacterListView,
     WaterColorAnalyzeView,
     EgiRecommendView,
     SignupView,
@@ -35,10 +37,20 @@ urlpatterns = [
     path("analyze/color/", WaterColorAnalyzeView.as_view(), name="analyze-color"),
     # 에기 추천
     path("egi/recommend/", EgiRecommendView.as_view(), name="egi-recommend"),
-    # 인증
+    # 회원
     path("auth/signup/", SignupView.as_view(), name="auth-signup"),
     path("auth/login/", LoginView.as_view(), name="auth-login"),
     path("auth/me/", MeView.as_view(), name="auth-me"),
+    path(
+        "profile-characters/",
+        ProfileCharacterListView.as_view(),
+        name="profile-characters",
+    ),
+    path(
+        "auth/me/update-character/",
+        MyProfileUpdateView.as_view(),
+        name="update-character",
+    ),
     # 선박
     path("boats/search/", BoatSearchView.as_view(), name="boat-search"),
     path(

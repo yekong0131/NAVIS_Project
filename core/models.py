@@ -99,10 +99,34 @@ class Port(models.Model):
         db_table = "ports"
 
 
+# 0-6. 프로필 캐릭터
+class ProfileCharacter(models.Model):
+    character_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=50)
+    image_url = models.URLField(max_length=500)
+    is_active = models.BooleanField(default=True)
+    order = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = "profile_characters"
+        ordering = ["order", "character_id"]
+
+    def __str__(self):
+        return self.name
+
+
 # 1. 사용자 (기본 User 모델 확장)
 class User(AbstractUser):
     nickname = models.CharField(max_length=50, unique=True)
     apti_type = models.CharField(max_length=50, blank=True, null=True)
+
+    profile_character = models.ForeignKey(
+        ProfileCharacter,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
 
     class Meta:
         db_table = "users"
