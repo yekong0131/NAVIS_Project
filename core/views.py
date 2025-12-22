@@ -716,7 +716,7 @@ class SignupView(APIView):
 
     @extend_schema(
         summary="회원가입",
-        description="username, nickname, email, password를 입력받아 회원가입을 처리하고, 토큰을 발급합니다.",
+        description="username, nickname, email, password, profile_image를 입력받아 회원가입을 처리하고, 토큰을 발급합니다.",
         request=SignupSerializer,
         responses={
             201: OpenApiResponse(description="회원 생성 성공"),
