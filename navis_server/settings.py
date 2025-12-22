@@ -148,10 +148,10 @@ AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "ap-northeast-2")  # 기본값 서울
 
-# S3 파일 덮어쓰기 방지 (같은 이름 파일 올라오면 뒤에 난수 붙임)
+# S3 파일 덮어쓰기 방지
 AWS_S3_FILE_OVERWRITE = False
-AWS_DEFAULT_ACL = None  # 파일을 private하게 관리할지 설정 (일단 None)
-AWS_S3_VERIFY = True  # TLS 인증서 확인
+AWS_DEFAULT_ACL = None
+AWS_S3_VERIFY = True
 
 # 파일 저장소를 S3로 교체
 DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
@@ -181,11 +181,11 @@ SPECTACULAR_SETTINGS = {
         "rest_framework.fields.FileField": OpenApiTypes.BINARY,
     },
 }
-# Authorization 헤더 허용 설정 (필수)
+# Authorization 헤더 허용 설정
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
-    "authorization",  # ⭐ 이 부분이 있어야 토큰 헤더를 허용함
+    "authorization",
     "content-type",
     "dnt",
     "origin",
@@ -194,11 +194,7 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 # CORS 설정 추가
-CORS_ALLOW_ALL_ORIGINS = (
-    True  # 개발 중에는 모든 도메인 허용 (배포 시 False로 변경 권장)
-)
-# 또는 특정 도메인만 허용하려면:
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",
-#     "http://127.0.0.1:3000",
-# ]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]

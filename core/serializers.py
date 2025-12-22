@@ -17,6 +17,7 @@ from .models import (
     DiaryCatch,
     DiaryImage,
     DiaryUsedEgi,
+    Egi,
     EgiColor,
     ProfileCharacter,
     WeatherSnapshot,
@@ -637,6 +638,31 @@ class DiaryUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
+# 일지 요약/통계 응답용 Serializer
+class DiarySummaryStatsSerializer(serializers.Serializer):
+    """
+    낚시 일지 통계 정보 (올해 vs 작년)
+    """
+
+    year = serializers.IntegerField()
+    trips = serializers.IntegerField(help_text="출조 횟수")
+    total_catch = serializers.IntegerField(help_text="총 마릿수")
+    jjukkumi = serializers.IntegerField(help_text="쭈꾸미 마릿수")
+    cuttlefish = serializers.IntegerField(help_text="갑오징어 마릿수")
+    top_location = serializers.CharField(help_text="가장 많이 간 포인트")
+
+
+class DiarySummaryResponseSerializer(serializers.Serializer):
+    """
+    일지 요약 화면 전체 응답
+    """
+
+    this_year = DiarySummaryStatsSerializer()
+    last_year = DiarySummaryStatsSerializer()
+    diff = serializers.DictField(help_text="차이 (trip, catch)")
+    logs = DiaryListSerializer(many=True, help_text="올해 일지 목록")
+
+
 # ========================
 # 물색 Serializers
 # ========================
@@ -652,6 +678,12 @@ class WaterAnalysisResultSerializer(serializers.Serializer):
 # ========================
 # 에기 Serializers
 # ========================
+class EgiSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Egi
+        fields = ["egi_id", "name", "brand", "image_url", "size"]
+
+
 class EgiRecommendSerializer(serializers.Serializer):
     image = serializers.ImageField(required=True)
     lat = serializers.FloatField(required=True)
@@ -805,19 +837,40 @@ class LoginSerializer(serializers.Serializer):
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
-    character_id = serializers.IntegerField(required=True, write_only=True)
+    character_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True
+    )
+    password = serializers.CharField(required=False, write_only=True)
+    nickname = serializers.CharField(required=False)
+    email = serializers.EmailField(required=False)
 
     class Meta:
         model = User
-        fields = ["character_id"]
+        fields = ["nickname", "email", "password", "character_id"]
 
     def update(self, instance, validated_data):
-        char_id = validated_data.get("character_id")
-        if char_id:
-            try:
-                instance.profile_character = ProfileCharacter.objects.get(pk=char_id)
-            except ProfileCharacter.DoesNotExist:
-                raise serializers.ValidationError("존재하지 않는 캐릭터 ID입니다.")
+        # 1. 비밀번호 변경
+        password = validated_data.pop("password", None)
+        if password:
+            instance.set_password(password)
+
+        # 2. 프로필 캐릭터 변경
+        if "character_id" in validated_data:
+            char_id = validated_data.pop("character_id")
+            if char_id is not None:
+                try:
+                    instance.profile_character = ProfileCharacter.objects.get(
+                        pk=char_id
+                    )
+                except ProfileCharacter.DoesNotExist:
+                    raise serializers.ValidationError("존재하지 않는 캐릭터 ID입니다.")
+            else:
+                instance.profile_character = None
+
+        # 3. 나머지 정보 (닉네임, 이메일)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
         instance.save()
         return instance
 

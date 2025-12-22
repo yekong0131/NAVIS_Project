@@ -6,7 +6,8 @@ import json
 # Django
 from django.contrib.auth import authenticate, get_user_model
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Sum, Count, Q
+from django.db.models.functions import Coalesce
 
 # Django REST framework
 from rest_framework import generics, status
@@ -35,17 +36,19 @@ from PIL import Image
 import os
 
 # 앱 내부 모델 / 시리얼라이저 / 유틸
-from .models import EgiColor, Port, User, Diary, Boat, BoatLike, ProfileCharacter
+from .models import Egi, EgiColor, Port, User, Diary, Boat, BoatLike, ProfileCharacter
 from .serializers import (
     BoatScheduleResponseSerializer,
     BoatSearchResponseSerializer,
     DiaryCreateSerializer,
+    DiarySummaryResponseSerializer,
     DiaryUpdateSerializer,
     DiaryDetailSerializer,
     DiaryListSerializer,
     EgiColorSerializer,
     EgiRecommendResponseSerializer,
     EgiRecommendSerializer,
+    EgiSerializer,
     OceanDataRequestSerializer,
     OceanDataResponseSerializer,
     PortSearchResultSerializer,
@@ -73,7 +76,7 @@ load_dotenv()
 
 
 # ========================
-# 에기 색상 API
+# 에기 API
 # ========================
 class EgiColorListView(generics.ListAPIView):
     """
@@ -88,6 +91,24 @@ class EgiColorListView(generics.ListAPIView):
         summary="에기 색상 목록 조회",
         description="일지 작성 시 사용 가능한 에기 색상 목록을 반환합니다.",
         responses={200: EgiColorSerializer(many=True)},
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+class EgiListView(generics.ListAPIView):
+    """
+    전체 에기 목록 조회 (홈 화면 추천용)
+    """
+
+    queryset = Egi.objects.all().order_by("?")[:10]
+    serializer_class = EgiSerializer
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="추천 에기 목록 조회",
+        description="홈 화면에 표시할 에기 리스트를 반환합니다.",
+        responses={200: EgiSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
@@ -367,6 +388,117 @@ class DiaryAnalyzeView(APIView):
         except Exception as e:
             print(f"❌ 분석 실패(Exception): {e}")
             return Response({"error": str(e)}, status=500)
+
+
+class DiarySummaryView(APIView):
+    """
+    낚시 일지 요약 및 통계 조회
+    - stats(this_year, last_year, diff): 요청한 year 기준 통계
+    - logs: 전체 낚시 일지 목록 (연도 제한 없음)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="낚시 일지 요약/통계",
+        description="전체 일지 목록과, 지정된 년도의 작년 대비 통계(조과, 출조횟수 등)를 반환합니다.",
+        parameters=[
+            OpenApiParameter(
+                name="year",
+                type=int,
+                description="통계 기준 년도 (기본값: 올해)",
+                required=False,
+            ),
+        ],
+        responses={200: DiarySummaryResponseSerializer},
+    )
+    def get(self, request):
+        user = request.user
+        try:
+            year = int(request.query_params.get("year", datetime.now().year))
+        except ValueError:
+            year = datetime.now().year
+
+        last_year = year - 1
+
+        # 1. 쿼리셋 준비
+        # 통계용 쿼리셋
+        this_year_qs = Diary.objects.filter(user=user, fishing_date__year=year)
+        last_year_qs = Diary.objects.filter(user=user, fishing_date__year=last_year)
+
+        # 로그 목록용 쿼리셋
+        all_logs_qs = Diary.objects.filter(user=user).order_by("-fishing_date")
+
+        # 2. 통계 계산 함수
+        def calculate_stats(queryset, target_year):
+            # 출조 횟수
+            trips = queryset.count()
+
+            # 조과 합계 (NULL일 경우 0으로 처리)
+            aggregates = queryset.aggregate(
+                total=Coalesce(Sum("catches__count"), 0),
+                jjukkumi=Coalesce(
+                    Sum(
+                        "catches__count",
+                        filter=Q(catches__fish_name__contains="쭈꾸미")
+                        | Q(catches__fish_name__contains="주꾸미"),
+                    ),
+                    0,
+                ),
+                cuttlefish=Coalesce(
+                    Sum(
+                        "catches__count",
+                        filter=Q(catches__fish_name__contains="갑오징어"),
+                    ),
+                    0,
+                ),
+            )
+
+            # 최다 출조지 (location_name 기준 grouping)
+            top_loc = "-"
+            if trips > 0:
+                top_place = (
+                    queryset.values("location_name")
+                    .annotate(count=Count("location_name"))
+                    .order_by("-count")
+                    .first()
+                )
+                if top_place and top_place["location_name"]:
+                    top_loc = top_place["location_name"]
+
+            return {
+                "year": target_year,
+                "trips": trips,
+                "total_catch": aggregates["total"],
+                "jjukkumi": aggregates["jjukkumi"],
+                "cuttlefish": aggregates["cuttlefish"],
+                "top_location": top_loc,
+            }
+
+        # 3. 데이터 계산
+        this_year_stats = calculate_stats(this_year_qs, year)
+        last_year_stats = calculate_stats(last_year_qs, last_year)
+
+        # 4. 차이 계산
+        diff = {
+            "trip": this_year_stats["trips"] - last_year_stats["trips"],
+            "catch": this_year_stats["total_catch"] - last_year_stats["total_catch"],
+        }
+
+        # 5. 전체 일지 목록 직렬화
+        logs_serializer = DiaryListSerializer(
+            all_logs_qs, many=True, context={"request": request}
+        )
+
+        return Response(
+            {
+                "this_year": this_year_stats,
+                "last_year": last_year_stats,
+                "diff": diff,
+                "logs": logs_serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 # ========================
@@ -776,7 +908,11 @@ class LoginView(APIView):
 
         token, _ = Token.objects.get_or_create(user=user)
 
+        # [수정] 캐릭터 정보 상세 반환
         char_url = user.profile_character.image_url if user.profile_character else None
+        char_id = (
+            user.profile_character.character_id if user.profile_character else None
+        )
 
         return Response(
             {
@@ -786,6 +922,7 @@ class LoginView(APIView):
                     "nickname": user.nickname,
                     "email": user.email,
                     "profile_image": char_url,
+                    "profile_character_id": char_id,  # [추가] ID 반환
                 },
             },
             status=status.HTTP_200_OK,
@@ -810,12 +947,17 @@ class MeView(APIView):
     def get(self, request):
         user: User = request.user
         char_url = user.profile_character.image_url if user.profile_character else None
+        char_id = (
+            user.profile_character.character_id if user.profile_character else None
+        )
+
         return Response(
             {
                 "username": user.username,
                 "nickname": user.nickname,
                 "email": user.email,
                 "profile_image": char_url,
+                "profile_character_id": char_id,
                 "apti_type": user.apti_type,
             },
             status=status.HTTP_200_OK,
@@ -836,30 +978,72 @@ class MyProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary="내 프로필 캐릭터 변경",
+        summary="내 정보 수정",
+        description="닉네임, 이메일, 비밀번호, 프로필 캐릭터를 수정합니다.",
         request=UserProfileUpdateSerializer,
-        responses={200: OpenApiResponse(description="변경 성공")},
+        responses={
+            200: OpenApiResponse(description="수정 성공 (변경된 정보 반환)"),
+            400: OpenApiResponse(description="유효성 검사 실패"),
+        },
     )
     def patch(self, request):
         serializer = UserProfileUpdateSerializer(
-            instance=request.user, data=request.data
+            instance=request.user, data=request.data, partial=True
         )
+
         if serializer.is_valid():
-            serializer.save()
-            # 변경된 정보 반환 (MeView 로직 재사용 가능)
-            user = request.user
+            user = serializer.save()
             char_url = (
                 user.profile_character.image_url if user.profile_character else None
             )
+            char_id = (
+                user.profile_character.character_id if user.profile_character else None
+            )
+
             return Response(
                 {
                     "status": "success",
-                    "nickname": user.nickname,
-                    "profile_image": char_url,
+                    "user": {
+                        "username": user.username,
+                        "nickname": user.nickname,
+                        "email": user.email,
+                        "profile_image": char_url,
+                        "profile_character_id": char_id,
+                    },
                 },
                 status=status.HTTP_200_OK,
             )
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerifyPasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="비밀번호 확인",
+        description="개인정보 수정 전 비밀번호를 확인합니다.",
+        request=LoginSerializer,  # password 필드만 사용
+        responses={
+            200: OpenApiResponse(description="확인 성공"),
+            400: OpenApiResponse(description="비밀번호 불일치"),
+        },
+    )
+    def post(self, request):
+        password = request.data.get("password")
+        if not password:
+            return Response(
+                {"error": "비밀번호를 입력해주세요."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if request.user.check_password(password):
+            return Response({"status": "success"}, status=status.HTTP_200_OK)
+
+        return Response(
+            {"error": "비밀번호가 일치하지 않습니다."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 # ========================

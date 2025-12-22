@@ -5,12 +5,15 @@ from .views import (
     DiaryAnalyzeView,
     DiaryDetailView,
     DiaryListCreateView,
+    DiarySummaryView,
     EgiColorListView,
+    EgiListView,
     MyDiaryListView,
     MyProfileUpdateView,
     OceanDataView,
     PortSearchView,
     ProfileCharacterListView,
+    VerifyPasswordView,
     WaterColorAnalyzeView,
     EgiRecommendView,
     SignupView,
@@ -23,7 +26,8 @@ from .views import (
 )
 
 urlpatterns = [
-    # 에기 색상
+    # 에기
+    path("egis/", EgiListView.as_view(), name="egi-list"),
     path("egi/colors/", EgiColorListView.as_view(), name="egi-color-list"),
     # 기상/해양 데이터
     path("ocean/", OceanDataView.as_view(), name="ocean-data"),  # 통합 해양/기상 데이터
@@ -31,8 +35,9 @@ urlpatterns = [
     path("diaries/", DiaryListCreateView.as_view(), name="diary-list-create"),
     path("diaries/my/", MyDiaryListView.as_view(), name="my-diary-list"),
     path("diaries/<int:diary_id>/", DiaryDetailView.as_view(), name="diary-detail"),
-    # 낚시 일지 분석 URL 추가
+    # 낚시 일지 분석/요약
     path("diaries/analyze/", DiaryAnalyzeView.as_view(), name="diary-analyze"),
+    path("diaries/summary/", DiarySummaryView.as_view(), name="diary-summary"),
     # 물색 분석
     path("analyze/color/", WaterColorAnalyzeView.as_view(), name="analyze-color"),
     # 에기 추천
@@ -47,10 +52,11 @@ urlpatterns = [
         name="profile-characters",
     ),
     path(
-        "auth/me/update-character/",
+        "auth/me/update/",
         MyProfileUpdateView.as_view(),
-        name="update-character",
+        name="update",
     ),
+    path("auth/verify-password/", VerifyPasswordView.as_view(), name="verify-password"),
     # 선박
     path("boats/search/", BoatSearchView.as_view(), name="boat-search"),
     path(

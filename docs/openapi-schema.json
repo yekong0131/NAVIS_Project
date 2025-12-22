@@ -73,10 +73,11 @@ paths:
           description: ''
         '401':
           description: 인증 필요
-  /api/auth/me/update-character/:
+  /api/auth/me/update/:
     patch:
-      operationId: auth_me_update_character_partial_update
-      summary: 내 프로필 캐릭터 변경
+      operationId: auth_me_update_partial_update
+      description: 닉네임, 이메일, 비밀번호, 프로필 캐릭터를 수정합니다.
+      summary: 내 정보 수정
       tags:
       - auth
       requestBody:
@@ -94,7 +95,9 @@ paths:
       - tokenAuth: []
       responses:
         '200':
-          description: 변경 성공
+          description: 수정 성공 (변경된 정보 반환)
+        '400':
+          description: 유효성 검사 실패
   /api/auth/signup/:
     post:
       operationId: auth_signup_create
@@ -123,6 +126,32 @@ paths:
           description: 회원 생성 성공
         '400':
           description: 유효성 검사 실패
+  /api/auth/verify-password/:
+    post:
+      operationId: auth_verify_password_create
+      description: 개인정보 수정 전 비밀번호를 확인합니다.
+      summary: 비밀번호 확인
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          description: 확인 성공
+        '400':
+          description: 비밀번호 불일치
   /api/boats/{boat_id}/schedules/:
     get:
       operationId: boats_schedules_retrieve
@@ -525,6 +554,28 @@ paths:
                 items:
                   $ref: '#/components/schemas/DiaryList'
           description: ''
+  /api/diaries/summary/:
+    get:
+      operationId: diaries_summary_retrieve
+      description: 전체 일지 목록과, 지정된 년도의 작년 대비 통계(조과, 출조횟수 등)를 반환합니다.
+      summary: 낚시 일지 요약/통계
+      parameters:
+      - in: query
+        name: year
+        schema:
+          type: integer
+        description: '통계 기준 년도 (기본값: 올해)'
+      tags:
+      - diaries
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiarySummaryResponse'
+          description: ''
   /api/egi/colors/:
     get:
       operationId: egi_colors_list
@@ -608,6 +659,25 @@ paths:
           description: 로그인 후 사용 가능
         '500':
           description: 서버 내부 오류
+  /api/egis/:
+    get:
+      operationId: egis_list
+      description: 홈 화면에 표시할 에기 리스트를 반환합니다.
+      summary: 추천 에기 목록 조회
+      tags:
+      - egis
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Egi'
+          description: ''
   /api/ocean/:
     get:
       operationId: ocean_retrieve
@@ -1210,6 +1280,56 @@ components:
       - used_egis
       - username
       - weather
+    DiarySummaryResponse:
+      type: object
+      description: 일지 요약 화면 전체 응답
+      properties:
+        this_year:
+          $ref: '#/components/schemas/DiarySummaryStats'
+        last_year:
+          $ref: '#/components/schemas/DiarySummaryStats'
+        diff:
+          type: object
+          additionalProperties: {}
+          description: 차이 (trip, catch)
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiaryList'
+          description: 올해 일지 목록
+      required:
+      - diff
+      - last_year
+      - logs
+      - this_year
+    DiarySummaryStats:
+      type: object
+      description: 낚시 일지 통계 정보 (올해 vs 작년)
+      properties:
+        year:
+          type: integer
+        trips:
+          type: integer
+          description: 출조 횟수
+        total_catch:
+          type: integer
+          description: 총 마릿수
+        jjukkumi:
+          type: integer
+          description: 쭈꾸미 마릿수
+        cuttlefish:
+          type: integer
+          description: 갑오징어 마릿수
+        top_location:
+          type: string
+          description: 가장 많이 간 포인트
+      required:
+      - cuttlefish
+      - jjukkumi
+      - top_location
+      - total_catch
+      - trips
+      - year
     DiaryUsedEgi:
       type: object
       properties:
@@ -1226,6 +1346,29 @@ components:
       - color_id
       - color_name
       - used_id
+    Egi:
+      type: object
+      properties:
+        egi_id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        brand:
+          type: string
+          maxLength: 100
+        image_url:
+          type: string
+          format: uri
+          description: S3에 업로드된 에기 이미지 URL
+          maxLength: 500
+        size:
+          type: string
+          maxLength: 50
+      required:
+      - egi_id
+      - name
     EgiColor:
       type: object
       properties:
@@ -1565,9 +1708,21 @@ components:
     PatchedUserProfileUpdateRequest:
       type: object
       properties:
+        nickname:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
         character_id:
           type: integer
           writeOnly: true
+          nullable: true
     PortSearchResult:
       type: object
       properties:
