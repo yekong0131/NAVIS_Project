@@ -184,6 +184,51 @@
 
 ---
 
+### 🎄 폴더 구조도 (Tree Structure)
+```
+        NAVIS_PROJECT/
+    │
+    ├── 📁 backend/                 # Django 백엔드 서버
+    │   ├── 📁 core/                # 메인 Django 앱 (User, Fishing, Ocean 등)
+    │   │   ├── 📁 management/      # 커스텀 커맨드 관리
+    │   │   ├── 📁 migrations/      # DB 마이그레이션 파일
+    │   │   ├── 📁 utils/           # 유틸리티 (데이터 수집 로직 등)
+    │   │   ├── 🐍 models.py        # 데이터베이스 모델 정의
+    │   │   ├── 🐍 serializers.py   # 데이터 직렬화 (JSON 변환)
+    │   │   ├── 🐍 urls.py          # API URL 라우팅
+    │   │   └── 🐍 views.py         # API 비즈니스 로직
+    │   ├── 📁 navis_server/        # Django 프로젝트 설정 (settings.py 등)
+    │   ├── 🐍 manage.py            # Django 실행 및 관리 파일
+    │   └── 📄 requirements.txt     # 가상환경 Python 패키지 의존성 목록
+    │
+    ├── 📁 docs/                    # 프로젝트 문서 관리 폴더
+    │
+    ├── 📁 frontend/                # React (Expo) 프론트엔드
+    │   ├── 📁 public/              # 정적 파일 (favicon 등)
+    │   ├── 📁 src/                 # React 소스 코드
+    │   │   ├── 📁 assets/          # 이미지, 폰트 등 자원
+    │   │   ├── 📁 components/      # 재사용 가능한 UI 컴포넌트
+    │   │   │   ├── 📜 TopBar.js    # 상단바
+    │   │   │   ├── 📜 BottomTab.js # 하단 탭
+    │   │   │   └── ... (기타 화면들)
+    │   │   ├── 📁 pages/           # 화면(Page) 단위 컴포넌트 모음
+    │   │   │   ├── 📜 Home.js
+    │   │   │   ├── 📜 Login.js
+    │   │   │   ├── 📜 MyProfile.js
+    │   │   │   └── ... (기타 화면들)
+    │   │   ├── 📜 App.js           # 메인 앱 컴포넌트
+    │   │   └── 🎨 App.css          # 글로벌 스타일
+    │   └── 📄 package.json         # 프론트 실행 스크립트
+    │
+    ├── 📁 images/                  # README 등에 사용될 이미지 리소스
+    │
+    ├── 📄 .gitattributes           # Git 속성 파일
+    ├── 📄 .gitignore               # Git 무시 목록 (node_modules, venv 등)
+    ├── 📄 package.json             # (Root) 백엔드/프론트 동시 실행 스크립트 관리
+    └── 📝 README.md                # 프로젝트 통합 설명서
+```
+
+
 ### 📜 API 문서
 - Swagger UI: `/api/schema/swagger-ui/`
 - OpenAPI JSON: `docs/openapi-schema.json`
