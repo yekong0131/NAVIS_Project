@@ -40,7 +40,7 @@
   <tbody>
     <tr>
       <td><img src="./images/1.jpg" style="width:150px; height:auto;" alt="혜린"></td>
-      <td><img src="./images/12.jpg" style="width:150px; height:auto;" alt="시은"></td>
+      <td><img src="./images/sieun.png" style="width:150px; height:auto;" alt="시은"></td>
       <td><img src="./images/10.jpg" style="width:150px; height:auto;" alt="예빈"></td>
       <td><img src="./images/6.jpg" style="width:150px; height:auto;" alt="원석"></td>
       <td><img src="./images/9.jpg" style="width:150px; height:auto;" alt="승아"></td>
@@ -89,11 +89,14 @@
 #### 📱 Client (App)
 
 <div>
-  <img src="https://img.shields.io/badge/react_native-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB">
+  <img src="https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB">
   <img src="https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E">
-  <img src="https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white">
-  <img src="https://img.shields.io/badge/kotlin-%237F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white">
+  <img src="https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white">
 </div>
+
+- Geolocation API: 현재 위치 기반 날씨 및 해양 정보 제공을 위해 사용
+
+- Camera API (navigator.mediaDevices): 물색 촬영 및 분석 기능을 위해 사용
 
 
 #### 💾 Database & Infrastructure
@@ -139,6 +142,7 @@
   <img src="https://img.shields.io/badge/figma-%23F24E1E.svg?style=for-the-badge&logo=figma&logoColor=white">
   <img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white">
   <img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white">
+  <img src="https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white">
 </div>
 
 #### 📚 Data Collection & Processing

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import TopBar from "../components/TopBar";
 import axios from "axios";
-import pandaBanner from "../assets/panda_banner.png"; 
+import pandaBanner from "../assets/1.gif"; 
 import dphoImg from "../assets/dpho.jpg"; 
 import BottomTab from '../components/BottomTab';
 import defaultEgiImg from "../assets/ndchjegi.jpg";
