@@ -35,14 +35,14 @@ def fetch_month_schedule(ship_no: int, year_month: str) -> List[Dict[str, Any]]:
         "eyyyymm": "",
     }
 
-    print(f"🚀 [요청시작] {ship_no}번 선박 / {year_month} 조회 중...")
+    print(f"[선박스케줄] [요청시작] {ship_no}번 선박 / {year_month} 조회 중...")
 
     try:
         resp = requests.get(url, params=params, timeout=5)  # 타임아웃 5초로 늘림
 
         # 1. 응답 실패 시
         if resp.status_code != 200:
-            print(f"❌ [응답실패] Status Code: {resp.status_code}")
+            print(f"[선박스케줄] [응답실패] Status Code: {resp.status_code}")
             return []
 
         data = resp.json()
@@ -61,7 +61,7 @@ def fetch_month_schedule(ship_no: int, year_month: str) -> List[Dict[str, Any]]:
         # 3. 상세 필드 확인 (첫 번째 스케줄만)
         if schedules and len(schedules) > 0:
             sample = schedules[0]
-            print(f"✅ [필드확인] 날짜: {sample.get('sdate')}")
+            print(f"[선박스케줄] [필드확인] 날짜: {sample.get('sdate')}")
             print(
                 f"   - remain_embarkation_num (잔여): {sample.get('remain_embarkation_num')}"
             )
@@ -74,13 +74,13 @@ def fetch_month_schedule(ship_no: int, year_month: str) -> List[Dict[str, Any]]:
             )  # 대기자 확인
             print(f"   - status_code: {sample.get('status_code')}")
         else:
-            print(f"⚠️ [데이터없음] {year_month} 스케줄 리스트가 비어있습니다.")
+            print(f"[선박스케줄] [데이터없음] {year_month} 스케줄 리스트가 비어있습니다.")
 
         return schedules or []
 
     except Exception as e:
         # 4. 에러 발생 시 로그 출력
-        print(f"🔥 [에러발생] {e}")
+        print(f"[선박스케줄] [Error] {e}")
         return []
 
 

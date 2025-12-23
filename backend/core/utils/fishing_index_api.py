@@ -97,7 +97,7 @@ def _call_fishing_index_api(
     """
     service_key = _get_service_key()
     if not service_key:
-        print("[낚시지수][ERROR] serviceKey가 없습니다. env를 확인하세요.")
+        print("[낚시지수] [ERROR] serviceKey가 없습니다. env를 확인하세요.")
         return None
 
     if not req_date:
@@ -120,21 +120,21 @@ def _call_fishing_index_api(
     try:
         resp = requests.get(DEFAULT_API_URL, params=params, timeout=15)
     except Exception as e:
-        print(f"[낚시지수][ERROR] 요청 실패: {e}")
+        print(f"[낚시지수] [ERROR] 요청 실패: {e}")
         return None
 
     print(f"[낚시지수] HTTP 상태 코드: {resp.status_code}")
     print(f"[낚시지수] 최종 요청 URL: {resp.url}")
 
     if resp.status_code != 200:
-        print("[낚시지수][ERROR] HTTP 실패 응답:")
+        print("[낚시지수] [ERROR] HTTP 실패 응답:")
         print(resp.text[:800])
         return None
 
     try:
         data = resp.json()
     except Exception as e:
-        print(f"[낚시지수][ERROR] JSON 파싱 실패: {e}")
+        print(f"[낚시지수] [ERROR] JSON 파싱 실패: {e}")
         print(resp.text[:800])
         return None
 
@@ -148,7 +148,7 @@ def _call_fishing_index_api(
 
     # resultCode가 문자열 "00"이 정상
     if str(result_code) != "00":
-        print(f"[낚시지수][WARNING] API 오류: {result_code} {result_msg}")
+        print(f"[낚시지수] [WARNING] API 오류: {result_code} {result_msg}")
         return None
 
     items_wrapper = body.get("items") or {}
@@ -156,14 +156,14 @@ def _call_fishing_index_api(
 
     # item이 없을 때
     if not items:
-        print("[낚시지수][WARNING] body.items.item 이 비어있습니다.")
+        print("[낚시지수] [WARNING] body.items.item 이 비어있습니다.")
         return []
 
     # item이 dict로 오는 케이스도 방어
     if isinstance(items, dict):
         items = [items]
     elif not isinstance(items, list):
-        print(f"[낚시지수][WARNING] item 타입이 예상과 다릅니다: {type(items)}")
+        print(f"[낚시지수] [WARNING] item 타입이 예상과 다릅니다: {type(items)}")
         return []
 
     print(f"[낚시지수] 수신 item 개수: {len(items)}")
@@ -302,7 +302,7 @@ def get_fishing_index_data(
 
     # 1) DB 에서 모든 FishingSpot 가져와 거리 계산
     all_spots = FishingSpot.objects.all()
-    print("[낚시지수][DEBUG] DB에 등록된 낚시 포인트: {}개".format(all_spots.count()))
+    print("[낚시지수] [DEBUG] DB에 등록된 낚시 포인트: {}개".format(all_spots.count()))
 
     spot_with_dist: List[Tuple[FishingSpot, float]] = []
     for spot in all_spots:
@@ -318,7 +318,7 @@ def get_fishing_index_data(
     spot_with_dist.sort(key=lambda x: x[1])
     chosen_spots = spot_with_dist[:max_spots]
 
-    print("[낚시지수][DEBUG] 가장 가까운 낚시 포인트 {}개:".format(len(chosen_spots)))
+    print("[낚시지수] [DEBUG] 가장 가까운 낚시 포인트 {}개:".format(len(chosen_spots)))
     for idx, (spot, dist) in enumerate(chosen_spots, start=1):
         print("  {}. {} ({}, ~{:.1f}km)".format(idx, spot.name, spot.method, dist))
 
@@ -327,7 +327,7 @@ def get_fishing_index_data(
         req_date=requested_at.strftime("%Y%m%d") if requested_at else None
     )
     if not items:
-        print("[낚시지수] ❌ 바다낚시지수 API 에서 데이터를 가져오지 못했습니다.")
+        print("[낚시지수] [Error] 바다낚시지수 API 에서 데이터를 가져오지 못했습니다.")
         return None
 
     # 3) 각 포인트에 대해 가장 가까운 API item 찾기 + 결과 병합
@@ -382,7 +382,7 @@ def get_fishing_index_data(
             )
         )
         print(
-            "             ↳ 선택된 API 지점: {} (gubun={}, ~{:.1f}km)".format(
+            "             ▶ 선택된 API 지점: {} (gubun={}, ~{:.1f}km)".format(
                 best_item.get("seafsPstnNm"),
                 best_item.get("_gubun"),
                 best_dist,
@@ -399,10 +399,10 @@ def get_fishing_index_data(
         _merge_partial(final_result, partial)
 
     if final_result["spot_name"] is None:
-        print("[낚시지수] ❌ 주변 포인트들에서 유효한 데이터를 찾지 못했습니다.")
+        print("[낚시지수] [Error] 주변 포인트들에서 유효한 데이터를 찾지 못했습니다.")
         return None
 
-    print("[낚시지수] ✅ 바다낚시지수 최종 결과 구성 완료")
+    print("[낚시지수] 바다낚시지수 최종 결과 구성 완료")
     print(
         "  → spot_name={}, index={}, score={}".format(
             final_result["spot_name"],

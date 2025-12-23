@@ -24,9 +24,9 @@ def mock_transcribe(audio_file) -> str:
     # 파일명에 키워드가 포함되어 있으면 해당 응답 반환
     for key, response in mock_responses.items():
         if key in filename:
-            print(f"🎤 Mock STT: '{key}' 패턴 감지 → 응답 반환")
+            print(f"[Mock STT] Mock STT: '{key}' 패턴 감지 → 응답 반환")
             return response
 
     # 기본 응답
-    print("🎤 Mock STT: 기본 응답 반환")
+    print("[Mock STT] Mock STT: 기본 응답 반환")
     return "부산항에서 낚시했어요. 갑오징어 3마리 잡았습니다."

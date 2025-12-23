@@ -22,9 +22,11 @@ def should_collect_weather(fishing_date) -> bool:
     result = fishing_day == today
 
     if result:
-        print(f"✅ 기상 데이터 수집 조건 충족: {fishing_day} == {today}")
+        print(f"[기상 정보 수집] 기상 데이터 수집 조건 충족: {fishing_day} == {today}")
     else:
-        print(f"⏭️  기상 데이터 수집 건너뜀: {fishing_day} != {today}")
+        print(
+            f"[기상 정보 수집] [Warning] 기상 데이터 수집 건너뜀: {fishing_day} != {today}"
+        )
 
     return result
 
@@ -44,9 +46,9 @@ def collect_and_save_weather(
         WeatherSnapshot 인스턴스 또는 None
     """
     print(f"\n{'='*70}")
-    print(f"🌤️  기상 데이터 수집 시작")
-    print(f"  📍 위치: ({lat}, {lon})")
-    print(f"  🎯 어종: {target_fish}")
+    print(f"[기상 정보 수집] [Info] 기상 데이터 수집 시작")
+    print(f"  [기상 정보 수집] 위치: ({lat}, {lon})")
+    print(f"  [기상 정보 수집] 어종: {target_fish}")
     print(f"{'='*70}")
 
     try:
@@ -84,12 +86,12 @@ def collect_and_save_weather(
         )
 
         print(
-            f"✅ 기상 데이터 저장 완료: WeatherSnapshot ID {weather_snapshot.weather_id}"
+            f"[기상 정보 수집] 기상 데이터 저장 완료: WeatherSnapshot ID {weather_snapshot.weather_id}"
         )
         return weather_snapshot
 
     except Exception as e:
-        print(f"❌ 기상 데이터 수집/저장 실패: {e}")
+        print(f"[기상 정보 수집] [Error] 기상 데이터 수집/저장 실패: {e}")
         import traceback
 
         traceback.print_exc()

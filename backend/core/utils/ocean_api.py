@@ -81,7 +81,7 @@ def get_nearby_buoys(user_lat, user_lon, limit=5):
     가까운 부이 N개 구하기
     """
     buoys = Buoy.objects.all()
-    print(f"[DEBUG] DB에 등록된 전체 부이 개수: {buoys.count()}")
+    print(f"[MOF] [DEBUG] DB에 등록된 전체 부이 개수: {buoys.count()}")
 
     buoy_list = []
 
@@ -96,7 +96,7 @@ def get_nearby_buoys(user_lat, user_lon, limit=5):
     result = [item[0] for item in buoy_list[:limit]]
 
     if result:
-        print(f"[DEBUG] 가장 가까운 부이 {len(result)}개:")
+        print(f"[MOF] [DEBUG] 가장 가까운 부이 {len(result)}개:")
         for i, buoy in enumerate(result[:3], 1):
             dist = buoy_list[i - 1][1]
             print(f"  {i}. {buoy.name} ({buoy.station_id}) - {dist:.1f}km")
@@ -113,8 +113,8 @@ def fetch_buoy_api(buoy, service_key):
         f"{base_url}?ServiceKey={service_key}&ObsCode={buoy.station_id}&ResultType=json"
     )
 
-    print(f"[DEBUG] API 호출: {buoy.name} ({buoy.station_id})")
-    print(f"[DEBUG] URL: {request_url[:100]}...")
+    print(f"[MOF] [DEBUG] API 호출: {buoy.name} ({buoy.station_id})")
+    print(f"[MOF] [DEBUG] URL: {request_url[:100]}...")
 
     try:
         headers = {
@@ -122,17 +122,17 @@ def fetch_buoy_api(buoy, service_key):
         }
         response = requests.get(request_url, headers=headers, timeout=5)
 
-        print(f"[DEBUG] 응답 상태: {response.status_code}")
+        print(f"[MOF] [DEBUG] 응답 상태: {response.status_code}")
 
         if response.status_code != 200:
-            print(f"[ERROR] HTTP 오류: {response.status_code}")
+            print(f"[MOF] [ERROR] HTTP 오류: {response.status_code}")
             return None
 
         data = response.json()
-        print(f"[DEBUG] 응답 데이터 키: {data.keys()}")
+        print(f"[MOF] [DEBUG] 응답 데이터 키: {data.keys()}")
 
         if "result" in data:
-            print(f"[DEBUG] result 키: {data['result'].keys()}")
+            print(f"[MOF] [DEBUG] result 키: {data['result'].keys()}")
 
             if "data" in data["result"]:
                 raw_data = data["result"]["data"]
@@ -140,26 +140,26 @@ def fetch_buoy_api(buoy, service_key):
                 if not isinstance(raw_data, list):
                     raw_data = [raw_data]
 
-                print(f"[DEBUG] 데이터 개수: {len(raw_data)}")
+                print(f"[MOF] [DEBUG] 데이터 개수: {len(raw_data)}")
 
                 if raw_data:
-                    print(f"[DEBUG] 첫 번째 데이터 샘플: {raw_data[0]}")
+                    print(f"[MOF] [DEBUG] 첫 번째 데이터 샘플: {raw_data[0]}")
 
                 return raw_data
             else:
-                print(f"[ERROR] 'data' 키가 없음. result 내용: {data['result']}")
+                print(f"[MOF] [ERROR] 'data' 키가 없음. result 내용: {data['result']}")
         else:
-            print(f"[ERROR] 'result' 키가 없음. 전체 응답: {data}")
+            print(f"[MOF] [ERROR] 'result' 키가 없음. 전체 응답: {data}")
 
     except requests.exceptions.Timeout:
-        print(f"[ERROR] 타임아웃")
+        print(f"[MOF] [ERROR] 타임아웃")
     except requests.exceptions.RequestException as e:
-        print(f"[ERROR] 요청 오류: {e}")
+        print(f"[MOF] [ERROR] 요청 오류: {e}")
     except ValueError as e:
-        print(f"[ERROR] JSON 파싱 오류: {e}")
-        print(f"[DEBUG] 원본 응답: {response.text[:200]}")
+        print(f"[MOF] [ERROR] JSON 파싱 오류: {e}")
+        print(f"[MOF] [DEBUG] 원본 응답: {response.text[:200]}")
     except Exception as e:
-        print(f"[ERROR] 예상치 못한 오류: {e}")
+        print(f"[MOF] [ERROR] 예상치 못한 오류: {e}")
         import traceback
 
         traceback.print_exc()
@@ -200,10 +200,8 @@ def get_buoy_data(user_lat, user_lon):
     service_key = os.getenv("OceanServiceKey")
 
     if not service_key:
-        print("[ERROR] OceanServiceKey가 .env 파일에 없습니다!")
+        print("[MOF] [ERROR] OceanServiceKey가 .env 파일에 없습니다!")
         return None
-
-    print(f"[DEBUG] Service Key: {service_key[:20]}...")
 
     result = {
         "station_name": None,
@@ -222,19 +220,19 @@ def get_buoy_data(user_lat, user_lon):
 
     for limit in search_limits:
         if all(result[k] is not None for k in required_keys):
-            print(f"[해수부] ✅ 모든 데이터 수집 완료!")
+            print(f"[MOF] 모든 데이터 수집 완료!")
             break
 
         # 부이 목록 가져오기
         if limit is None:
-            print(f"[해수부] 🔍 전국 모든 부이 검색 중...")
+            print(f"[MOF] 전국 모든 부이 검색 중...")
             candidate_buoys = list(Buoy.objects.all())
         else:
-            print(f"[해수부] 🔍 가까운 부이 {limit}개 검색 중...")
+            print(f"[MOF] 가까운 부이 {limit}개 검색 중...")
             candidate_buoys = get_nearby_buoys(user_lat, user_lon, limit=limit)
 
         if not candidate_buoys:
-            print(f"[ERROR] 부이 목록이 비어있습니다!")
+            print(f"[MOF] [ERROR] 부이 목록이 비어있습니다!")
             continue
 
         # 각 부이에서 데이터 수집
@@ -280,8 +278,8 @@ def get_buoy_data(user_lat, user_lon):
 
     # 최종 체크
     if result["station_name"] is None:
-        print(f"[해수부] ❌ 전국 모든 부이를 검색했지만 데이터가 없습니다.")
-        print(f"[해수부] ⚠️ API 키 또는 API 응답 형식을 확인하세요.")
+        print(f"[MOF] [Warning] 전국 모든 부이를 검색했지만 데이터가 없습니다.")
+        print(f"[MOF] [Warning] API 키 또는 API 응답 형식을 확인하세요.")
         return None
 
     return result

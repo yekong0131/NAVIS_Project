@@ -100,7 +100,7 @@ def fetch_tide_prediction_multi_day(station_id, days=2):
             continue
 
     if all_data:
-        print(f"[조석예보] ✅ 총 {len(all_data)}개 데이터 수집 완료")
+        print(f"[조석예보] 총 {len(all_data)}개 데이터 수집 완료")
         # 시간순 정렬
         all_data.sort(key=lambda x: x.get("tph_time", ""))
         return all_data

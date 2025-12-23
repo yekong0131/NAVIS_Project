@@ -23,17 +23,17 @@ def get_coordinates_from_port(port_name: str) -> Optional[Tuple[float, float]]:
     port = Port.objects.filter(port_name__iexact=port_name).first()
 
     if port:
-        print(f"📍 항구 찾음: {port.port_name} ({port.lat}, {port.lon})")
+        print(f"[Port] 항구 찾음: {port.port_name} ({port.lat}, {port.lon})")
         return (port.lat, port.lon)
 
     # 부분 일치 찾기
     port = Port.objects.filter(port_name__icontains=port_name).first()
 
     if port:
-        print(f"📍 항구 찾음 (부분일치): {port.port_name} ({port.lat}, {port.lon})")
+        print(f"[Port] 항구 찾음 (부분일치): {port.port_name} ({port.lat}, {port.lon})")
         return (port.lat, port.lon)
 
-    print(f"⚠️  항구를 찾을 수 없음: {port_name}")
+    print(f"[Port] [Warning]  항구를 찾을 수 없음: {port_name}")
     return None
 
 
@@ -80,8 +80,10 @@ def find_nearest_port(
 
     # 최대 거리 이내의 항구만 반환
     if min_distance <= max_distance_km:
-        print(f"📍 가장 가까운 항구: {nearest_port.port_name} ({min_distance:.1f}km)")
+        print(
+            f"[Port] 가장 가까운 항구: {nearest_port.port_name} ({min_distance:.1f}km)"
+        )
         return nearest_port.port_name
 
-    print(f"⚠️  {max_distance_km}km 이내에 항구 없음")
+    print(f"[Port] [Warning]  {max_distance_km}km 이내에 항구 없음")
     return None

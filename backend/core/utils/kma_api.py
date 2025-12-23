@@ -119,14 +119,14 @@ def _call_kma_api(nx, ny):
         print(f"[KMA] HTTP 상태 코드: {resp.status_code}")
 
         if resp.status_code != 200:
-            print("[KMA][ERROR] HTTP 에러")
+            print("[KMA] [ERROR] HTTP 에러")
             return None
 
         data = resp.json()
         return data
 
     except Exception as e:
-        print(f"[KMA][ERROR] 요청 중 예외 발생: {e}")
+        print(f"[KMA] [ERROR] 요청 중 예외 발생: {e}")
         import traceback
 
         traceback.print_exc()

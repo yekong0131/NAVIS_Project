@@ -323,7 +323,7 @@ class DiaryAnalyzeView(APIView):
         provider = os.getenv("STT_PROVIDER", "mock")
         api_key = os.getenv("OPENAI_API_KEY")
         print(
-            f"🎤 [DEBUG] 분석 요청 - Provider: {provider}, 파일크기: {audio_file.size} bytes"
+            f"[STT] [DEBUG] 분석 요청 - Provider: {provider}, 파일크기: {audio_file.size} bytes"
         )
 
         try:
@@ -338,7 +338,7 @@ class DiaryAnalyzeView(APIView):
 
                 client = OpenAI(api_key=api_key)
 
-                print("📡 Whisper API 호출 중...")
+                print("[STT] Whisper API 호출 중...")
                 transcript = client.audio.transcriptions.create(
                     model="whisper-1",
                     file=(audio_file.name, audio_file.read()),
@@ -346,26 +346,13 @@ class DiaryAnalyzeView(APIView):
                 )
                 stt_text = transcript.text.strip()
             else:
-                print("⚠️ Mock 모드 실행")
+                print("[Mock STT] Mock 모드 실행")
                 from core.utils.mock_stt import mock_transcribe
 
                 stt_text = mock_transcribe(audio_file)
 
             # 🔥 [핵심 디버깅] 서버가 인식한 텍스트가 뭔지 확인!
-            print(f"🧐 [DEBUG] 서버가 인식한 텍스트: '{stt_text}'")
-
-            # ------------------------------------------------------------------
-            # 🚨 [임시 수정] 검증 로직을 모두 주석 처리하여 무조건 통과시킵니다.
-            # ------------------------------------------------------------------
-
-            # if not stt_text or len(stt_text) < 5:
-            #     print("❌ [DEBUG] 텍스트가 너무 짧아서 거부됨")
-            #     return Response({"error": "목소리가 너무 짧습니다."}, status=400)
-
-            # invalid_keywords = ["MBC", "시청해", "구독", "좋아요"]
-            # if any(k in stt_text for k in invalid_keywords):
-            #      print(f"❌ [DEBUG] 환각 멘트 감지됨: {stt_text}")
-            #      return Response({"error": "잡음만 녹음되었습니다."}, status=400)
+            print(f"[STT] [DEBUG] 서버가 인식한 텍스트: '{stt_text}'")
 
             # 만약 텍스트가 아예 비어있으면 강제로 넣어주기 (테스트용)
             if not stt_text:
@@ -386,7 +373,7 @@ class DiaryAnalyzeView(APIView):
             return Response(response_data, status=200)
 
         except Exception as e:
-            print(f"❌ 분석 실패(Exception): {e}")
+            print(f"[STT] [Error] 분석 실패(Exception): {e}")
             return Response({"error": str(e)}, status=500)
 
 
@@ -703,7 +690,7 @@ class WaterColorAnalyzeView(APIView):
         serializer.is_valid(raise_exception=True)
 
         image_file = serializer.validated_data["image"]
-        print(f"📸 YOLO 분석 요청: {image_file.name}")
+        print(f"[물 색 분석] YOLO 분석 요청: {image_file.name}")
 
         import random
 
@@ -1181,7 +1168,7 @@ class BoatSearchView(APIView):
                 )
             )
 
-        print(f"\n🔎 [선박검색] Page {page} 요청")
+        print(f"\n  [선박검색] Page {page} 요청")
         print(f"   - 지역(Main): {area_main}")
         print(f"   - 지역(Sub) : {area_sub}")
         print(f"   - 해역(Sea) : {area_sea}")
@@ -1230,7 +1217,7 @@ class BoatSearchView(APIView):
                 }
             )
 
-        print(f"✅ [완료] 유효한 선박 {len(final_results)}개 반환\n")
+        print(f"[선박 검색] [완료] 유효한 선박 {len(final_results)}개 반환\n")
 
         return Response(
             {

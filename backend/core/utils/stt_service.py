@@ -50,7 +50,7 @@ class STTParser:
         """
         전체 파싱 (GPT 우선 시도 -> 실패 시 Regex)
         """
-        print(f"🤖 파싱 시작: {text}")
+        print(f"[STT] 파싱 시작: {text}")
 
         # 1. 텍스트 전처리 (치명적인 오타 보정)
         text = text.replace("애기", "에기").replace("아기", "에기")
@@ -59,7 +59,7 @@ class STTParser:
         try:
             return cls._parse_with_gpt(text)
         except Exception as e:
-            print(f"⚠️ GPT 파싱 실패 ({e}), Regex로 대체 시도")
+            print(f"[STT] GPT 파싱 실패 ({e}), Regex로 대체 시도")
             return cls._parse_with_regex(text)
 
     @classmethod
