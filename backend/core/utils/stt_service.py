@@ -91,7 +91,7 @@ class STTParser:
 
         [추출 규칙]
         1. location_name: '에서', '으로' 같은 조사는 빼고 항구/지명 이름만 추출해. (예: '통영항에서' -> '통영항')
-        2. catches: 어종(fish_name)과 마릿수(count)를 리스트로 추출해.
+        2. catches: 어종(fish_name)과 마릿수(count)를 리스트로 추출해. 갑오징어는 10갑, 쭈꾸미는 10쭈, 같은 식으로 표현할 수 있어.
            - 어종: 갑오징어, 쭈꾸미, 문어 등
         3. colors: 사용한 에기 색상을 추출해서 color_id와 color_name을 매핑해.
            - 가능한 색상 목록: [{color_info_str}]
