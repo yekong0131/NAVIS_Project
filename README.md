@@ -115,6 +115,7 @@
 <div>
   <img src="https://img.shields.io/badge/YOLO-111F68?style=for-the-badge&logo=yolo&logoColor=white">
   <img src="https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white">
+  <img src="https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white">
 </div>
 
 - **LLM & RAG**
@@ -238,10 +239,11 @@
 - OpenAPI JSON: `docs/openapi-schema.json`
 - ReDoc HTML: `docs/openapi-schema.html`
 
-### 🖨️ 가상환경 세팅
+### 🖨️ 가상환경 세팅 및 실행
 - `conda create --name navisenv python=3.9 --no-default-packages`
 - `conda activate navisenv`
 - `pip install -r requirements.txt`
+- `$env:PYTHONIOENCODING="utf-8"`
 - `npm start`
 
 ---

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // useCallback 추가
 import axios from 'axios'; 
 import dphoImg from "../assets/dpho.jpg"; 
 import BottomTab from '../components/BottomTab';
@@ -117,12 +117,23 @@ function BoatSearchScreen({ onNavigate, user }) {
     }
   };
 
-  const handleSearchClick = () => {
+  const handleSearchClick = useCallback(() => {
     setActiveFilters({ ...filters }); 
     setPage(1);
     setBoats([]); 
     fetchBoats(1, true, filters);
-  };
+  }, [filters]);
+
+  // [추가] 엔터 키 감지 (모달이 닫혀있을 때만 동작)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter' && !activeModal && !isModalOpen) {
+        handleSearchClick();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSearchClick, activeModal, isModalOpen]);
 
   const handleLoadMore = () => {
     if (hasNext && !loading) {
@@ -244,12 +255,10 @@ function BoatSearchScreen({ onNavigate, user }) {
             {boats.map((boat) => (
               <div 
                 key={boat.boat_id} 
-                // [수정] 클릭 시 fromPage 정보 추가!
                 onClick={() => onNavigate("boat-detail", { ...boat, fromPage: 'boat-search' })} 
                 className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 active:scale-95 transition-transform cursor-pointer flex flex-col h-full"
               >
                 <div className="w-full h-32 bg-gray-200 relative">
-                  {/* [수정] FishingDiary 방식처럼 단순하게 URL 사용 */}
                   <img 
                     src={boat.main_image_url || dphoImg} 
                     alt={boat.name} 
@@ -331,9 +340,9 @@ function BoatSearchScreen({ onNavigate, user }) {
         )}
 
         <BottomTab 
-          activeTab="boat-search"          // 현재 활성화된 탭 이름
-          onNavigate={onNavigate}          // 페이지 이동 함수 전달
-          onCameraClick={() => setIsModalOpen(true)} // 카메라 버튼 클릭 시 동작 전달
+          activeTab="boat-search"          
+          onNavigate={onNavigate}          
+          onCameraClick={() => setIsModalOpen(true)} 
         />
 
         {isModalOpen && (

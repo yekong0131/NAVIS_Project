@@ -1,18 +1,16 @@
-import React, { useState } from "react"; // [수정] useState 추가
-import axios from "axios"; // [추가] API 호출용 axios import
+import React, { useState } from "react"; 
+import axios from "axios"; 
 import pandaLoginImg from "../assets/login_panda.png"; 
 import kakaoImg from "../assets/kakao.jpg";
 import naverImg from "../assets/naver.jpg";
 import googleImg from "../assets/google.jpg";
 
 function Login({ onLogin, onNavigate }) {
-  // [추가] 아이디, 비밀번호 입력값을 저장할 상태 변수
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
-  // [추가] 로그인 버튼 클릭 핸들러
   const handleLoginClick = async () => {
     if (!username || !password) {
         alert("아이디와 비밀번호를 입력해주세요.");
@@ -20,7 +18,6 @@ function Login({ onLogin, onNavigate }) {
     }
 
     try {
-        // 백엔드 로그인 API 호출
         const response = await axios.post(`${API_URL}/auth/login/`, {
             username: username,
             password: password
@@ -28,17 +25,20 @@ function Login({ onLogin, onNavigate }) {
         
         if (response.status === 200) {
             const { token, user } = response.data;
-            
-            // 1. 토큰 저장 (로그인 유지용)
             localStorage.setItem('authToken', token); 
-            
-            // 2. 부모 컴포넌트(App.js)에 유저 정보 전달 -> 홈 화면으로 이동됨
             console.log("로그인 성공:", user);
             onLogin(user); 
         }
     } catch (err) {
         console.error("로그인 에러:", err);
         alert("로그인 실패: 아이디와 비밀번호를 확인하세요.");
+    }
+  };
+
+  // [추가] 엔터 키 감지 핸들러
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleLoginClick();
     }
   };
 
@@ -74,21 +74,23 @@ function Login({ onLogin, onNavigate }) {
             <input 
               type="text"
               placeholder="아이디"
-              value={username} // [연결] 상태 변수
-              onChange={(e) => setUsername(e.target.value)} // [연결] 입력값 업데이트
+              value={username} 
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={handleKeyDown} // [추가] 엔터 키 이벤트 연결
               className="w-full py-4 bg-white text-[#7e96ff] border border-[#7e96ff] placeholder-[#7e96ff]/70 rounded-2xl font-bold text-[16px] text-left px-8 outline-none shadow-sm transition-transform active:scale-95"
             />
 
             <input 
               type="password"
               placeholder="비밀번호"
-              value={password} // [연결] 상태 변수
-              onChange={(e) => setPassword(e.target.value)} // [연결] 입력값 업데이트
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown} // [추가] 엔터 키 이벤트 연결
               className="w-full py-4 bg-white text-[#7e96ff] border border-[#7e96ff] placeholder-[#7e96ff]/70 rounded-2xl font-bold text-[16px] text-left px-8 outline-none shadow-sm transition-transform active:scale-95"
             />
 
             <button 
-              onClick={handleLoginClick} // [연결] API 호출 함수 연결
+              onClick={handleLoginClick} 
               className="w-full py-4 bg-[#7e96ff] text-white rounded-2xl font-bold text-[18px] mt-2 shadow-sm active:scale-95 transition-transform flex items-center justify-center"
             >
               로그인
@@ -99,7 +101,6 @@ function Login({ onLogin, onNavigate }) {
               <span className="text-gray-200">|</span>
               <span className="cursor-pointer hover:text-gray-600">비밀번호 찾기</span>
               <span className="text-gray-200">|</span>
-              {/* 회원가입 클릭 시 Signup 화면으로 이동 */}
               <span 
                 onClick={() => onNavigate('signup')} 
                 className="cursor-pointer hover:text-gray-600 font-bold text-gray-400"

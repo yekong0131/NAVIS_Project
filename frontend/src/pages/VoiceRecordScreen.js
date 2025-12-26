@@ -144,6 +144,21 @@ const VoiceRecordScreen = ({ onNavigate }) => {
     }, 500);
   };
 
+  // [추가] 엔터 키 감지 핸들러 (녹음 토글)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter' && !isAnalyzing) {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isRecording, isAnalyzing]); // 상태 의존성 추가
+
   return (
     <div className="fixed inset-0 bg-slate-900 flex justify-center items-center z-50 font-sans">
         <div className="relative w-full max-w-[420px] h-full bg-slate-900 flex flex-col text-white shadow-2xl overflow-hidden">

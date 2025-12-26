@@ -54,15 +54,23 @@ function Home({ onCapture, onNavigate, user }) {
     });
   };
 
-  const fetchEnvironmentData = async () => {
+  // [수정] 강제 새로고침 여부를 인자로 받음 (기본값: false)
+  const fetchEnvironmentData = async (forceRefresh = false) => {
+    // 이미 데이터가 있고 강제 새로고침이 아니면 실행 안 함
+    if (!forceRefresh && environmentData) return;
+
     setLoadingEnv(true);
     setLocationError(null);
     try {
+      // 1. 현재 위치 다시 가져오기 (이동했을 수 있으므로)
       const location = await getUserLocation();
+      
+      // 2. API 호출
       const envRes = await axios.get(`${API_URL}/ocean/`, {
         params: { lat: location.lat, lon: location.lon, target_fish: '쭈갑' }
       });
       const data = envRes.data;
+      
       setEnvironmentData({
         tide: data.moon_phase ? `${data.moon_phase}물` : '정보 없음',
         wind_speed: data.wind_speed ? `${data.wind_speed} m/s` : '정보 없음',
@@ -78,15 +86,19 @@ function Home({ onCapture, onNavigate, user }) {
     } catch (err) {
       console.error('환경 정보 로딩 실패:', err);
       setLocationError("위치 정보를 불러올 수 없습니다.");
-      setEnvironmentData({
-        tide: "8물", wind_speed: "3.2 m/s", wind_direction: "북동", water_temp: "18.5°C",
-        weather: "맑음", current_strength: "중간", location_name: "위치 정보 없음"
-      });
+      // 실패 시 더미 데이터 (UI 확인용)
+      if (!environmentData) { // 기존 데이터가 없을 때만 더미 사용
+          setEnvironmentData({
+            tide: "8물", wind_speed: "3.2 m/s", wind_direction: "북동", water_temp: "18.5°C",
+            weather: "맑음", current_strength: "중간", location_name: "위치 정보 없음"
+          });
+      }
     } finally {
       setLoadingEnv(false);
     }
   };
 
+  // [수정] 초기 로딩 시에만 실행 (데이터가 없을 때만)
   useEffect(() => {
     const fetchData = async () => {
         const token = localStorage.getItem('authToken');
@@ -102,12 +114,16 @@ function Home({ onCapture, onNavigate, user }) {
             const egiRes = await axios.get(`${API_URL}/egis/`);
             setRecommendedEgis(egiRes.data);
         } catch (err) {}
-        fetchEnvironmentData();
+        
+        // 환경 정보가 없을 때만 가져옴
+        if (!environmentData) {
+            fetchEnvironmentData(false);
+        }
     };
     fetchData();
-  }, [user]);
+  }, [user]); // user가 바뀔 때 실행 (로그인 직후 등)
 
-  // === 카메라 로직 ===
+  // === 카메라 로직 (기존 유지) ===
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -177,9 +193,7 @@ function Home({ onCapture, onNavigate, user }) {
     return '🌤️';
   };
 
-  // ============================================================
-  // 3. 화면 렌더링
-  // ============================================================
+  // === 렌더링 ===
 
   // [A] 카메라 화면
   if (viewMode === "camera") {
@@ -209,7 +223,7 @@ function Home({ onCapture, onNavigate, user }) {
     );
   }
 
-  // [B] 결과 화면 (수정됨: 환경 정보 박스 추가)
+  // [B] 결과 화면
   if (viewMode === "result") {
     return (
       <div className="fixed inset-0 bg-white flex justify-center overflow-hidden font-sans z-[110]">
@@ -234,7 +248,7 @@ function Home({ onCapture, onNavigate, user }) {
 
           <div className="flex-1 overflow-y-auto px-5 pt-4 pb-32 no-scrollbar bg-white">
             
-            {/* 1. [추가] 환경 정보 카드 (결과 화면 최상단에 배치) */}
+            {/* 1. 환경 정보 카드 (결과 화면용) */}
             <div className="mb-6">
                 {environmentData && (
                 <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-[20px] p-4 shadow-sm border border-blue-100">
@@ -349,8 +363,9 @@ function Home({ onCapture, onNavigate, user }) {
               <h3 className="font-bold text-[17px] text-black font-sans">
                 현재 낚시 환경 🌊
               </h3>
+              {/* [수정] 새로고침 버튼 클릭 시에만 강제 로딩 (true 전달) */}
               <button
-                onClick={fetchEnvironmentData}
+                onClick={() => fetchEnvironmentData(true)}
                 disabled={loadingEnv}
                 className="text-xs text-blue-500 font-medium active:opacity-70 disabled:opacity-40"
               >
@@ -472,7 +487,7 @@ function Home({ onCapture, onNavigate, user }) {
               <div className="flex justify-around items-center">
                 <button onClick={() => { setViewMode("camera"); setIsModalOpen(false); }} className="flex flex-col items-center gap-3">
                   <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-gray-100">📷</div>
-                  <span className="text-[13px] font-bold text-gray-600">카메라</span>
+                  <span className="text-xs font-bold text-gray-600">카메라</span>
                 </button>
                 <button onClick={() => fileInputRef.current.click()} className="flex flex-col items-center gap-3">
                   <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-gray-100">🖼️</div>

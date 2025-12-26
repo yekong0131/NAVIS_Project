@@ -26,6 +26,13 @@ function PasswordConfirmScreen({ onNavigate }) {
     }
   };
 
+  // [추가] 엔터 키 감지 핸들러
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleVerify();
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-100 flex justify-center overflow-hidden font-sans">
       <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col shadow-2xl border-x border-gray-100">
@@ -51,8 +58,8 @@ function PasswordConfirmScreen({ onNavigate }) {
               placeholder="비밀번호 입력"
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError(null); }}
+              onKeyDown={handleKeyDown} // [수정] 엔터 키 이벤트 연결
               className="w-full py-4 px-5 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-[15px] outline-none focus:border-blue-500 focus:bg-white transition-all mb-3"
-              onKeyPress={(e) => e.key === 'Enter' && handleVerify()}
             />
             
             {error && <p className="text-red-500 text-xs font-bold mb-4">{error}</p>}

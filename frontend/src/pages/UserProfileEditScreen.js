@@ -87,7 +87,7 @@ function UserProfileEditScreen({ user, onNavigate, onUserUpdate }) {
         };
 
         const response = await axios.patch(
-            `${API_URL}/auth/me/update/`, // 변경된 엔드포인트
+            `${API_URL}/auth/me/update/`, 
             payload,
             { headers: { Authorization: `Token ${token}` } }
         );
@@ -96,7 +96,6 @@ function UserProfileEditScreen({ user, onNavigate, onUserUpdate }) {
             alert("회원 정보가 수정되었습니다! 🎉");
             
             // [중요] 앱 전역의 user 상태 업데이트
-            // 백엔드에서 수정된 user 객체를 보내준다고 가정 (response.data.user)
             if (onUserUpdate && response.data.user) {
                 onUserUpdate(response.data.user);
             }
@@ -106,6 +105,13 @@ function UserProfileEditScreen({ user, onNavigate, onUserUpdate }) {
     } catch (err) {
         console.error("수정 실패:", err);
         alert("정보 수정 중 오류가 발생했습니다.");
+    }
+  };
+
+  // [추가] 엔터 키 감지 핸들러
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleUpdate();
     }
   };
 
@@ -162,6 +168,7 @@ function UserProfileEditScreen({ user, onNavigate, onUserUpdate }) {
                   type="text"
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
+                  onKeyDown={handleKeyDown} // [추가] 엔터 키 이벤트 연결
                   className="w-full py-3.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-[15px] px-4 outline-none focus:border-blue-500 transition-colors"
                 />
             </div>
@@ -174,6 +181,7 @@ function UserProfileEditScreen({ user, onNavigate, onUserUpdate }) {
                         placeholder="ID"
                         value={emailId}
                         onChange={(e) => setEmailId(e.target.value)}
+                        onKeyDown={handleKeyDown} // [추가] 엔터 키 이벤트 연결
                         className="w-full py-3.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-[15px] px-4 outline-none focus:border-blue-500"
                     />
                     <span className="text-gray-400">@</span>
@@ -182,6 +190,7 @@ function UserProfileEditScreen({ user, onNavigate, onUserUpdate }) {
                         placeholder="Domain"
                         value={emailDomain}
                         onChange={(e) => setEmailDomain(e.target.value)}
+                        onKeyDown={handleKeyDown} // [추가] 엔터 키 이벤트 연결
                         className="w-full py-3.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-[15px] px-4 outline-none focus:border-blue-500"
                     />
                 </div>
@@ -201,6 +210,7 @@ function UserProfileEditScreen({ user, onNavigate, onUserUpdate }) {
                   placeholder="변경할 비밀번호"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={handleKeyDown} // [추가] 엔터 키 이벤트 연결
                   className="w-full py-3.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-[15px] px-4 outline-none focus:border-blue-500 mb-3"
                 />
                 <input 
@@ -208,6 +218,7 @@ function UserProfileEditScreen({ user, onNavigate, onUserUpdate }) {
                   placeholder="비밀번호 확인"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyDown={handleKeyDown} // [추가] 엔터 키 이벤트 연결
                   className={`w-full py-3.5 bg-gray-50 border rounded-xl font-bold text-[15px] px-4 outline-none transition-colors ${
                       confirmPassword && password !== confirmPassword 
                       ? 'border-red-500' 
