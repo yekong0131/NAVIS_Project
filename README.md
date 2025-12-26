@@ -203,8 +203,7 @@
     │   │   ├── 🐍 urls.py          # API URL 라우팅
     │   │   └── 🐍 views.py         # API 비즈니스 로직
     │   ├── 📁 navis_server/        # Django 프로젝트 설정 (settings.py 등)
-    │   ├── 🐍 manage.py            # Django 실행 및 관리 파일
-    │   └── 📄 requirements.txt     # 가상환경 Python 패키지 의존성 목록
+    │   └── 🐍 manage.py            # Django 실행 및 관리 파일
     │
     ├── 📁 docs/                    # 프로젝트 문서 관리 폴더
     │
@@ -230,7 +229,8 @@
     ├── 📄 .gitattributes           # Git 속성 파일
     ├── 📄 .gitignore               # Git 무시 목록 (node_modules, venv 등)
     ├── 📄 package.json             # (Root) 백엔드/프론트 동시 실행 스크립트 관리
-    └── 📝 README.md                # 프로젝트 통합 설명서
+    ├── 📝 README.md                # 프로젝트 통합 설명서
+    └── 📄 requirements.txt         # 가상환경 Python 패키지 의존성 목록
 ```
 
 
