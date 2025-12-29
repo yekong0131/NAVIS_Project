@@ -345,20 +345,38 @@ function BoatSearchScreen({ onNavigate, user }) {
           onCameraClick={() => setIsModalOpen(true)} 
         />
 
+        {/* 카메라 모달 */}
         {isModalOpen && (
           <div className="absolute inset-0 z-[100] flex items-end justify-center px-4 pb-12 transition-all">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setIsModalOpen(false)}></div>
             <div className="relative w-full bg-white rounded-[32px] overflow-hidden shadow-2xl p-8 animate-in slide-in-from-bottom duration-300">
               <p className="text-center text-gray-800 font-bold mb-8 text-[15px]">입력할 방법을 선택해주세요.</p>
               <div className="flex justify-around items-center">
-                <button onClick={() => { setIsModalOpen(false); onNavigate('home'); }} className="flex flex-col items-center gap-3">
+                
+                {/* 1. 카메라 버튼 */}
+                <button 
+                    onClick={() => { 
+                        setIsModalOpen(false); 
+                        onNavigate('egi-recommendation', { fromPage: 'home', initialMode: 'camera' }); 
+                    }} 
+                    className="flex flex-col items-center gap-3"
+                >
                   <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-gray-100">📷</div>
-                  <span className="text-[13px] font-bold text-gray-600">카메라</span>
+                  <span className="text-xs font-bold text-gray-600">카메라</span>
                 </button>
-                <button onClick={() => setIsModalOpen(false)} className="flex flex-col items-center gap-3">
+
+                {/* 2. 갤러리 버튼 */}
+                <button 
+                    onClick={() => { 
+                        setIsModalOpen(false); 
+                        onNavigate('egi-recommendation', { fromPage: 'home', initialMode: 'gallery' }); 
+                    }} 
+                    className="flex flex-col items-center gap-3"
+                >
                   <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-3xl shadow-sm border border-gray-100">🖼️</div>
                   <span className="text-[13px] font-bold text-gray-600">갤러리</span>
                 </button>
+
               </div>
               <button onClick={() => setIsModalOpen(false)} className="w-full mt-8 py-4 bg-gray-50 rounded-2xl text-gray-400 font-bold active:bg-gray-100 transition-colors">취소</button>
             </div>

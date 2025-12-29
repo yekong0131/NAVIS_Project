@@ -14,6 +14,8 @@ secrets.json
 dist/
 web_build/
 
+egi_data/images/*
+
 /node_modules
 /frontend/node_modules
 /.pnp

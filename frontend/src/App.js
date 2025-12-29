@@ -4,7 +4,6 @@ import Home from "./pages/Home";
 import FishingDiaryScreen from "./pages/FishingDiaryScreen";
 import AnalysisModal from "./components/AnalysisModal";
 import ResultModal from "./components/ResultModal";
-import SuccessWater from "./components/Success_water";
 import DiaryWriteScreen from "./pages/DiaryWriteScreen";
 import VoiceRecordScreen from "./pages/VoiceRecordScreen";
 import BoatSearchScreen from "./pages/BoatSearchScreen";
@@ -15,6 +14,9 @@ import UserProfileEditScreen from "./pages/UserProfileEditScreen";
 import PasswordConfirmScreen from "./pages/PasswordConfirmScreen"
 import DiarySummary from "./pages/DiarySummary"
 import Myprofile from "./pages/Myprofile"; 
+import EgiList from "./pages/EgiList";
+import EgiDetail from "./pages/EgiDetail";
+import EgiRecommendScreen from "./pages/EgiRecommendScreen";
 
 function App() {
   const [screen, setScreen] = useState("login"); // login, home, diary, write...
@@ -26,8 +28,16 @@ function App() {
   // 데이터 전달용 상태
   const [selectedDiary, setSelectedDiary] = useState(null);
   const [selectedBoat, setSelectedBoat] = useState(null);
+  const [selectedEgi, setSelectedEgi] = useState(null);
   
   const [sourcePage, setSourcePage] = useState("home");
+
+  const [initialEgiMode, setInitialEgiMode] = useState('camera');
+
+  const [egiState, setEgiState] = useState(null);
+
+  // [추가] 환경 정보 상태를 App에서 관리 (페이지 이동해도 유지되도록)
+  const [environmentData, setEnvironmentData] = useState(null);
 
   const handleLoginSuccess = (userData) => {
     console.log("로그인 성공:", userData);
@@ -76,7 +86,8 @@ function App() {
         'profile-edit',    // 회원 정보 수정
         'my-likes',        // 찜 목록
         'write',           // 일지 작성
-        'voice-record'     // 음성 녹음
+        'voice-record',    // 음성 녹음
+        'egi-list', 'egi-detail'
     ];
 
     // [2] 로그인 안 된 상태에서 접근 시 차단
@@ -84,6 +95,10 @@ function App() {
         alert("로그인 후 이용해 주세요.");
         setScreen("login");
         return; // 이동 중단
+    }
+
+    if (data && data.fromPage) {
+        setSourcePage(data.fromPage);
     }
 
     // 정상 이동 로직
@@ -98,6 +113,19 @@ function App() {
     if (page === 'boat-detail' && data) {
         setSelectedBoat(data);
     }
+
+    if (page === 'egi-recommendation') {
+        if (data?.restore) {
+            // 상세페이지에서 돌아온 경우: 상태 유지 (아무것도 안 함)
+        } else {
+            // [Reset] 버튼 눌러서 새로 진입한 경우: 상태 초기화
+            setEgiState(null); 
+            // 초기 모드 설정 (camera 또는 gallery)
+            setInitialEgiMode(data?.initialMode || 'camera');
+        }
+    }
+
+    if (page === 'egi-detail' && data) setSelectedEgi(data); // [추가] 에기 데이터 세팅
 
     setScreen(page);
   };
@@ -120,9 +148,11 @@ function App() {
         
         {screen === "home" && (
           <Home 
-            user={user} // [중요] 닉네임이 포함된 user 정보 전달
-            onCapture={handleCapture} 
-            onNavigate={handleNavigate} 
+            user={user} 
+            onNavigate={handleNavigate}
+            // [추가] 부모(App)가 관리하는 데이터와 setter 전달
+            environmentData={environmentData}
+            setEnvironmentData={setEnvironmentData}
           />
         )}
         
@@ -213,9 +243,51 @@ function App() {
               <DiarySummary onBack={() => setScreen("profile")} />
         )}
 
+        {/* [수정] 9. 에기 도감 (목록) */}
+        {screen === "egi-list" && (
+          <EgiList 
+            user={user}
+            onNavigate={handleNavigate}
+            // 목록에서 뒤로가기 누르면 무조건 홈으로 (또는 필요시 로직 변경 가능)
+            onBack={() => setScreen("home")} 
+          />
+        )}
+
+        {/* [신규] 에기 추천 화면 연결 */}
+        {screen === "egi-recommendation" && (
+            <EgiRecommendScreen
+                user={user}
+                onNavigate={handleNavigate}
+                savedState={egiState}      // 저장된 결과 전달
+                onSaveState={setEgiState}  // 결과 저장 함수 전달
+                fromPage={sourcePage}      // 돌아갈 페이지 (home, diary 등)
+                initialMode={initialEgiMode}
+            />
+        )}
+
+        {/* [수정] 에기 상세 (목록이나 추천화면에서 옴) */}
+        {screen === "egi-detail" && (
+           <EgiDetail 
+             egi={selectedEgi}
+             onBack={() => {
+               // 추천화면에서 왔으면 다시 추천화면으로 (restore: true는 로직에 따라 활용)
+               if (sourcePage === 'egi-recommendation') {
+                   handleNavigate('egi-recommendation', { restore: true });
+               }
+               // 목록에서 왔으면 목록으로
+               else if (sourcePage === 'egi-list') {
+                   setScreen('egi-list');
+               }
+               // 그 외엔 홈으로
+               else {
+                   setScreen('home');
+               }
+             }} 
+           />
+        )}
+
         {/* === 모달(팝업) 컴포넌트 === */}
         {status === "loading" && <AnalysisModal progress={progress} />}
-        {status === "success" && <SuccessWater onClose={() => setStatus("idle")} />}
         {status === "result" && <ResultModal onRetry={() => setStatus("idle")} />}
 
       </div>

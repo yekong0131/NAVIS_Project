@@ -3,8 +3,25 @@ import axios from 'axios';
 import BottomTab from '../components/BottomTab';
 import TopBar from "../components/TopBar";
 
+// [추가] 색상 스타일 정의
+const COLOR_STYLES = {
+    '빨강': { bg: '#FF4D4D', text: '#FFFFFF', border: '#FF4D4D' },
+    '주황': { bg: '#FF9F43', text: '#FFFFFF', border: '#FF9F43' },
+    '노랑': { bg: '#FFD32A', text: '#333333', border: '#FFD32A' },
+    '초록': { bg: '#2ECC71', text: '#FFFFFF', border: '#2ECC71' },
+    '파랑': { bg: '#3498DB', text: '#FFFFFF', border: '#3498DB' },
+    '보라': { bg: '#9B59B6', text: '#FFFFFF', border: '#9B59B6' },
+    '핑크': { bg: '#EF5777', text: '#FFFFFF', border: '#EF5777' },
+    '갈색': { bg: '#8D6E63', text: '#FFFFFF', border: '#8D6E63' },
+    '무지개': { 
+        bg: 'linear-gradient(45deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3)', 
+        text: '#FFFFFF', 
+        border: 'transparent' 
+    },
+    '기타': { bg: '#95A5A6', text: '#FFFFFF', border: '#95A5A6' },
+};
+
 const FishingDiaryScreen = ({ onNavigate, user }) => {
-  // ... (기존 상태 변수들 유지) ...
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [diaryEntries, setDiaryEntries] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,8 +39,7 @@ const FishingDiaryScreen = ({ onNavigate, user }) => {
     fetchDiaries();
   }, [currentMonth]);
 
-  // ... (fetchDiaries, generateCalendar, changeMonth, handleDelete 등 기존 함수 유지) ...
-  const fetchDiaries = async () => { /* 기존 코드 유지 */ 
+  const fetchDiaries = async () => { 
       setLoading(true);
       try {
         const token = localStorage.getItem('authToken');
@@ -53,7 +69,7 @@ const FishingDiaryScreen = ({ onNavigate, user }) => {
       } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
-  const generateCalendar = () => { /* 기존 코드 유지 */ 
+  const generateCalendar = () => { 
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth();
       const firstDay = new Date(year, month, 1);
@@ -83,7 +99,7 @@ const FishingDiaryScreen = ({ onNavigate, user }) => {
       const date = new Date(dateString);
       return `${date.getDate()}일 ${weekDays[date.getDay()]}요일`;
   };
-  const handleDelete = async (diaryId) => { /* 기존 코드 유지 */ 
+  const handleDelete = async (diaryId) => { 
       if (window.confirm("정말로 이 일지를 삭제하시겠습니까?")) {
         try {
           const token = localStorage.getItem('authToken');
@@ -93,7 +109,6 @@ const FishingDiaryScreen = ({ onNavigate, user }) => {
       }
   };
 
-  // [추가] 환경 정보 포맷팅 함수 (물때, 기온, 수온, 조류, 풍속, 풍향, 날씨)
   const formatWeather = (weather) => {
     if (!weather) return '-';
     
@@ -197,7 +212,6 @@ const FishingDiaryScreen = ({ onNavigate, user }) => {
                             <div className="font-bold text-red-500">위치</div>
                             <div className="text-gray-800 font-medium truncate">{entry.location_name || '-'} {entry.boat_name && `, ${entry.boat_name}`}</div>
                             
-                            {/* [수정] 환경 정보 상세 출력 */}
                             <div className="font-bold text-red-500">환경</div>
                             <div className="text-gray-800 break-keep leading-snug">
                                 {formatWeather(entry.weather)}
@@ -220,10 +234,32 @@ const FishingDiaryScreen = ({ onNavigate, user }) => {
                                 </div>
                             </div>
                             
-                            <div className="font-bold text-red-500">에기</div>
-                            <div className="text-gray-800 truncate">{entry.used_egis?.map(e => e.color_name).join(', ') || '정보 없음'}</div>
+                            {/* [수정] 에기 정보를 색상 태그로 표시 */}
+                            <div className="font-bold text-red-500 mt-1">에기</div>
+                            <div className="text-gray-800 flex flex-wrap gap-1 mt-1">
+                                {entry.used_egis && entry.used_egis.length > 0 ? (
+                                    entry.used_egis.map((e, i) => {
+                                        const style = COLOR_STYLES[e.color_name] || COLOR_STYLES['기타'];
+                                        return (
+                                            <span 
+                                                key={i} 
+                                                className="text-[10px] px-2 py-0.5 rounded font-bold border"
+                                                style={{
+                                                    background: style.bg,
+                                                    color: style.text,
+                                                    borderColor: style.border === 'transparent' ? 'transparent' : style.border
+                                                }}
+                                            >
+                                                {e.color_name}
+                                            </span>
+                                        );
+                                    })
+                                ) : (
+                                    <span className="text-gray-400">정보 없음</span>
+                                )}
+                            </div>
                             
-                            <div className="font-bold text-red-500">메모</div>
+                            <div className="font-bold text-red-500 mt-1">메모</div>
                             <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{entry.content || "내용 없음"}</div>
                         </div>
 
@@ -250,7 +286,6 @@ const FishingDiaryScreen = ({ onNavigate, user }) => {
           </div>
         </div>
 
-        {/* ... (FAB, Modal 등 나머지 UI 그대로 유지) ... */}
         <div className="absolute bottom-[110px] right-4 z-40">
            <button onClick={() => setShowAddMenu(!showAddMenu)} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-xl transition-all ${showAddMenu ? 'bg-gray-500' : 'bg-indigo-600'}`}>
               {showAddMenu ? <span className="text-3xl text-white">✕</span> : <span className="text-3xl text-white">+</span>}
@@ -271,13 +306,29 @@ const FishingDiaryScreen = ({ onNavigate, user }) => {
              <div className="relative w-full bg-white rounded-[32px] p-8 animate-in slide-in-from-bottom duration-300">
                 <p className="text-center font-bold mb-8">입력할 방법을 선택해주세요.</p>
                 <div className="flex justify-around">
-                   <button onClick={() => { setIsModalOpen(false); onNavigate('home'); }} className="flex flex-col items-center gap-3">
-                      <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-3xl">📷</div>
-                      <span className="text-xs font-bold text-gray-600">카메라</span>
+                   {/* 1. 카메라 버튼 */}
+                   <button 
+                        onClick={() => { 
+                            setIsModalOpen(false); 
+                            // [수정] initialMode: 'camera' 전달
+                            onNavigate('egi-recommendation', { fromPage: 'diary', initialMode: 'camera' }); 
+                        }} 
+                        className="..."
+                    >
+                      <div className="...">📷</div>
+                      <span className="...">카메라</span>
                    </button>
-                   <button onClick={() => setIsModalOpen(false)} className="flex flex-col items-center gap-3">
-                      <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-3xl">🖼️</div>
-                      <span className="text-xs font-bold text-gray-600">갤러리</span>
+                   {/* 2. 갤러리 버튼 */}
+                   <button 
+                        onClick={() => { 
+                            setIsModalOpen(false); 
+                            // [수정] initialMode: 'gallery' 전달
+                            onNavigate('egi-recommendation', { fromPage: 'diary', initialMode: 'gallery' }); 
+                        }} 
+                        className="..."
+                    >
+                      <div className="...">🖼️</div>
+                      <span className="...">갤러리</span>
                    </button>
                 </div>
                 <button onClick={() => setIsModalOpen(false)} className="w-full mt-8 py-4 bg-gray-50 rounded-2xl font-bold text-gray-400">취소</button>

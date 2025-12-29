@@ -679,9 +679,22 @@ class WaterAnalysisResultSerializer(serializers.Serializer):
 # 에기 Serializers
 # ========================
 class EgiSerializer(serializers.ModelSerializer):
+    color_name = serializers.CharField(source="color.color_name", read_only=True)
+    purchase_url = serializers.URLField(read_only=True)
+    description = serializers.CharField(read_only=True)
+
     class Meta:
         model = Egi
-        fields = ["egi_id", "name", "brand", "image_url", "size"]
+        fields = [
+            "egi_id",
+            "name",
+            "brand",
+            "image_url",
+            "size",
+            "color_name",
+            "purchase_url",
+            "description",
+        ]
 
 
 class EgiRecommendSerializer(serializers.Serializer):

@@ -7,6 +7,8 @@ from .views import (
     DiaryListCreateView,
     DiarySummaryView,
     EgiColorListView,
+    EgiDetailAPIView,
+    EgiListAPIView,
     EgiListView,
     MyDiaryListView,
     MyProfileUpdateView,
@@ -29,6 +31,8 @@ urlpatterns = [
     # 에기
     path("egis/", EgiListView.as_view(), name="egi-list"),
     path("egi/colors/", EgiColorListView.as_view(), name="egi-color-list"),
+    path("egi/list/", EgiListAPIView.as_view(), name="egi-list"),
+    path("egi/detail/<int:egi_id>/", EgiDetailAPIView.as_view(), name="egi-detail"),
     # 기상/해양 데이터
     path("ocean/", OceanDataView.as_view(), name="ocean-data"),  # 통합 해양/기상 데이터
     # 낚시 일지

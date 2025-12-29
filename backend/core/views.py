@@ -62,8 +62,11 @@ from .serializers import (
 )
 from .utils.integrated_data_collector import collect_all_marine_data
 from .utils.fishing_index_api import SUPPORTED_FISH
-from .utils.egi_rag import run_egi_rag
-from .utils.egi_service import analyze_water_color, build_environment_context
+
+# from .utils.egi_rag import run_egi_rag
+from .utils.egi_service import (
+    get_recommendation_context,
+)
 from .utils.boat_schedule_service import (
     find_nearest_available_schedule,
     get_schedules_in_range,
@@ -83,7 +86,7 @@ class EgiColorListView(generics.ListAPIView):
     에기 색상 목록 조회
     """
 
-    queryset = EgiColor.objects.all().order_by("color_name")
+    queryset = EgiColor.objects.all().order_by("color_id")
     serializer_class = EgiColorSerializer
     permission_classes = [AllowAny]
 
@@ -96,9 +99,42 @@ class EgiColorListView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
 
 
+# 1. 에기 목록 조회 (필터링 가능)
+class EgiListAPIView(generics.ListAPIView):
+    """
+    전체 에기 목록 조회 API
+    """
+
+    serializer_class = EgiSerializer
+
+    def get_queryset(self):
+        queryset = Egi.objects.all().order_by("name")
+
+        # URL 파라미터로 ?color=빨강 이 오면 필터링
+        color_param = self.request.query_params.get("color")
+        if color_param:
+            queryset = queryset.filter(color__color_name=color_param)
+
+        return queryset
+
+
+# 2. 에기 상세 조회
+class EgiDetailAPIView(generics.RetrieveAPIView):
+    queryset = Egi.objects.all()
+    serializer_class = EgiSerializer
+    lookup_field = "egi_id"  # URL에서 egi_id로 찾음
+
+
+# 3. 필터용 색상 목록 조회
+class EgiColorListAPIView(generics.ListAPIView):
+    queryset = EgiColor.objects.all()
+    serializer_class = EgiColorSerializer
+
+
+# 4. 추천 에기 목록 조회 (홈 화면)
 class EgiListView(generics.ListAPIView):
     """
-    전체 에기 목록 조회 (홈 화면 추천용)
+    추천 에기 목록 조회 (홈 화면 추천용)
     """
 
     queryset = Egi.objects.all().order_by("?")[:10]
@@ -724,100 +760,110 @@ class WaterColorAnalyzeView(APIView):
 
 class EgiRecommendView(APIView):
     """
-    물색 + 환경 데이터 + RAG 기반 에기 추천 API
+    에기 추천 API (YOLO + 기상데이터 + AI모델)
     """
 
     parser_classes = (MultiPartParser, FormParser)
     serializer_class = EgiRecommendSerializer
 
     @extend_schema(
-        summary="에기 추천 (RAG + 물색 분석)",
-        description=(
-            "이미지(물색), 대상 어종, 사용자 위치를 받아서\n"
-            "1) YOLO 물색 분석 → 2) 해양/기상 데이터 수집 → 3) RAG 기반 에기 추천"
-        ),
+        summary="에기 추천 (AI + 환경 분석)",
+        description="이미지와 위치 정보를 받아 최적의 에기를 추천합니다.",
         request=EgiRecommendSerializer,
-        responses={
-            200: EgiRecommendResponseSerializer,
-            400: OpenApiResponse(description="요청 검증 실패"),
-            401: OpenApiResponse(description="로그인 후 사용 가능"),
-            500: OpenApiResponse(description="서버 내부 오류"),
-        },
-        examples=[
-            OpenApiExample(
-                "성공 응답 예시",
-                value={
-                    "status": "success",
-                    "data": {
-                        "analysis_result": {"water_color": "Muddy", "confidence": 95.5},
-                        "environment": {
-                            "water_temp": 17.1,
-                            "tide": "6",
-                            "tide_formula": "7",
-                            "weather": "없음/맑음",
-                            "wave_height": 0.1,
-                            "wind_speed": 4.2,
-                            "air_temp": 12.2,
-                            "humidity": 60,
-                            "current_speed": 0.2,
-                            "wind_direction_deg": 341,
-                            "wind_direction_16": "NNW",
-                            "fishing_index": "매우좋음",
-                            "fishing_score": 94.56,
-                            "source": "바다낚시지수 API",
-                            "location_name": "제주도 남동부",
-                            "record_time": "2025-12-18 오전",
-                            "target_fish": "쭈갑",
-                        },
-                        "recommendations": [
-                            {
-                                "color_name": "고추장 (Red)",
-                                "reason": "탁한 물색(Muddy)에서는 붉은 계열의 파장이 길어 시인성이 확보되며...",
-                                "score": 98.5,
-                            }
-                        ],
-                    },
-                },
-            )
-        ],
+        responses={200: EgiRecommendResponseSerializer},
     )
     def post(self, request, *args, **kwargs):
+        # 1. 입력 검증
         serializer = EgiRecommendSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        uploaded_file = serializer.validated_data.get("image")
+        image_file = serializer.validated_data.get("image")
         lat = serializer.validated_data["lat"]
         lon = serializer.validated_data["lon"]
         target_fish = serializer.validated_data.get("target_fish") or "쭈갑"
-        requested_at = serializer.validated_data.get("requested_at") or datetime.now()
 
-        image = Image.open(uploaded_file)
+        # 2. 통합 서비스 호출 (데이터 수집 + AI 추론)
+        ctx = get_recommendation_context(lat, lon, image_file, target_fish)
 
-        # 1) YOLO 물색 분석
-        water_result = analyze_water_color(image)
-        water_color = water_result["water_color"]
-        confidence = water_result["confidence"]
+        marine_env = ctx["marine_data"]
+        ai_rec_color = ctx["recommended_color"]  # 예: 'red'
+        water_color = ctx["water_color"]
 
-        # 2) 환경 데이터 수집
-        env = build_environment_context(lat, lon, target_fish, requested_at)
+        # -------------------------------------------------------------
+        # 1:1 단순 번역 (영어 -> 한글 DB 색상명)
+        # -------------------------------------------------------------
+        # DB의 'egi_colors' 테이블에 저장된 정확한 한글명과 매칭
+        COLOR_TRANSLATION = {
+            "blue": "파랑",
+            "brown": "갈색",
+            "green": "초록",
+            "orange": "주황",
+            "pink": "핑크",
+            "purple": "보라",
+            "rainbow": "무지개",
+            "red": "빨강",
+            "yellow": "노랑",
+        }
 
-        # 3) RAG 기반 에기 추천
-        egi_recos = run_egi_rag(
-            water_color=water_color,
-            target_fish=target_fish,
-            env_data=env,
+        # 번역된 한글 색상명 (없으면 기본값 '노랑')
+        db_color_name = COLOR_TRANSLATION.get(ai_rec_color, "노랑")
+
+        # -------------------------------------------------------------
+        # 3. 근거 생성
+        # -------------------------------------------------------------
+        reason_text = (
+            f"현재 물색이 {water_color}이고, "
+            f"수온 {marine_env.get('water_temp', '-') or '-'}℃ 상황을 고려했을 때 "
+            f"'{db_color_name}' 계열의 에기가 가장 효과적일 것으로 분석됩니다."
         )
 
+        # -------------------------------------------------------------
+        # 4. DB 검색
+        # -------------------------------------------------------------
+        matched_egis = Egi.objects.filter(color__color_name=db_color_name)[:3]
+
+        recommendations = []
+        if matched_egis.exists():
+            for egi in matched_egis:
+                egi_data = EgiSerializer(egi, context={"request": request}).data
+
+                # 추가 정보(이유, 점수, 색상명)
+                egi_data.update(
+                    {
+                        "color_name": egi.color.color_name,
+                        "reason": reason_text,
+                        "score": 98.5,
+                    }
+                )
+                recommendations.append(egi_data)
+        else:
+            # 상품이 없을 경우 Fallback (키 이름을 image_url로 통일)
+            recommendations.append(
+                {
+                    "name": f"추천 색상: {db_color_name} (상품 준비중)",
+                    "color_name": db_color_name,
+                    "reason": reason_text,
+                    "score": 95.0,
+                    "image_url": None,
+                    "brand": "-",
+                    "egi_id": 0,
+                }
+            )
+
+        # 5. 최종 응답 구성
         response_data = {
             "status": "success",
             "data": {
-                "analysis_result": {
-                    "water_color": water_color,
-                    "confidence": confidence,
+                "analysis_result": {"water_color": water_color, "confidence": 0.95},
+                "environment": {
+                    "water_temp": marine_env.get("water_temp"),
+                    "tide": marine_env.get("moon_phase"),
+                    "weather": marine_env.get("rain_type_text"),  # 날씨 텍스트
+                    "wind_speed": marine_env.get("wind_speed"),
+                    "location_name": marine_env.get("location_name"),
                 },
-                "environment": env,
-                "recommendations": egi_recos,
+                "recommendations": recommendations,
             },
         }
         return Response(response_data, status=status.HTTP_200_OK)

@@ -217,6 +217,10 @@ class Egi(models.Model):
     color = models.ForeignKey(EgiColor, on_delete=models.PROTECT)
     size = models.CharField(max_length=50, blank=True)  # 사이즈 (호수)
 
+    purchase_url = models.URLField(
+        max_length=1000, blank=True, help_text="에기 구매 링크(출처)"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
