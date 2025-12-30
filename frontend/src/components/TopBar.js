@@ -28,7 +28,7 @@ function TopBar({ user, onNavigate }) {
         </div>
 
         {/* 중앙: 타이틀 */}
-        <span className="absolute left-1/2 transform -translate-x-1/2 text-gray-800 font-bold text-[16px]">
+        <span className="absolute left-1/2 transform -translate-x-1/2 text-blue-1000 font-bold text-[16px]">
           용왕의 한 수
         </span>
 

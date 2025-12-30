@@ -1,12 +1,12 @@
 // src/pages/EgiList.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import TopBar from '../components/TopBar'; // TopBar import 확인
+import TopBar from '../components/TopBar';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 const COLOR_STYLES = {
-    'All': { bg: '#F3F4F6', text: '#4B5563', border: '#E5E7EB' }, // 전체 (회색)
+    'All': { bg: '#F3F4F6', text: '#4B5563', border: '#E5E7EB' },
     '빨강': { bg: '#FF4D4D', text: '#FFFFFF', border: '#FF4D4D' },
     '주황': { bg: '#FF9F43', text: '#FFFFFF', border: '#FF9F43' },
     '노랑': { bg: '#FFD32A', text: '#333333', border: '#FFD32A' },
@@ -23,7 +23,7 @@ const COLOR_STYLES = {
     '기타': { bg: '#95A5A6', text: '#FFFFFF', border: '#95A5A6' },
 };
 
-const EgiList = ({ onNavigate, onBack, user }) => { // [수정] user prop 추가
+const EgiList = ({ onNavigate, onBack, user }) => {
     const [egis, setEgis] = useState([]);
     const [colors, setColors] = useState([]);
     const [selectedColor, setSelectedColor] = useState('All');
@@ -62,20 +62,16 @@ const EgiList = ({ onNavigate, onBack, user }) => { // [수정] user prop 추가
         <div className="fixed inset-0 bg-slate-100 flex justify-center font-sans">
             <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col shadow-2xl overflow-hidden">
              
-                {/* [추가] 최상단 TopBar */}
                 <TopBar user={user} onNavigate={onNavigate} />
 
-                {/* 페이지 헤더 (뒤로가기 포함) */}
                 <div className="bg-white px-4 py-3 flex items-center border-b border-gray-100 z-10">
                     <button onClick={onBack} className="text-2xl mr-4 text-gray-700 font-bold p-1">←</button>
                     <h1 className="font-bold text-lg text-gray-900">에기 도감</h1>
                 </div>
 
-                {/* [수정] 색상 필터 버튼 */}
                 <div className="bg-white py-3 px-4 border-b border-gray-100 overflow-x-auto whitespace-nowrap no-scrollbar z-10">
                     {colors.map((c, idx) => {
                         const isSelected = selectedColor === c.color_name;
-                        // 매핑에 없는 색상이면 기본값(기타) 사용
                         const style = COLOR_STYLES[c.color_name] || COLOR_STYLES['기타'];
 
                         return (
@@ -86,9 +82,8 @@ const EgiList = ({ onNavigate, onBack, user }) => { // [수정] user prop 추가
                                     background: style.bg,
                                     color: style.text,
                                     border: `1px solid ${style.border}`,
-                                    // 선택 시 테두리 강조 (검정색 테두리)
                                     boxShadow: isSelected ? '0 0 0 2px #ffffff, 0 0 0 4px #000000' : 'none',
-                                    opacity: (selectedColor !== 'All' && !isSelected) ? 0.5 : 1 // 선택 안 된건 흐리게
+                                    opacity: (selectedColor !== 'All' && !isSelected) ? 0.5 : 1
                                 }}
                                 className={`px-4 py-2 rounded-full text-[13px] font-bold mr-3 transition-all active:scale-95 mb-1`}
                             >
@@ -98,14 +93,12 @@ const EgiList = ({ onNavigate, onBack, user }) => { // [수정] user prop 추가
                     })}
                 </div>
 
-                {/* 에기 리스트 */}
                 <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
                     {isLoading ? (
                          <div className="flex justify-center items-center h-40 text-gray-400 text-sm">로딩 중...</div>
                     ) : egis.length > 0 ? (
                         <div className="grid grid-cols-2 gap-4 pb-20">
                             {egis.map((egi) => {
-                                // [수정] 현재 에기의 색상 스타일 가져오기
                                 const tagStyle = COLOR_STYLES[egi.color_name] || COLOR_STYLES['기타'];
                                 
                                 return (
@@ -124,11 +117,13 @@ const EgiList = ({ onNavigate, onBack, user }) => { // [수정] user prop 추가
                                                 {egi.brand}
                                             </div>
                                         </div>
-                                        <h3 className="font-bold text-gray-800 text-[14px] line-clamp-2 h-[42px] leading-tight">
+                                        
+                                        {/* [수정] 3줄 표시 및 높이 조정 */}
+                                        <h3 className="font-bold text-gray-800 text-[14px] line-clamp-3 h-[54px] leading-tight">
                                             {egi.name}
                                         </h3>
+                                        
                                         <div className="flex justify-between items-center mt-2">
-                                            {/* [수정] 색상 이름 태그에 스타일 적용 */}
                                             <span 
                                                 className="text-[11px] px-2 py-1 rounded font-bold border"
                                                 style={{

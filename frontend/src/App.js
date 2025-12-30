@@ -268,6 +268,8 @@ function App() {
         {/* [수정] 에기 상세 (목록이나 추천화면에서 옴) */}
         {screen === "egi-detail" && (
            <EgiDetail 
+             user={user}                  // [추가] 상단바 프로필 표시용
+             onNavigate={handleNavigate}  // [추가] 상단바 네비게이션용
              egi={selectedEgi}
              onBack={() => {
                // 추천화면에서 왔으면 다시 추천화면으로 (restore: true는 로직에 따라 활용)
