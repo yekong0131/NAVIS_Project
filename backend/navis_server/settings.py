@@ -30,7 +30,9 @@ SECRET_KEY = "django-insecure-s%t%^uz^2u7#rijf*2mf$rk^_8n_9_9$3m-16*14yw#b&84%5o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    # EC2 Public IP or Domain 추가
+]
 
 
 # Application definition
@@ -198,3 +200,5 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+STATIC_ROOT = os.path.join(BASE_DIR, "static")

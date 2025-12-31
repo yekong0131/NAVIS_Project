@@ -17,10 +17,16 @@ def get_recommendation_context(lat, lon, image_file, target_fish="쭈갑"):
 
     # 2. AI 모델 추론 (에기 색상, 물색)
     # marine_data 딕셔너리를 통째로 넘겨서 ai_inference 내부에서 필요한 값만 뽑아 쓰게 함
-    rec_color, water_color = predict_best_egi(image_file, marine_data)
+    rec_color, water_color, debug_info = predict_best_egi(image_file, marine_data)
 
+    # 물 인식 실패시
+    if rec_color is None:
+        return None
+
+    # 3. 결과 반환
     return {
-        "marine_data": marine_data,
         "recommended_color": rec_color,
         "water_color": water_color,
+        "marine_data": marine_data,
+        "debug_info": debug_info,
     }

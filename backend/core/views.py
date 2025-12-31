@@ -786,6 +786,15 @@ class EgiRecommendView(APIView):
         # 2. 통합 서비스 호출 (데이터 수집 + AI 추론)
         ctx = get_recommendation_context(lat, lon, image_file, target_fish)
 
+        if ctx is None:
+            return Response(
+                {
+                    "status": "fail",
+                    "message": "사진에서 바다(물)를 찾을 수 없습니다.\n수면이 잘 보이도록 다시 촬영해주세요.",
+                },
+                status=status.HTTP_200_OK,
+            )
+
         marine_env = ctx["marine_data"]
         ai_rec_color = ctx["recommended_color"]  # 예: 'red'
         water_color = ctx["water_color"]
@@ -851,7 +860,23 @@ class EgiRecommendView(APIView):
                 }
             )
 
-        # 5. 최종 응답 구성
+        # -------------------------------------------------------------
+        # 5. 개발/상용 모드 분기 처리
+        # -------------------------------------------------------------
+        app_env = os.getenv("APP_ENV", "production")  # 기본값은 'production' (안전하게)
+        is_dev_mode = app_env == "development"
+
+        debug_data = {}
+        if is_dev_mode:
+            # 개발 모드일 때만 내부 분석 이미지 전달
+            debug_data = ctx.get("debug_info", {})
+            print(f"[System] 🛠️ 개발 모드입니다. AI 분석 과정 정보를 포함합니다.")
+        else:
+            print(f"[System] 🚀 상용 모드입니다. AI 분석 과정 정보를 숨깁니다.")
+
+        # -------------------------------------------------------------
+        # 6. 최종 응답 구성
+        # -------------------------------------------------------------
         response_data = {
             "status": "success",
             "data": {
@@ -864,6 +889,7 @@ class EgiRecommendView(APIView):
                     "location_name": marine_env.get("location_name"),
                 },
                 "recommendations": recommendations,
+                "debug_info": debug_data,
             },
         }
         return Response(response_data, status=status.HTTP_200_OK)

@@ -2,6 +2,7 @@
 import React from 'react';
 // 이미지 경로가 다를 수 있으니 프로젝트에 맞게 확인해주세요 (ex: ../assets/...)
 import wangpandaImg from "../assets/wangpanda2.png"; 
+import yongwangLogoImg from "../assets/logo_yongwang.png"; 
 
 function TopBar({ user, onNavigate }) {
   return (
@@ -28,9 +29,13 @@ function TopBar({ user, onNavigate }) {
         </div>
 
         {/* 중앙: 타이틀 */}
-        <span className="absolute left-1/2 transform -translate-x-1/2 text-blue-1000 font-bold text-[16px]">
-          용왕의 한 수
-        </span>
+        <div className="absolute left-1/2 transform -translate-x-1/2 h-full flex items-center justify-center>">
+          <img 
+            src={yongwangLogoImg} 
+            alt="YongWang Logo" 
+            className="h-6 object-contain" 
+          />
+        </div>
 
         {/* 오른쪽: 로그인 상태에 따른 버튼 표시 */}
         <div className="flex items-center justify-end z-10 min-w-[60px]">

@@ -1,5 +1,7 @@
 # core/models.py
 
+from datetime import datetime
+import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
@@ -362,12 +364,30 @@ class WeatherSnapshot(models.Model):
     rain_type = models.CharField(max_length=50, blank=True)
 
 
-# 5-2. 일지 사진
+# 5-2-0. 사진 저장 경로 생성 함수
+def diary_image_upload_path(instance, filename):
+    # instance: DiaryImage 모델 객체
+    # instance.diary.user.id 를 통해 사용자 ID를 가져옴
+    user_id = instance.diary.user.id
+
+    # 오늘 날짜 (YYYY/MM)
+    today = datetime.now()
+    date_path = today.strftime("%Y/%m")
+
+    # 파일명 난수화 (중복 방지)
+    ext = filename.split(".")[-1]
+    new_filename = f"{uuid.uuid4().hex}.{ext}"
+
+    # 최종 경로: diary/user_1/2025/12/난수파일명.jpg
+    return f"diary/user_{user_id}/{date_path}/{new_filename}"
+
+
+# 5-2-1. 일지 사진
 class DiaryImage(models.Model):
     image_id = models.AutoField(primary_key=True)
     diary = models.ForeignKey(Diary, on_delete=models.CASCADE, related_name="images")
 
-    image_url = models.ImageField(upload_to="diary_images/")
+    image_url = models.ImageField(upload_to=diary_image_upload_path)
 
     is_main = models.BooleanField(default=False)
 

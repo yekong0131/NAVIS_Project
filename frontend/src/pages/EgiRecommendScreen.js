@@ -30,7 +30,7 @@ const getUserLocation = () => {
 };
 
 const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPage, initialMode }) => {
-    // 1. 초기 모드 설정 (저장된 결과가 있으면 결과화면, 아니면 initialMode에 따름)
+    // 1. 초기 모드 설정
     const [viewMode, setViewMode] = useState(() => {
         if (savedState) return "result";
         return initialMode === 'gallery' ? 'gallery' : 'camera';
@@ -39,56 +39,45 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
     const [capturedImage, setCapturedImage] = useState(savedState?.image || null);
     const [analysisResult, setAnalysisResult] = useState(savedState?.result || null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    
+    // [추가] 디버그 모드 토글
+    const [showDebug, setShowDebug] = useState(false);
 
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const streamRef = useRef(null);
     const fileInputRef = useRef(null);
     
-    // 갤러리 자동 열림 중복 방지용
     const hasOpenedGallery = useRef(false);
-    // 컴포넌트 마운트 상태 추적 (비동기 카메라 제어용)
     const isMounted = useRef(true);
 
     useEffect(() => {
         isMounted.current = true;
-        return () => {
-            isMounted.current = false;
-        };
+        return () => { isMounted.current = false; };
     }, []);
 
     // === 카메라 제어 함수 ===
     const stopCamera = () => {
         if (streamRef.current) {
-            streamRef.current.getTracks().forEach((track) => {
-                track.stop();
-            });
+            streamRef.current.getTracks().forEach((track) => track.stop());
             streamRef.current = null;
         }
-        if (videoRef.current) {
-            videoRef.current.srcObject = null;
-        }
+        if (videoRef.current) videoRef.current.srcObject = null;
     };
 
     const startCamera = async () => {
-        // 기존 스트림이 있다면 먼저 정리
         stopCamera();
-
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: "environment" },
             });
             
-            // 권한 요청 중에 사용자가 나갔거나 모드를 바꿨다면 즉시 종료
             if (!isMounted.current || viewMode !== 'camera') {
                 stream.getTracks().forEach(track => track.stop());
                 return;
             }
-
             streamRef.current = stream;
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
+            if (videoRef.current) videoRef.current.srcObject = stream;
         } catch (err) {
             console.error(err);
             if (isMounted.current && viewMode === 'camera') {
@@ -97,39 +86,23 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
         }
     };
 
-    // 화면 모드에 따라 카메라 켜기/끄기
     useEffect(() => {
-        if (viewMode === "camera") {
-            startCamera();
-        } else {
-            stopCamera();
-        }
-        // 컴포넌트 언마운트 시(화면 나갈 때) 무조건 카메라 끄기
+        if (viewMode === "camera") startCamera();
+        else stopCamera();
         return () => stopCamera();
     }, [viewMode]);
 
-    // 갤러리 모드로 진입 시 자동으로 파일 선택창 열기 (최초 1회만)
     useEffect(() => {
         if (viewMode === 'gallery' && !hasOpenedGallery.current && !savedState) {
             hasOpenedGallery.current = true;
-            // UI 렌더링 안정화를 위해 약간의 지연 후 실행
-            setTimeout(() => {
-                if (fileInputRef.current) {
-                    fileInputRef.current.click();
-                }
-            }, 100);
+            setTimeout(() => { if (fileInputRef.current) fileInputRef.current.click(); }, 100);
         }
     }, [viewMode, savedState]);
 
     // === 이벤트 핸들러 ===
-    
-    // 셔터 버튼 (카메라 모드 -> 촬영 / 갤러리 모드 -> 카메라 켜기)
     const handleShutterClick = () => {
-        if (viewMode === 'gallery') {
-            setViewMode('camera');
-        } else {
-            takePhoto();
-        }
+        if (viewMode === 'gallery') setViewMode('camera');
+        else takePhoto();
     };
 
     const takePhoto = () => {
@@ -156,32 +129,22 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
             };
             reader.readAsDataURL(file);
         }
-        // 동일 파일 재선택 가능하도록 초기화
         event.target.value = ''; 
     };
 
-    // 하단 갤러리 아이콘 클릭
     const handleGalleryClick = () => {
-        if (viewMode === 'camera') {
-            setViewMode('gallery'); // 카메라 끄고 갤러리 모드로 전환
-        }
-        // 파일창 열기
-        if (fileInputRef.current) {
-            fileInputRef.current.click();
-        }
+        if (viewMode === 'camera') setViewMode('gallery');
+        if (fileInputRef.current) fileInputRef.current.click();
     };
 
-    // 닫기(X) 버튼
     const handleClose = () => {
         stopCamera();
         onNavigate(fromPage || 'home'); 
     };
 
-    // === 서버 분석 요청 ===
     const processCapture = async (imageDataUrl) => {
-        stopCamera(); // 촬영/선택 즉시 카메라 중지
+        stopCamera();
         setIsAnalyzing(true);
-        setViewMode("result");
 
         try {
             const location = await getUserLocation();
@@ -202,21 +165,25 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                 }
             });
 
+            // 응답 상태에 따른 분기 처리
             if (response.data.status === 'success') {
                 const resultData = response.data.data;
                 setAnalysisResult(resultData);
+                if (onSaveState) onSaveState({ result: resultData, image: imageDataUrl });
                 
-                if (onSaveState) {
-                    onSaveState({
-                        result: resultData,
-                        image: imageDataUrl
-                    });
-                }
+                // 성공했을 때만 결과 화면으로 이동
+                setViewMode("result"); 
+            
+            } else if (response.data.status === 'fail') {
+                // 실패 시 (물 미검출)
+                alert(response.data.message || "바다를 인식하지 못했습니다. 다시 촬영해주세요.");
+                setViewMode("camera"); // 다시 카메라 모드로
+                startCamera(); // 카메라 재시작
             }
         } catch (err) {
             console.error("분석 실패:", err);
             alert("분석 중 오류가 발생했습니다.\n" + (err.response?.data?.detail || err.message));
-            setViewMode("camera"); // 실패 시 카메라 모드로 복귀
+            setViewMode("camera");
         } finally {
             setIsAnalyzing(false);
         }
@@ -239,6 +206,8 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
     if (viewMode === "result" && analysisResult) {
         const aiEnv = analysisResult.environment || {};
         const aiRecs = analysisResult.recommendations || [];
+        const debugInfo = analysisResult.debug_info || {}; // 디버그 정보
+
         const aiWater = analysisResult.analysis_result?.water_color || "분석 중...";
         const aiConf = analysisResult.analysis_result?.confidence || 0;
 
@@ -314,7 +283,7 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
 
                         {/* 4. 추천 리스트 */}
                         <h3 className="font-bold text-[16px] mb-4 text-black">AI 추천 에기 Top 3</h3>
-                        <div className="space-y-6 text-black">
+                        <div className="space-y-6 text-black mb-8">
                             {aiRecs.map((egi, index) => (
                                 <div 
                                     key={index}
@@ -342,13 +311,80 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                                 </div>
                             ))}
                         </div>
+
+                        {/* 5. [신규] AI 분석 과정 보기 (디버그 모드) */}
+                        {debugInfo.yolo_image && (
+                            <div className="border-t border-gray-100 pt-6 mb-10">
+                                <button 
+                                    onClick={() => setShowDebug(!showDebug)}
+                                    className="w-full flex justify-between items-center bg-gray-50 p-4 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+                                >
+                                    <span>🤖 AI 분석 과정 보기 (개발자용)</span>
+                                    <span>{showDebug ? "▲" : "▼"}</span>
+                                </button>
+
+                                {showDebug && debugInfo.yolo_image && (
+                                    <div className="mt-4 space-y-6 animate-in slide-in-from-top duration-300">
+                                        
+                                        {/* Step 1: YOLO 디텍팅 */}
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded">Step 1</span>
+                                                <h4 className="font-bold text-sm text-gray-800">YOLO 물체 인식</h4>
+                                            </div>
+                                            <div className="rounded-xl overflow-hidden border border-green-200 relative">
+                                                <img src={debugInfo.yolo_image} alt="YOLO Result" className="w-full h-auto object-cover" />
+                                                <div className="absolute bottom-0 left-0 right-0 bg-green-500/80 text-white text-[10px] p-1 px-3">
+                                                    바다(Water) 영역을 찾아 초록색 박스로 표시했습니다.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Step 2: 물색 분석 */}
+                                        <div className="flex gap-4">
+                                            <div className="w-1/2">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded">Step 2</span>
+                                                    <h4 className="font-bold text-sm text-gray-800">색상 분석</h4>
+                                                </div>
+                                                <div className="rounded-xl overflow-hidden border border-blue-200 aspect-square relative">
+                                                    <img src={debugInfo.crop_image} alt="Cropped Water" className="w-full h-full object-cover" />
+                                                </div>
+                                            </div>
+                                            <div className="w-1/2 flex flex-col justify-center text-xs space-y-2">
+                                                <p className="text-gray-500">이 부분을 잘라내어<br/>CNN 모델에 입력했습니다.</p>
+                                                <div className="bg-gray-100 p-2 rounded-lg">
+                                                    <span className="block font-bold text-gray-700">AI 예측 결과:</span>
+                                                    <span className="text-blue-600 font-bold text-lg uppercase">{debugInfo.ai_prediction}</span>
+                                                    <span className="block text-gray-400">신뢰도: {Math.round(debugInfo.confidence * 100)}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Step 3: 매핑 결과 */}
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-1 rounded">Step 3</span>
+                                                <h4 className="font-bold text-sm text-gray-800">에기 매핑</h4>
+                                            </div>
+                                            <div className="bg-gray-50 p-3 rounded-xl border border-dashed border-gray-300 text-xs text-gray-600 leading-relaxed">
+                                                <p>1. AI가 물색을 <strong>"{debugInfo.ai_prediction}"</strong>으로 판단.</p>
+                                                <p>2. 추천 에기 색상: <strong>"{aiRecs[0]?.color_name || '?'}"</strong></p>
+                                                <p>3. DB에서 해당 색상 ID를 가진 에기 검색 완료.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
+                    
                 </div>
             </div>
         );
     }
 
-    // [C] 입력 모드 화면 ('camera' 또는 'gallery')
+    // [C] 입력 모드 화면
     return (
         <div className="fixed inset-0 bg-slate-900 flex justify-center items-center z-[100]">
             <div className="relative w-full max-w-[420px] h-full bg-black flex flex-col">
@@ -360,7 +396,6 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                 
                 {/* 뷰파인더 영역 */}
                 <div className="flex-1 relative flex items-center justify-center bg-gray-900 overflow-hidden">
-                    {/* 카메라 모드일 때만 비디오 표시 */}
                     {viewMode === 'camera' ? (
                         <>
                             <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
@@ -370,7 +405,6 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                             </div>
                         </>
                     ) : (
-                        // 갤러리 모드일 땐 아이콘 표시
                         <div className="text-gray-500 flex flex-col items-center">
                             <span className="text-4xl mb-2">🖼️</span>
                             <span className="text-sm">사진을 선택해주세요</span>
@@ -379,13 +413,11 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                 </div>
 
                 <div className="h-44 bg-black flex items-center justify-between px-10 pb-10 relative text-white">
-                    {/* 갤러리 버튼 */}
                     <button onClick={handleGalleryClick} className="w-14 h-14 flex items-center justify-center rounded-full bg-gray-800 active:bg-gray-700">
                         <span className="text-2xl">🖼️</span>
                     </button>
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
 
-                    {/* 셔터 버튼 (카메라모드:촬영 / 갤러리모드:카메라켜기) */}
                     <button onClick={handleShutterClick} className="w-20 h-20 rounded-full border-[6px] border-white/20 p-1 active:scale-95 transition-transform">
                         <div className={`w-full h-full rounded-full shadow-inner transition-colors ${viewMode === 'gallery' ? 'bg-red-500' : 'bg-white'} flex items-center justify-center`}>
                             {viewMode === 'gallery' && <span className="text-[10px] font-bold text-white">Camera</span>}

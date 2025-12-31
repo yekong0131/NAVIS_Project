@@ -1,0 +1,13 @@
+[Unit]
+Description=gunicorn daemon
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+# 주의: 아래 경로는 실제 서버에서 git clone 받을 위치에 따라 달라집니다. (일단 /home/ubuntu/NAVIS_PROJECT 라고 가정)
+WorkingDirectory=/home/ubuntu/NAVIS_PROJECT/backend/navis_server
+ExecStart=/home/ubuntu/NAVIS_PROJECT/backend/venv/bin/gunicorn --access-logfile - --workers 3 --bind unix:/home/ubuntu/NAVIS_PROJECT/backend/gunicorn.sock core.navis_server.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
