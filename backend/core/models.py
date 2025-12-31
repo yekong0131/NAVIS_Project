@@ -233,84 +233,84 @@ class Egi(models.Model):
 
 
 # 3-2. 에기 추천 조건 (정규화: 에기 1개에 여러 조건 가능)
-class EgiCondition(models.Model):
-    """
-    하나의 에기에 대한 '상황별 추천 조건'을 저장하는 테이블.
+# class EgiCondition(models.Model):
+#     """
+#     하나의 에기에 대한 '상황별 추천 조건'을 저장하는 테이블.
 
-    예)
-    - target_fish: 쭈꾸미
-    - water_color: Muddy
-    - water_temp: 17~19도
-    - wave_height: 0.3~0.7m
-    - wind_speed: 3~8m/s
-    - weather: 흐림
-    - catch_score: 80
-    """
+#     예)
+#     - target_fish: 쭈꾸미
+#     - water_color: Muddy
+#     - water_temp: 17~19도
+#     - wave_height: 0.3~0.7m
+#     - wind_speed: 3~8m/s
+#     - weather: 흐림
+#     - catch_score: 80
+#     """
 
-    WATER_COLOR_CHOICES = [
-        ("VeryClear", "VeryClear"),
-        ("Clear", "Clear"),
-        ("Moderate", "Moderate"),
-        ("Muddy", "Muddy"),
-        ("VeryMuddy", "VeryMuddy"),
-    ]
+#     WATER_COLOR_CHOICES = [
+#         ("VeryClear", "VeryClear"),
+#         ("Clear", "Clear"),
+#         ("Moderate", "Moderate"),
+#         ("Muddy", "Muddy"),
+#         ("VeryMuddy", "VeryMuddy"),
+#     ]
 
-    TARGET_FISH_CHOICES = [
-        ("쭈꾸미", "쭈꾸미"),
-        ("갑오징어", "갑오징어"),
-        ("쭈갑", "쭈갑"),  # 둘 다 가능
-    ]
+#     TARGET_FISH_CHOICES = [
+#         ("쭈꾸미", "쭈꾸미"),
+#         ("갑오징어", "갑오징어"),
+#         ("쭈갑", "쭈갑"),  # 둘 다 가능
+#     ]
 
-    condition_id = models.AutoField(primary_key=True)
+#     condition_id = models.AutoField(primary_key=True)
 
-    egi = models.ForeignKey(
-        Egi,
-        on_delete=models.CASCADE,
-        related_name="conditions",
-    )
+#     egi = models.ForeignKey(
+#         Egi,
+#         on_delete=models.CASCADE,
+#         related_name="conditions",
+#     )
 
-    # 어떤 어종 대상으로 쓸 때 좋은지
-    target_fish = models.CharField(
-        max_length=10,
-        choices=TARGET_FISH_CHOICES,
-    )
+#     # 어떤 어종 대상으로 쓸 때 좋은지
+#     target_fish = models.CharField(
+#         max_length=10,
+#         choices=TARGET_FISH_CHOICES,
+#     )
 
-    # 물색 (YOLO 분류와 1:1 매칭)
-    water_color = models.CharField(
-        max_length=20,
-        choices=WATER_COLOR_CHOICES,
-        blank=True,
-    )
+#     # 물색 (YOLO 분류와 1:1 매칭)
+#     water_color = models.CharField(
+#         max_length=20,
+#         choices=WATER_COLOR_CHOICES,
+#         blank=True,
+#     )
 
-    # 수온 / 파고 / 풍속 범위
-    min_water_temp = models.FloatField(null=True, blank=True)
-    max_water_temp = models.FloatField(null=True, blank=True)
-    min_wave_height = models.FloatField(null=True, blank=True)
-    max_wave_height = models.FloatField(null=True, blank=True)
-    min_wind_speed = models.FloatField(null=True, blank=True)
-    max_wind_speed = models.FloatField(null=True, blank=True)
+#     # 수온 / 파고 / 풍속 범위
+#     min_water_temp = models.FloatField(null=True, blank=True)
+#     max_water_temp = models.FloatField(null=True, blank=True)
+#     min_wave_height = models.FloatField(null=True, blank=True)
+#     max_wave_height = models.FloatField(null=True, blank=True)
+#     min_wind_speed = models.FloatField(null=True, blank=True)
+#     max_wind_speed = models.FloatField(null=True, blank=True)
 
-    # 날씨 / 물때 / 계절 / 시간대 등 (필요시 확장)
-    weather = models.CharField(max_length=20, blank=True)  # 맑음/흐림/비 등
-    tide_level = models.CharField(max_length=20, blank=True)  # 사리/중간/무시 등
-    season = models.CharField(max_length=10, blank=True)  # 봄/여름/가을/겨울
-    time_of_day = models.CharField(max_length=10, blank=True)  # 새벽/오전/오후/야간
+#     # 날씨 / 물때 / 계절 / 시간대 등 (필요시 확장)
+#     weather = models.CharField(max_length=20, blank=True)  # 맑음/흐림/비 등
+#     tide_level = models.CharField(max_length=20, blank=True)  # 사리/중간/무시 등
+#     season = models.CharField(max_length=10, blank=True)  # 봄/여름/가을/겨울
+#     time_of_day = models.CharField(max_length=10, blank=True)  # 새벽/오전/오후/야간
 
-    # 조과 점수 (0~100)
-    catch_score = models.IntegerField(default=50)
+#     # 조과 점수 (0~100)
+#     catch_score = models.IntegerField(default=50)
 
-    # 설명/메모 (이 상황에서 왜 이 에기가 좋은지)
-    notes = models.TextField(blank=True)
+#     # 설명/메모 (이 상황에서 왜 이 에기가 좋은지)
+#     notes = models.TextField(blank=True)
 
-    # 나중에 이 내용을 한 문단으로 합쳐서 embedding_text로 만들고,
-    # 벡터 DB/RAG에 활용
-    embedding_text = models.TextField(blank=True)
+#     # 나중에 이 내용을 한 문단으로 합쳐서 embedding_text로 만들고,
+#     # 벡터 DB/RAG에 활용
+#     embedding_text = models.TextField(blank=True)
 
-    class Meta:
-        db_table = "egi_conditions"
+#     class Meta:
+#         db_table = "egi_conditions"
 
-    def __str__(self):
-        return f"{self.egi.name} / {self.target_fish} / {self.water_color}"
+#     def __str__(self):
+#         return f"{self.egi.name} / {self.target_fish} / {self.water_color}"
 
 
 # 4. 낚시 지식 (RAG용 유튜브 인사이트)

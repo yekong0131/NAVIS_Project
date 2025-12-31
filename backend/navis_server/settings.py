@@ -32,6 +32,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     # EC2 Public IP or Domain 추가
+    "43.201.104.189",
+    "ec2-43-201-104-189.ap-northeast-2.compute.amazonaws.com",
 ]
 
 
@@ -199,6 +201,8 @@ CORS_ALLOW_HEADERS = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "43.201.104.189",
+    "ec2-43-201-104-189.ap-northeast-2.compute.amazonaws.com",
 ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static")

@@ -7,7 +7,7 @@ from .models import (
     User,
     Boat,
     Egi,
-    EgiCondition,
+    # EgiCondition,/
     FishingInsight,
     Diary,
     WeatherSnapshot,
@@ -47,17 +47,16 @@ class BoatAdmin(admin.ModelAdmin):
     search_fields = ("name", "port")
 
 
-# 3. 에기 관리
-class EgiConditionInline(admin.TabularInline):
-    model = EgiCondition
-    extra = 1
+# # 3. 에기 관리
+# class EgiConditionInline(admin.TabularInline):
+#     model = EgiCondition
+#     extra = 1
 
 
 @admin.register(Egi)
 class EgiAdmin(admin.ModelAdmin):
     list_display = ("name", "brand")
     search_fields = ("name", "brand")
-    inlines = [EgiConditionInline]  # 에기 만들 때 조건도 같이 넣기
 
 
 # 4. 낚시 지식 (RAG 데이터)
