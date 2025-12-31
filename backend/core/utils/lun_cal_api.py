@@ -87,6 +87,12 @@ TIDE_7 = {
 }
 
 
+# 개발용 출력 함수
+def dev_print(*args, **kwargs):
+    if os.getenv("APP_ENV") == "development":
+        print(*args, **kwargs)
+
+
 def _call_lun_cal_api(target_date: date) -> Optional[dict]:
     """
     음력 변환 API 호출

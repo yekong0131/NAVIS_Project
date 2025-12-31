@@ -1,5 +1,6 @@
 # core/utils/boat_schedule_service.py
 
+import os
 import logging
 from datetime import datetime, date, timedelta
 from typing import Any, Dict, List, Optional
@@ -9,6 +10,12 @@ import requests
 logger = logging.getLogger(__name__)
 
 SCHEDULE_BASE_URL = "https://api.sunsang24.com/ship/schedule_fleet_list"
+
+
+# 개발 모드용 출력 함수
+def dev_print(*args, **kwargs):
+    if os.getenv("APP_ENV") == "development":
+        print(*args, **kwargs)
 
 
 def _safe_get(json_dict: Dict, key: str, default=None):
@@ -35,7 +42,7 @@ def fetch_month_schedule(ship_no: int, year_month: str) -> List[Dict[str, Any]]:
         "eyyyymm": "",
     }
 
-    print(f"[선박스케줄] [요청시작] {ship_no}번 선박 / {year_month} 조회 중...")
+    dev_print(f"[선박스케줄] [요청시작] {ship_no}번 선박 / {year_month} 조회 중...")
 
     try:
         resp = requests.get(url, params=params, timeout=5)  # 타임아웃 5초로 늘림
@@ -61,20 +68,22 @@ def fetch_month_schedule(ship_no: int, year_month: str) -> List[Dict[str, Any]]:
         # 3. 상세 필드 확인 (첫 번째 스케줄만)
         if schedules and len(schedules) > 0:
             sample = schedules[0]
-            print(f"[선박스케줄] [필드확인] 날짜: {sample.get('sdate')}")
-            print(
+            dev_print(f"[선박스케줄] [필드확인] 날짜: {sample.get('sdate')}")
+            dev_print(
                 f"   - remain_embarkation_num (잔여): {sample.get('remain_embarkation_num')}"
             )
-            print(f"   - embarkation_num (총원): {sample.get('embarkation_num')}")
-            print(
+            dev_print(f"   - embarkation_num (총원): {sample.get('embarkation_num')}")
+            dev_print(
                 f"   - reserve_embarkation_num (예약): {sample.get('reserve_embarkation_num')}"
             )
-            print(
+            dev_print(
                 f"   - wait_embarkation_num (대기): {sample.get('wait_embarkation_num')}"
             )  # 대기자 확인
-            print(f"   - status_code: {sample.get('status_code')}")
+            dev_print(f"   - status_code: {sample.get('status_code')}")
         else:
-            print(f"[선박스케줄] [데이터없음] {year_month} 스케줄 리스트가 비어있습니다.")
+            dev_print(
+                f"[선박스케줄] [데이터없음] {year_month} 스케줄 리스트가 비어있습니다."
+            )
 
         return schedules or []
 

@@ -79,7 +79,16 @@ load_dotenv()
 
 
 # ========================
-# 에기 API
+# 0. 개발용
+# ========================
+# 0-1. 개발 모드용 출력 함수
+def dev_print(*args, **kwargs):
+    if os.getenv("APP_ENV") == "development":
+        print(*args, **kwargs)
+
+
+# ========================
+# 1. 에기 API
 # ========================
 class EgiColorListView(generics.ListAPIView):
     """
@@ -99,7 +108,7 @@ class EgiColorListView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
 
 
-# 1. 에기 목록 조회 (필터링 가능)
+# 1-1. 에기 목록 조회 (필터링 가능)
 class EgiListAPIView(generics.ListAPIView):
     """
     전체 에기 목록 조회 API
@@ -118,20 +127,20 @@ class EgiListAPIView(generics.ListAPIView):
         return queryset
 
 
-# 2. 에기 상세 조회
+# 1-2. 에기 상세 조회
 class EgiDetailAPIView(generics.RetrieveAPIView):
     queryset = Egi.objects.all()
     serializer_class = EgiSerializer
     lookup_field = "egi_id"  # URL에서 egi_id로 찾음
 
 
-# 3. 필터용 색상 목록 조회
+# 1-3. 필터용 색상 목록 조회
 class EgiColorListAPIView(generics.ListAPIView):
     queryset = EgiColor.objects.all()
     serializer_class = EgiColorSerializer
 
 
-# 4. 추천 에기 목록 조회 (홈 화면)
+# 1-4. 추천 에기 목록 조회 (홈 화면)
 class EgiListView(generics.ListAPIView):
     """
     추천 에기 목록 조회 (홈 화면 추천용)
@@ -151,8 +160,9 @@ class EgiListView(generics.ListAPIView):
 
 
 # ========================
-# 낚시 일지 API
+# 2. 낚시 일지 API
 # ========================
+# 2-1. 낚시 일지 등록
 class DiaryListCreateView(generics.ListCreateAPIView):
     """
     낚시 일지 목록 조회 / 생성 API
@@ -216,6 +226,7 @@ class DiaryListCreateView(generics.ListCreateAPIView):
         return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
 
 
+# 2-2. 내가 작성한 낚시 일지 목록 조회 (월별 필터링)
 class MyDiaryListView(generics.ListAPIView):
     """
     내가 작성한 낚시 일지 목록 조회 (월별 필터링 추가)
@@ -263,6 +274,7 @@ class MyDiaryListView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
 
 
+# 2-3. 낚시 일지 상세보기 / 수정 / 삭제
 class DiaryDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     낚시 일지 상세보기 / 수정 / 삭제 API
@@ -336,6 +348,7 @@ class DiaryDetailView(generics.RetrieveUpdateDestroyAPIView):
         return super().delete(request, *args, **kwargs)
 
 
+# 2-4. 낚시 일지 음성 분석
 class DiaryAnalyzeView(APIView):
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [AllowAny]
@@ -358,7 +371,7 @@ class DiaryAnalyzeView(APIView):
         # Provider 확인
         provider = os.getenv("STT_PROVIDER", "mock")
         api_key = os.getenv("OPENAI_API_KEY")
-        print(
+        dev_print(
             f"[STT] [DEBUG] 분석 요청 - Provider: {provider}, 파일크기: {audio_file.size} bytes"
         )
 
@@ -374,7 +387,7 @@ class DiaryAnalyzeView(APIView):
 
                 client = OpenAI(api_key=api_key)
 
-                print("[STT] Whisper API 호출 중...")
+                dev_print("[STT] Whisper API 호출 중...")
                 transcript = client.audio.transcriptions.create(
                     model="whisper-1",
                     file=(audio_file.name, audio_file.read()),
@@ -382,13 +395,13 @@ class DiaryAnalyzeView(APIView):
                 )
                 stt_text = transcript.text.strip()
             else:
-                print("[Mock STT] Mock 모드 실행")
+                dev_print("[Mock STT] Mock 모드 실행")
                 from core.utils.mock_stt import mock_transcribe
 
                 stt_text = mock_transcribe(audio_file)
 
             # 🔥 [핵심 디버깅] 서버가 인식한 텍스트가 뭔지 확인!
-            print(f"[STT] [DEBUG] 서버가 인식한 텍스트: '{stt_text}'")
+            dev_print(f"[STT] [DEBUG] 서버가 인식한 텍스트: '{stt_text}'")
 
             # 만약 텍스트가 아예 비어있으면 강제로 넣어주기 (테스트용)
             if not stt_text:
@@ -409,10 +422,11 @@ class DiaryAnalyzeView(APIView):
             return Response(response_data, status=200)
 
         except Exception as e:
-            print(f"[STT] [Error] 분석 실패(Exception): {e}")
+            dev_print(f"[STT] [Error] 분석 실패(Exception): {e}")
             return Response({"error": str(e)}, status=500)
 
 
+# 2-5. 낚시 일지 요약 및 통계
 class DiarySummaryView(APIView):
     """
     낚시 일지 요약 및 통계 조회
@@ -525,8 +539,9 @@ class DiarySummaryView(APIView):
 
 
 # ========================
-# 항구 목록 검색
+# 3. 항구 목록 검색
 # ========================
+# 3-1. 항구 이름으로 검색
 class PortSearchView(APIView):
     """
     항구 이름으로 검색하여 목록 반환 (주소 포함)
@@ -598,8 +613,9 @@ class PortSearchView(APIView):
 
 
 # ========================
-# 해양 데이터 API
+# 4. 기상 데이터 조회 API
 # ========================
+# 4-1. 통합 해양/기상 데이터 조회
 class OceanDataView(APIView):
     """
     통합 해양/기상 데이터 조회
@@ -702,8 +718,9 @@ class OceanDataView(APIView):
 
 
 # ========================
-# 에기 추천 API
+# 5. 에기 추천 API
 # ========================
+# 5-1. 물색 분석 API (YOLO Mock)
 class WaterColorAnalyzeView(APIView):
     """
     물색 분석 Mock API
@@ -758,6 +775,7 @@ class WaterColorAnalyzeView(APIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
+# 5-2. 에기 추천 API (통합 서비스)
 class EgiRecommendView(APIView):
     """
     에기 추천 API (YOLO + 기상데이터 + AI모델)
@@ -896,8 +914,9 @@ class EgiRecommendView(APIView):
 
 
 # ========================
-# 회원 API
+# 6. 회원 API
 # ========================
+# 6-1. 회원가입
 class SignupView(APIView):
     """
     회원가입 API
@@ -934,6 +953,7 @@ class SignupView(APIView):
         )
 
 
+# 6-2. 로그인
 class LoginView(APIView):
     """
     로그인 API
@@ -988,6 +1008,7 @@ class LoginView(APIView):
         )
 
 
+# 6-3. 내 정보 조회
 class MeView(APIView):
     """
     내 정보 조회 API
@@ -1023,6 +1044,7 @@ class MeView(APIView):
         )
 
 
+# 6-4. 프로필 캐릭터 목록 조회
 class ProfileCharacterListView(generics.ListAPIView):
     """
     선택 가능한 프로필 캐릭터 이미지 목록 조회
@@ -1033,6 +1055,7 @@ class ProfileCharacterListView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
 
+# 6-5. 내 정보 수정
 class MyProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1076,6 +1099,7 @@ class MyProfileUpdateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# 6-6. 비밀번호 확인
 class VerifyPasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1106,8 +1130,9 @@ class VerifyPasswordView(APIView):
 
 
 # ========================
-# 선박 API
+# 7.선박 API
 # ========================
+# 7-1. 선박 검색 API
 class BoatSearchView(APIView):
     """
     선박 검색 API
@@ -1240,14 +1265,14 @@ class BoatSearchView(APIView):
                 )
             )
 
-        print(f"\n  [선박검색] Page {page} 요청")
-        print(f"   - 지역(Main): {area_main}")
-        print(f"   - 지역(Sub) : {area_sub}")
-        print(f"   - 해역(Sea) : {area_sea}")
-        print(f"   - 어종(Fish): {fish_raw}")
-        print(f"   - 날짜(Date): {date_str}")
-        print(f"   - 인원      : {people}명")
-        print(
+        dev_print(f"\n  [선박검색] Page {page} 요청")
+        dev_print(f"   - 지역(Main): {area_main}")
+        dev_print(f"   - 지역(Sub) : {area_sub}")
+        dev_print(f"   - 해역(Sea) : {area_sea}")
+        dev_print(f"   - 어종(Fish): {fish_raw}")
+        dev_print(f"   - 날짜(Date): {date_str}")
+        dev_print(f"   - 인원      : {people}명")
+        dev_print(
             f"  -> DB 후보군: 총 {paginator.count}개 중 이번 페이지 {len(page_obj.object_list)}개 조회 시작"
         )
 
@@ -1289,7 +1314,7 @@ class BoatSearchView(APIView):
                 }
             )
 
-        print(f"[선박 검색] [완료] 유효한 선박 {len(final_results)}개 반환\n")
+        dev_print(f"[선박 검색] [완료] 유효한 선박 {len(final_results)}개 반환\n")
 
         return Response(
             {
@@ -1313,6 +1338,7 @@ class BoatSearchView(APIView):
         )
 
 
+# 7-2. 특정 선박 스케줄 조회 API
 class BoatScheduleView(APIView):
     """
     특정 선박의 스케줄 조회
@@ -1453,6 +1479,7 @@ class BoatScheduleView(APIView):
         )
 
 
+# 7-3. 선박 좋아요 토글 API
 class BoatLikeToggleView(APIView):
     """
     선박 좋아요 토글 (Toggle)
@@ -1489,6 +1516,7 @@ class BoatLikeToggleView(APIView):
             )
 
 
+# 7-4. 내가 찜한 선박 목록 조회 API
 class MyLikedBoatsView(generics.ListAPIView):
     """
     내가 찜한 선박 목록 조회

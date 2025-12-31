@@ -10,6 +10,13 @@ from tensorflow.keras.applications.resnet50 import preprocess_input
 from tensorflow.keras.models import load_model
 from django.conf import settings
 
+
+# 개발 모드용 출력 함수
+def dev_print(*args, **kwargs):
+    if os.getenv("APP_ENV") == "development":
+        print(*args, **kwargs)
+
+
 # 1. 모델 경로 설정
 MODEL_DIR = os.path.join(settings.BASE_DIR, "core", "ai_models")
 YOLO_PATH = os.path.join(MODEL_DIR, "yolo_water_detect.pt")
@@ -18,11 +25,11 @@ WATER_CLS_PATH = os.path.join(MODEL_DIR, "cnn_water_cls.h5")
 
 # 2. 모델 로드
 try:
-    print(f"[AI Init] Loading models from {MODEL_DIR}...")
+    dev_print(f"[AI Init] Loading models from {MODEL_DIR}...")
     yolo_model = YOLO(YOLO_PATH)
     egi_rec_model = load_model(EGI_REC_PATH)
     water_cls_model = load_model(WATER_CLS_PATH)
-    print("✅ AI Models loaded successfully.")
+    dev_print("✅ AI Models loaded successfully.")
 except Exception as e:
     print(f"⚠️ Failed to load AI models: {e}")
     yolo_model = None
@@ -73,7 +80,7 @@ def predict_best_egi(image_file, env_data):
     AI 추론 및 디버그 정보 생성 함수
     Returns: recommended_color, water_color_result, debug_info
     """
-    print(f"\n{'='*20} AI Inference Start {'='*20}")
+    dev_print(f"\n{'='*20} AI Inference Start {'='*20}")
 
     if not egi_rec_model or not yolo_model:
         return "yellow", "Muddy", {}
@@ -127,7 +134,7 @@ def predict_best_egi(image_file, env_data):
 
         # 물을 못 찾았으면 여기서 중단하고 None 반환
         if not detected or crop_pil is None:
-            print("  [AI Debug] ❌ YOLO failed to detect water.")
+            dev_print("  [AI Debug] ❌ YOLO failed to detect water.")
             return None, None, None
 
         # [디버그 정보 저장]
@@ -231,7 +238,7 @@ def predict_best_egi(image_file, env_data):
             if best_idx < len(EGI_CLASSES):
                 recommended_color = EGI_CLASSES[best_idx]
         except Exception as e:
-            print(f"  [AI Debug] ❌ Egi Prediction Error: {e}")
+            dev_print(f"  [AI Debug] ❌ Egi Prediction Error: {e}")
 
         # (2) 물색 분류
         water_color_result = "muddy"
@@ -252,9 +259,9 @@ def predict_best_egi(image_file, env_data):
                 debug_info["confidence"] = confidence
 
             except Exception as e:
-                print(f"  [AI Debug] ⚠️ Water Cls Error: {e}")
+                dev_print(f"  [AI Debug] ⚠️ Water Cls Error: {e}")
 
-        print(f"{'='*20} AI Inference End {'='*20}\n")
+        dev_print(f"{'='*20} AI Inference End {'='*20}\n")
 
         # 3개의 값을 반환 (추천색, 물색, 디버그정보)
         return recommended_color, water_color_result, debug_info

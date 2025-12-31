@@ -1,7 +1,13 @@
 # core/utils/location_service.py
 
+import os
 from typing import Optional, Tuple
 from math import radians, cos, sin, asin, sqrt
+
+
+def dev_print(*args, **kwargs):
+    if os.getenv("APP_ENV") == "development":
+        print(*args, **kwargs)
 
 
 def get_coordinates_from_port(port_name: str) -> Optional[Tuple[float, float]]:
@@ -23,17 +29,19 @@ def get_coordinates_from_port(port_name: str) -> Optional[Tuple[float, float]]:
     port = Port.objects.filter(port_name__iexact=port_name).first()
 
     if port:
-        print(f"[Port] 항구 찾음: {port.port_name} ({port.lat}, {port.lon})")
+        dev_print(f"[Port] 항구 찾음: {port.port_name} ({port.lat}, {port.lon})")
         return (port.lat, port.lon)
 
     # 부분 일치 찾기
     port = Port.objects.filter(port_name__icontains=port_name).first()
 
     if port:
-        print(f"[Port] 항구 찾음 (부분일치): {port.port_name} ({port.lat}, {port.lon})")
+        dev_print(
+            f"[Port] 항구 찾음 (부분일치): {port.port_name} ({port.lat}, {port.lon})"
+        )
         return (port.lat, port.lon)
 
-    print(f"[Port] [Warning]  항구를 찾을 수 없음: {port_name}")
+    dev_print(f"[Port] [Warning]  항구를 찾을 수 없음: {port_name}")
     return None
 
 
@@ -80,10 +88,10 @@ def find_nearest_port(
 
     # 최대 거리 이내의 항구만 반환
     if min_distance <= max_distance_km:
-        print(
+        dev_print(
             f"[Port] 가장 가까운 항구: {nearest_port.port_name} ({min_distance:.1f}km)"
         )
         return nearest_port.port_name
 
-    print(f"[Port] [Warning]  {max_distance_km}km 이내에 항구 없음")
+    dev_print(f"[Port] [Warning]  {max_distance_km}km 이내에 항구 없음")
     return None

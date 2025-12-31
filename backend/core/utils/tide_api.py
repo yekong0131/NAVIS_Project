@@ -14,6 +14,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+# 개발 모드용 출력 함수
+def dev_print(*args, **kwargs):
+    if os.getenv("APP_ENV") == "development":
+        print(*args, **kwargs)
+
+
 def get_nearest_tide_station(user_lat, user_lon):
     """
     가장 가까운 조위 관측소 찾기
@@ -21,7 +27,7 @@ def get_nearest_tide_station(user_lat, user_lon):
     stations = TideStation.objects.all()
 
     if not stations.exists():
-        print("[조석예보] 조위 관측소 데이터가 없습니다!")
+        dev_print("[조석예보] 조위 관측소 데이터가 없습니다!")
         return None
 
     station_list = []
@@ -32,7 +38,7 @@ def get_nearest_tide_station(user_lat, user_lon):
     station_list.sort(key=lambda x: x[1])
     nearest_station, distance = station_list[0]
 
-    print(
+    dev_print(
         f"[조석예보] 가장 가까운 조위 관측소: {nearest_station.name} ({distance:.1f}km)"
     )
 
@@ -70,7 +76,7 @@ def fetch_tide_prediction_multi_day(station_id, days=2):
             "ResultType": "json",
         }
 
-        print(f"[조석예보] API 호출: {station_id}, {target_date}")
+        dev_print(f"[조석예보] API 호출: {station_id}, {target_date}")
 
         try:
             response = requests.get(base_url, params=params, timeout=10)
@@ -92,7 +98,7 @@ def fetch_tide_prediction_multi_day(station_id, days=2):
                     if not isinstance(raw_data, list):
                         raw_data = [raw_data]
 
-                    print(f"[조석예보] {target_date}: {len(raw_data)}개 수신")
+                    dev_print(f"[조석예보] {target_date}: {len(raw_data)}개 수신")
                     all_data.extend(raw_data)
 
         except Exception as e:
@@ -100,7 +106,7 @@ def fetch_tide_prediction_multi_day(station_id, days=2):
             continue
 
     if all_data:
-        print(f"[조석예보] 총 {len(all_data)}개 데이터 수집 완료")
+        dev_print(f"[조석예보] 총 {len(all_data)}개 데이터 수집 완료")
         # 시간순 정렬
         all_data.sort(key=lambda x: x.get("tph_time", ""))
         return all_data
@@ -202,6 +208,6 @@ def get_tide_info(user_lat, user_lon):
         "next_low_tide": next_low,
     }
 
-    print(f"[조석예보] 최종 결과: {result}")
+    dev_print(f"[조석예보] 최종 결과: {result}")
 
     return result

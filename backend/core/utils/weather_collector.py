@@ -1,9 +1,16 @@
 # core/utils/weather_collector.py
 
+import os
 from datetime import date
 from typing import Optional
 from core.models import WeatherSnapshot, Diary
 from core.utils.integrated_data_collector import collect_all_marine_data
+
+
+# 개발 모드용 출력 함수
+def dev_print(*args, **kwargs):
+    if os.getenv("APP_ENV") == "development":
+        print(*args, **kwargs)
 
 
 def should_collect_weather(fishing_date) -> bool:
@@ -22,9 +29,11 @@ def should_collect_weather(fishing_date) -> bool:
     result = fishing_day == today
 
     if result:
-        print(f"[기상 정보 수집] 기상 데이터 수집 조건 충족: {fishing_day} == {today}")
+        dev_print(
+            f"[기상 정보 수집] 기상 데이터 수집 조건 충족: {fishing_day} == {today}"
+        )
     else:
-        print(
+        dev_print(
             f"[기상 정보 수집] [Warning] 기상 데이터 수집 건너뜀: {fishing_day} != {today}"
         )
 
@@ -45,12 +54,11 @@ def collect_and_save_weather(
     Returns:
         WeatherSnapshot 인스턴스 또는 None
     """
-    print(f"\n{'='*70}")
-    print(f"[기상 정보 수집] [Info] 기상 데이터 수집 시작")
-    print(f"  [기상 정보 수집] 위치: ({lat}, {lon})")
-    print(f"  [기상 정보 수집] 어종: {target_fish}")
-    print(f"{'='*70}")
-
+    dev_print(f"\n{'='*70}")
+    dev_print(f"[기상 정보 수집] [Info] 기상 데이터 수집 시작")
+    dev_print(f"  [기상 정보 수집] 위치: ({lat}, {lon})")
+    dev_print(f"  [기상 정보 수집] 어종: {target_fish}")
+    dev_print(f"{'='*70}")
     try:
         # 기상 데이터 수집
         weather_data = collect_all_marine_data(
@@ -85,13 +93,13 @@ def collect_and_save_weather(
             rain_type=weather_data.get("rain_type_text") or "",
         )
 
-        print(
+        dev_print(
             f"[기상 정보 수집] 기상 데이터 저장 완료: WeatherSnapshot ID {weather_snapshot.weather_id}"
         )
         return weather_snapshot
 
     except Exception as e:
-        print(f"[기상 정보 수집] [Error] 기상 데이터 수집/저장 실패: {e}")
+        dev_print(f"[기상 정보 수집] [Error] 기상 데이터 수집/저장 실패: {e}")
         import traceback
 
         traceback.print_exc()

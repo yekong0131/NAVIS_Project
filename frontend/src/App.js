@@ -50,30 +50,6 @@ function App() {
     console.log("유저 정보 갱신:", updatedUser);
     setUser(updatedUser);
   };
-  
-  // 📸 촬영 후 실행될 분석 함수 (시뮬레이션)
-  const handleCapture = (isSea) => {
-    setStatus("loading");
-    setProgress(0);
-
-    let p = 0;
-    const interval = setInterval(() => {
-      p += 5;
-      setProgress(p);
-
-      if (p >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          if (isSea) {
-            setStatus("success");
-          } else {
-            setStatus("result");
-          }
-        }, 500);
-      }
-    }, 30);
-  };
-
   // 🧭 페이지 네비게이션 함수
   const handleNavigate = (page, data = null) => {
     console.log("Navigating to:", page, data); 

@@ -13,6 +13,12 @@ load_dotenv()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo-0125")  # 기본값 설정 추천
 
 
+# 개발 모드용 출력 함수
+def dev_print(*args, **kwargs):
+    if os.getenv("APP_ENV") == "development":
+        print(*args, **kwargs)
+
+
 class STTParser:
     """
     음성인식 텍스트를 파싱하여 낚시 일지 데이터 추출
@@ -50,7 +56,7 @@ class STTParser:
         """
         전체 파싱 (GPT 우선 시도 -> 실패 시 Regex)
         """
-        print(f"[STT] 파싱 시작: {text}")
+        dev_print(f"[STT] 파싱 시작: {text}")
 
         # 1. 텍스트 전처리 (치명적인 오타 보정)
         text = text.replace("애기", "에기").replace("아기", "에기")
@@ -91,7 +97,7 @@ class STTParser:
 
         [추출 규칙]
         1. location_name: '에서', '으로' 같은 조사는 빼고 항구/지명 이름만 추출해. (예: '통영항에서' -> '통영항')
-        2. catches: 어종(fish_name)과 마릿수(count)를 리스트로 추출해. 갑오징어는 10갑, 쭈꾸미는 10쭈, 같은 식으로 표현할 수 있어.
+        2. catches: 어종(fish_name)과 마릿수(count)를 리스트로 추출해. 갑오징어는 10갑, 쭈꾸미는 10쭈, 같은 식으로 표현될 수 있어.
            - 어종: 갑오징어, 쭈꾸미, 문어 등
         3. colors: 사용한 에기 색상을 추출해서 color_id와 color_name을 매핑해.
            - 가능한 색상 목록: [{color_info_str}]

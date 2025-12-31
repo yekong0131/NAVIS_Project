@@ -18,6 +18,12 @@ load_dotenv()
 KMA_SERVICE_KEY = os.getenv("KMA_SERVICE_KEY")
 
 
+# 개발 모드용 출력 함수
+def dev_print(*args, **kwargs):
+    if os.getenv("APP_ENV") == "development":
+        print(*args, **kwargs)
+
+
 def _is_valid(value):
     """
     기상청 obsrValue 유효성 체크 (-900 ~ 900 범위만 사용)
@@ -110,13 +116,13 @@ def _call_kma_api(nx, ny):
         "ny": ny,
     }
 
-    print("[KMA] 초단기실황 API 호출")
-    print(f"  base_date = {base_date}, base_time = {base_time}")
-    print(f"  nx, ny    = {nx}, {ny}")
+    dev_print("[KMA] 초단기실황 API 호출")
+    dev_print(f"  base_date = {base_date}, base_time = {base_time}")
+    dev_print(f"  nx, ny    = {nx}, {ny}")
 
     try:
         resp = requests.get(url, params=params, timeout=5)
-        print(f"[KMA] HTTP 상태 코드: {resp.status_code}")
+        dev_print(f"[KMA] HTTP 상태 코드: {resp.status_code}")
 
         if resp.status_code != 200:
             print("[KMA] [ERROR] HTTP 에러")
@@ -181,10 +187,10 @@ def _parse_kma_items(items, nx, ny, grid_source_label):
         "wind_direction_deg",
     ]
     if any(weather_info[k] is not None for k in core_keys):
-        print(f"[KMA] 최종 기상 데이터: {weather_info}")
+        dev_print(f"[KMA] 최종 기상 데이터: {weather_info}")
         return weather_info
 
-    print("[KMA][WARNING] 모든 obsrValue 가 결측/이상값입니다.")
+    dev_print("[KMA][WARNING] 모든 obsrValue 가 결측/이상값입니다.")
     return None
 
 
@@ -199,7 +205,7 @@ def get_nearest_land_grid_from_db(lat, lon):
     try:
         points = CoastalPoint.objects.filter(is_active=True)
         if not points.exists():
-            print("[KMA][WARNING] CoastalPoint 데이터가 없습니다.")
+            dev_print("[KMA][WARNING] CoastalPoint 데이터가 없습니다.")
             return None
 
         user_pos = (lat, lon)
@@ -215,7 +221,7 @@ def get_nearest_land_grid_from_db(lat, lon):
         if nearest is None:
             return None
 
-        print(
+        dev_print(
             f"[KMA] 가장 가까운 해안 지점: {nearest.name} "
             f"({min_dist:.1f}km, nx={nearest.nx}, ny={nearest.ny})"
         )
@@ -259,7 +265,7 @@ def get_kma_weather(lat, lon):
     try:
         # 1) 사용자 위치 기준 격자
         nx, ny = map_to_grid(lat, lon)
-        print(f"[KMA] 사용자 위치 격자: nx={nx}, ny={ny}")
+        dev_print(f"[KMA] 사용자 위치 격자: nx={nx}, ny={ny}")
 
         data = _call_kma_api(nx, ny)
         if data:
@@ -286,7 +292,9 @@ def get_kma_weather(lat, lon):
                     if info2 is not None:
                         return info2
 
-        print("[KMA][WARNING] 기상청 초단기실황에서 유효한 데이터를 얻지 못했습니다.")
+        dev_print(
+            "[KMA][WARNING] 기상청 초단기실황에서 유효한 데이터를 얻지 못했습니다."
+        )
         return None
 
     except Exception as e:
