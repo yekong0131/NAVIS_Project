@@ -72,6 +72,8 @@ from .utils.boat_schedule_service import (
     get_schedules_in_range,
 )
 from .utils.stt_service import STTParser
+from .utils.sllm_service import generate_recommendation_reason
+
 from dotenv import load_dotenv
 from django.shortcuts import get_object_or_404
 
@@ -90,6 +92,7 @@ def dev_print(*args, **kwargs):
 # ========================
 # 1. 에기 API
 # ========================
+# 1-0. 에기 색상 목록 조회 (일지 작성용)
 class EgiColorListView(generics.ListAPIView):
     """
     에기 색상 목록 조회
@@ -720,65 +723,10 @@ class OceanDataView(APIView):
 # ========================
 # 5. 에기 추천 API
 # ========================
-# 5-1. 물색 분석 API (YOLO Mock)
-class WaterColorAnalyzeView(APIView):
-    """
-    물색 분석 Mock API
-    """
-
-    parser_classes = (MultiPartParser, FormParser)
-    serializer_class = WaterColorAnalyzeSerializer
-
-    @extend_schema(
-        summary="물색 분석 (YOLO Mock)",
-        description="이미지를 받아 YOLO 물색 분석 결과를 반환합니다.",
-        request=WaterColorAnalyzeSerializer,
-        responses={
-            200: OpenApiResponse(description="분석 결과 반환"),
-            400: OpenApiResponse(description="잘못된 요청"),
-        },
-    )
-    def post(self, request):
-        serializer = WaterColorAnalyzeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        image_file = serializer.validated_data["image"]
-        print(f"[물 색 분석] YOLO 분석 요청: {image_file.name}")
-
-        import random
-
-        class_names = ["Clear", "Muddy", "Moderate"]
-        detected_class = random.choice(class_names)
-        confidence = round(random.uniform(0.85, 0.99), 2)
-        fake_bbox = [100, 200, 500, 600]
-
-        if detected_class == "Muddy":
-            msg = "탁한 물색이 감지되었습니다."
-        elif detected_class == "Clear":
-            msg = "맑은 물색이 감지되었습니다."
-        else:
-            msg = "적당한 물색이 감지되었습니다."
-
-        response_data = {
-            "status": "success",
-            "data": {
-                "model": "YOLOv8-Custom",
-                "result": {
-                    "label": detected_class,
-                    "confidence": confidence,
-                    "bbox": fake_bbox,
-                },
-                "message": msg,
-            },
-        }
-
-        return Response(response_data, status=status.HTTP_200_OK)
-
-
-# 5-2. 에기 추천 API (통합 서비스)
+# 5-1. 에기 추천 API (통합 서비스)
 class EgiRecommendView(APIView):
     """
-    에기 추천 API (YOLO + 기상데이터 + AI모델)
+    에기 추천 API (YOLO + 기상데이터 + RAG AI 모델)
     """
 
     parser_classes = (MultiPartParser, FormParser)
@@ -786,7 +734,7 @@ class EgiRecommendView(APIView):
 
     @extend_schema(
         summary="에기 추천 (AI + 환경 분석)",
-        description="이미지와 위치 정보를 받아 최적의 에기를 추천합니다.",
+        description="이미지와 위치 정보를 받아 최적의 에기를 추천하고, RAG 기반의 전문적인 근거를 제공합니다.",
         request=EgiRecommendSerializer,
         responses={200: EgiRecommendResponseSerializer},
     )
@@ -801,7 +749,9 @@ class EgiRecommendView(APIView):
         lon = serializer.validated_data["lon"]
         target_fish = serializer.validated_data.get("target_fish") or "쭈갑"
 
-        # 2. 통합 서비스 호출 (데이터 수집 + AI 추론)
+        # -------------------------------------------------------------
+        # 2. 통합 서비스 호출
+        # -------------------------------------------------------------
         ctx = get_recommendation_context(lat, lon, image_file, target_fish)
 
         if ctx is None:
@@ -814,13 +764,25 @@ class EgiRecommendView(APIView):
             )
 
         marine_env = ctx["marine_data"]
-        ai_rec_color = ctx["recommended_color"]  # 예: 'red'
+        ai_rec_color = ctx["recommended_color"]
         water_color = ctx["water_color"]
 
+        reason_text = ctx.get("reason", "추천 근거를 생성할 수 없습니다.")
+
+        # 디버그 정보 업데이트
+        if "debug_info" in ctx:
+            ctx["debug_info"]["ai_reasoning_text"] = reason_text
+            ctx["debug_info"]["step4_sllm_prompt"] = ctx.get(
+                "sllm_prompt", "프롬프트 없음"
+            )
+
+        # YOLO 신뢰도 점수
+        base_score = int(ctx.get("confidence", 0.95) * 100)
+        final_score = min(base_score, 99.9)
+
         # -------------------------------------------------------------
-        # 1:1 단순 번역 (영어 -> 한글 DB 색상명)
+        # 3. DB 매핑 및 조회
         # -------------------------------------------------------------
-        # DB의 'egi_colors' 테이블에 저장된 정확한 한글명과 매칭
         COLOR_TRANSLATION = {
             "blue": "파랑",
             "brown": "갈색",
@@ -833,39 +795,22 @@ class EgiRecommendView(APIView):
             "yellow": "노랑",
         }
 
-        # 번역된 한글 색상명 (없으면 기본값 '노랑')
         db_color_name = COLOR_TRANSLATION.get(ai_rec_color, "노랑")
-
-        # -------------------------------------------------------------
-        # 3. 근거 생성
-        # -------------------------------------------------------------
-        reason_text = (
-            f"현재 물색이 {water_color}이고, "
-            f"수온 {marine_env.get('water_temp', '-') or '-'}℃ 상황을 고려했을 때 "
-            f"'{db_color_name}' 계열의 에기가 가장 효과적일 것으로 분석됩니다."
-        )
-
-        # -------------------------------------------------------------
-        # 4. DB 검색
-        # -------------------------------------------------------------
         matched_egis = Egi.objects.filter(color__color_name=db_color_name)[:3]
 
         recommendations = []
         if matched_egis.exists():
             for egi in matched_egis:
                 egi_data = EgiSerializer(egi, context={"request": request}).data
-
-                # 추가 정보(이유, 점수, 색상명)
                 egi_data.update(
                     {
                         "color_name": egi.color.color_name,
                         "reason": reason_text,
-                        "score": 98.5,
+                        "score": final_score,
                     }
                 )
                 recommendations.append(egi_data)
         else:
-            # 상품이 없을 경우 Fallback (키 이름을 image_url로 통일)
             recommendations.append(
                 {
                     "name": f"추천 색상: {db_color_name} (상품 준비중)",
@@ -879,21 +824,7 @@ class EgiRecommendView(APIView):
             )
 
         # -------------------------------------------------------------
-        # 5. 개발/상용 모드 분기 처리
-        # -------------------------------------------------------------
-        app_env = os.getenv("APP_ENV", "production")  # 기본값은 'production' (안전하게)
-        is_dev_mode = app_env == "development"
-
-        debug_data = {}
-        if is_dev_mode:
-            # 개발 모드일 때만 내부 분석 이미지 전달
-            debug_data = ctx.get("debug_info", {})
-            print(f"[System] 🛠️ 개발 모드입니다. AI 분석 과정 정보를 포함합니다.")
-        else:
-            print(f"[System] 🚀 상용 모드입니다. AI 분석 과정 정보를 숨깁니다.")
-
-        # -------------------------------------------------------------
-        # 6. 최종 응답 구성
+        # 4. 응답 반환
         # -------------------------------------------------------------
         response_data = {
             "status": "success",
@@ -902,12 +833,16 @@ class EgiRecommendView(APIView):
                 "environment": {
                     "water_temp": marine_env.get("water_temp"),
                     "tide": marine_env.get("moon_phase"),
-                    "weather": marine_env.get("rain_type_text"),  # 날씨 텍스트
+                    "weather": marine_env.get("rain_type_text"),
                     "wind_speed": marine_env.get("wind_speed"),
                     "location_name": marine_env.get("location_name"),
                 },
                 "recommendations": recommendations,
-                "debug_info": debug_data,
+                "debug_info": (
+                    ctx.get("debug_info", {})
+                    if os.getenv("APP_ENV") == "development"
+                    else {}
+                ),
             },
         }
         return Response(response_data, status=status.HTTP_200_OK)

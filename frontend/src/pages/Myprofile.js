@@ -9,7 +9,7 @@ function Myprofile({ user, onNavigate, onLogout, goToLikeList, goToFishingDiary 
 
   const activityMenu = [
     { id: 1, title: "❤️ 좋아요 선박 리스트", icon: "🚢" },
-    { id: 2, title: "☁️ 낚시일지 N드라이브", icon: "📂" },
+    { id: 2, title: "☁️ 낚시일지 드라이브", icon: "📂" },
   ];
 
   const settingMenu = [

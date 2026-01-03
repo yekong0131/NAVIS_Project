@@ -4,29 +4,6 @@ info:
   version: 1.0.0
   description: 낚시 도우미 어플 (용왕의 한 수) API 문서
 paths:
-  /api/analyze/color/:
-    post:
-      operationId: analyze_color_create
-      description: 이미지를 받아 YOLO 물색 분석 결과를 반환합니다.
-      summary: 물색 분석 (YOLO Mock)
-      tags:
-      - analyze
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WaterColorAnalyzeRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WaterColorAnalyzeRequest'
-        required: true
-      security:
-      - tokenAuth: []
-      responses:
-        '200':
-          description: 분석 결과 반환
-        '400':
-          description: 잘못된 요청
   /api/auth/login/:
     post:
       operationId: auth_login_create
@@ -595,13 +572,50 @@ paths:
                 items:
                   $ref: '#/components/schemas/EgiColor'
           description: ''
+  /api/egi/detail/{egi_id}/:
+    get:
+      operationId: egi_detail_retrieve
+      parameters:
+      - in: path
+        name: egi_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - egi
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Egi'
+          description: ''
+  /api/egi/list/:
+    get:
+      operationId: egi_list_list
+      description: 전체 에기 목록 조회 API
+      tags:
+      - egi
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Egi'
+          description: ''
   /api/egi/recommend/:
     post:
       operationId: egi_recommend_create
-      description: |-
-        이미지(물색), 대상 어종, 사용자 위치를 받아서
-        1) YOLO 물색 분석 → 2) 해양/기상 데이터 수집 → 3) RAG 기반 에기 추천
-      summary: 에기 추천 (RAG + 물색 분석)
+      description: 이미지와 위치 정보를 받아 최적의 에기를 추천하고, RAG 기반의 전문적인 근거를 제공합니다.
+      summary: 에기 추천 (AI + 환경 분석)
       tags:
       - egi
       requestBody:
@@ -621,44 +635,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EgiRecommendResponse'
-              examples:
-                성공응답예시:
-                  value:
-                    status: success
-                    data:
-                      analysis_result:
-                        water_color: Muddy
-                        confidence: 95.5
-                      environment:
-                        water_temp: 17.1
-                        tide: '6'
-                        tide_formula: '7'
-                        weather: 없음/맑음
-                        wave_height: 0.1
-                        wind_speed: 4.2
-                        air_temp: 12.2
-                        humidity: 60
-                        current_speed: 0.2
-                        wind_direction_deg: 341
-                        wind_direction_16: NNW
-                        fishing_index: 매우좋음
-                        fishing_score: 94.56
-                        source: 바다낚시지수 API
-                        location_name: 제주도 남동부
-                        record_time: 2025-12-18 오전
-                        target_fish: 쭈갑
-                      recommendations:
-                      - color_name: 고추장 (Red)
-                        reason: 탁한 물색(Muddy)에서는 붉은 계열의 파장이 길어 시인성이 확보되며...
-                        score: 98.5
-                  summary: 성공 응답 예시
           description: ''
-        '400':
-          description: 요청 검증 실패
-        '401':
-          description: 로그인 후 사용 가능
-        '500':
-          description: 서버 내부 오류
   /api/egis/:
     get:
       operationId: egis_list
@@ -1366,9 +1343,22 @@ components:
         size:
           type: string
           maxLength: 50
+        color_name:
+          type: string
+          readOnly: true
+        purchase_url:
+          type: string
+          format: uri
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
       required:
+      - color_name
+      - description
       - egi_id
       - name
+      - purchase_url
     EgiColor:
       type: object
       properties:
@@ -1843,14 +1833,6 @@ components:
       required:
       - confidence
       - water_color
-    WaterColorAnalyzeRequest:
-      type: object
-      properties:
-        image:
-          type: string
-          format: binary
-      required:
-      - image
     WeatherSnapshot:
       type: object
       properties:

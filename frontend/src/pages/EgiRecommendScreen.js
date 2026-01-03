@@ -245,7 +245,7 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                                     <div className="bg-white rounded-xl p-3 text-center shadow-sm">
                                         <div className="text-xl mb-1">🌊</div>
                                         <p className="text-[10px] text-gray-500 font-medium mb-1">물때</p>
-                                        <p className="text-[13px] font-bold text-gray-800">{aiEnv.tide || '-'}</p>
+                                        <p className="text-[13px] font-bold text-gray-800">{aiEnv.tide+'물' || '-'}</p>
                                     </div>
                                     <div className="bg-white rounded-xl p-3 text-center shadow-sm">
                                         <div className="text-xl mb-1">💨</div>
@@ -260,7 +260,16 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                                 </div>
                             </div>
                         </div>
-
+                        
+                        {/* 1.5 추천 색상 표시  */}
+                        <div className="flex flex-col items-center justify-center mb-8 animate-pulse">
+                            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full mb-2 border border-blue-100">
+                                ✨ AI 분석 오늘의 추천 컬러
+                            </span>
+                            <h1 className="text-4xl font-black text-gray-800 tracking-tight drop-shadow-sm">
+                                {aiRecs.length > 0 ? aiRecs[0].color_name : "분석 중..."}
+                            </h1>
+                        </div>
                         {/* 2. 사진 & 물색 */}
                         <div className="w-full h-44 bg-gray-100 rounded-[30px] mb-6 shadow-lg overflow-hidden relative flex items-center justify-center">
                             {capturedImage && <img src={capturedImage} alt="" className="w-full h-full object-cover opacity-90" />}
@@ -270,6 +279,7 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                                 </span>
                             </div>
                         </div>
+                        
 
                         {/* 3. 코멘트 */}
                         <div className="bg-gray-50 rounded-[30px] p-6 flex items-center gap-5 mb-10 border border-gray-100 shadow-sm text-black">
@@ -277,12 +287,12 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                                 <img src={wangpandaImg} alt="Panda" className="w-full h-full object-cover" />
                             </div>
                             <p className="text-[14px] text-gray-700 font-medium leading-relaxed text-black">
-                                {aiRecs.length > 0 ? `"${aiRecs[0].reason}"` : "분석 결과에 맞는 에기를 찾고 있습니다..."}
+                                {aiRecs.length > 0 ? `"탁한 물색에서는 에기를 강하게보여주고, 특히 핑크 색상의 에기는 자연적인 환경에서 눈에 띄며, 갑오징어나 쭈꾸미에게 유혹력을 높이는 데 도움이 됩니다. 이러한 색상들은 물속에서의 어종들과 잘 어우러져 입질을 줄 수 있습니다."` : "분석 결과에 맞는 에기를 찾고 있습니다..."}
                             </p>
                         </div>
 
                         {/* 4. 추천 리스트 */}
-                        <h3 className="font-bold text-[16px] mb-4 text-black">AI 추천 에기 Top 3</h3>
+                        <h3 className="font-bold text-[16px] mb-4 text-black">AI 추천 에기</h3>
                         <div className="space-y-6 text-black mb-8">
                             {aiRecs.map((egi, index) => (
                                 <div 
@@ -373,6 +383,19 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                                                 <p>3. DB에서 해당 색상 ID를 가진 에기 검색 완료.</p>
                                             </div>
                                         </div>
+                                        {/* [추가] 4. 디버그용 프롬프트 출력 (관리자 확인용)            */}
+                                        {/* debugInfo가 있고, step4_sllm_prompt가 존재할 때만 표시됨  */}
+                                        {/* ======================================================== */}
+                                        {debugInfo && debugInfo.step4_sllm_prompt && (
+                                            <div className="mt-6 p-4 bg-gray-900 rounded-xl text-left border border-gray-700 overflow-hidden">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-xs font-bold text-yellow-400">📜 LLM 입력 프롬프트 (Debug)</span>
+                                                </div>
+                                                <pre className="text-[10px] text-gray-300 whitespace-pre-wrap font-mono leading-tight break-all">
+                                                    {debugInfo.step4_sllm_prompt}
+                                                </pre>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

@@ -8,7 +8,6 @@ from .models import (
     Boat,
     Egi,
     # EgiCondition,/
-    FishingInsight,
     Diary,
     WeatherSnapshot,
     DiaryImage,
@@ -53,16 +52,11 @@ class BoatAdmin(admin.ModelAdmin):
 #     extra = 1
 
 
+# 4. 에기 관리
 @admin.register(Egi)
 class EgiAdmin(admin.ModelAdmin):
     list_display = ("name", "brand")
     search_fields = ("name", "brand")
-
-
-# 4. 낚시 지식 (RAG 데이터)
-@admin.register(FishingInsight)
-class FishingInsightAdmin(admin.ModelAdmin):
-    list_display = ("youtube_url", "situation_text")
 
 
 # 5. 낚시 일지 (관련 데이터 같이 보기)

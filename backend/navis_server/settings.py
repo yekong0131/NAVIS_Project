@@ -31,11 +31,23 @@ SECRET_KEY = "django-insecure-s%t%^uz^2u7#rijf*2mf$rk^_8n_9_9$3m-16*14yw#b&84%5o
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "[::1]",
     # EC2 Public IP or Domain 추가
     "43.201.104.189",
     "ec2-43-201-104-189.ap-northeast-2.compute.amazonaws.com",
 ]
+# ==========================================
+# Elasticsearch 설정
+# ==========================================
+# 로컬 개발 환경용 설정
+ELASTICSEARCH_HOST = "localhost"
+ELASTICSEARCH_PORT = 9200
 
+# 보안 설정이 꺼져 있다면(xpack.security.enabled: false) 비워둬도 됩니다.
+ELASTICSEARCH_USER = ""
+ELASTICSEARCH_PASSWORD = ""
 
 # Application definition
 
@@ -92,11 +104,11 @@ WSGI_APPLICATION = "navis_server.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "navis_db",  # Workbench에서 만든 DB 이름
-        "USER": "root",  # MySQL 아이디
+        "NAME": os.environ.get("DB_NAME"),  # Workbench에서 만든 DB 이름
+        "USER": os.environ.get("DB_USER"),  # MySQL 아이디
         "PASSWORD": os.getenv("DB_PASSWORD"),  # MySQL 설치할 때 설정한 비밀번호
-        "HOST": "127.0.0.1",  # 로컬 호스트 (localhost)
-        "PORT": "3306",  # MySQL 기본 포트
+        "HOST": os.environ.get("DB_HOST"),  # 로컬 호스트 (localhost)
+        "PORT": os.environ.get("DB_PORT"),  # MySQL 기본 포트
     }
 }
 
@@ -135,7 +147,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "django_static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -198,11 +210,12 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 # CORS 설정 추가
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "43.201.104.189",
-    "ec2-43-201-104-189.ap-northeast-2.compute.amazonaws.com",
-]
+CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+#     "43.201.104.189",
+#     "ec2-43-201-104-189.ap-northeast-2.compute.amazonaws.com",
+# ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static")

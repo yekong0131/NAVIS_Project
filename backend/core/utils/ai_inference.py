@@ -1,270 +1,242 @@
+# backend/core/utils/ai_inference.py
+
 import os
+import cv2
 import numpy as np
-import cv2  # OpenCV 추가
-import base64  # Base64 추가
+import base64
+import joblib
+import pandas as pd
 from PIL import Image
+from datetime import datetime
+from django.conf import settings
+from tensorflow.keras.models import load_model
+import tensorflow as tf
 from ultralytics import YOLO
 
-# ResNet50 전처리 함수
-from tensorflow.keras.applications.resnet50 import preprocess_input
-from tensorflow.keras.models import load_model
-from django.conf import settings
+# ==========================================
+# 1. GPU 설정 및 경로
+# ==========================================
+gpus = tf.config.experimental.list_physical_devices("GPU")
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(f"⚠️ TF Memory Growth Error: {e}")
+
+MODEL_DIR = os.path.join(settings.BASE_DIR, "core", "ai_models")
+EGI_REC_PATH = os.path.join(MODEL_DIR, "best_egi_rec.h5")
+WATER_CLS_PATH = os.path.join(MODEL_DIR, "cnn_water_cls.h5")
+YOLO_PATH = os.path.join(MODEL_DIR, "yolo_Water_detect.pt")
+
+SCALER_PATH = os.path.join(MODEL_DIR, "scaler.pkl")
+LE_TARGET_PATH = os.path.join(MODEL_DIR, "le_target.pkl")
+META_COLS_PATH = os.path.join(MODEL_DIR, "metadata_cols.pkl")
 
 
-# 개발 모드용 출력 함수
 def dev_print(*args, **kwargs):
     if os.getenv("APP_ENV") == "development":
         print(*args, **kwargs)
 
 
-# 1. 모델 경로 설정
-MODEL_DIR = os.path.join(settings.BASE_DIR, "core", "ai_models")
-YOLO_PATH = os.path.join(MODEL_DIR, "yolo_water_detect.pt")
-EGI_REC_PATH = os.path.join(MODEL_DIR, "best_egi_rec.h5")
-WATER_CLS_PATH = os.path.join(MODEL_DIR, "cnn_water_cls.h5")
-
-# 2. 모델 로드
-try:
-    dev_print(f"[AI Init] Loading models from {MODEL_DIR}...")
-    yolo_model = YOLO(YOLO_PATH)
-    egi_rec_model = load_model(EGI_REC_PATH)
-    water_cls_model = load_model(WATER_CLS_PATH)
-    dev_print("✅ AI Models loaded successfully.")
-except Exception as e:
-    print(f"⚠️ Failed to load AI models: {e}")
-    yolo_model = None
-    egi_rec_model = None
-    water_cls_model = None
-
-# 학습 데이터 컬럼
-TRAIN_COLUMNS = [
-    "풍속",
-    "수온",
-    "시간",
-    "풍향",
-    "물때_10물",
-    "물때_11물",
-    "물때_13물",
-    "물때_14물",
-    "물때_1물",
-    "물때_2물",
-    "물때_3물",
-    "물때_4물",
-    "물때_5물",
-    "물때_6물",
-    "물때_7물",
-    "물때_8물",
-    "물때_9물",
-    "물때_조금",
-    "날씨_0",
-    "날씨_1",
-]
-
-# 스케일링 정보
-SCALER_STATS = {
-    "풍속": {"mean": 3.5, "std": 2.0},
-    "수온": {"mean": 18.0, "std": 5.0},
-    "시간": {"mean": 12.0, "std": 4.0},
-    "풍향": {"mean": 180.0, "std": 100.0},
-}
+# ==========================================
+# 2. 모델 변수 초기화 (None으로 시작)
+# ==========================================
+egi_rec_model = None
+water_cls_model = None
+yolo_model = None
+scaler = None
+metadata_cols = []
+EGI_CLASSES = []
 
 
-def encode_image_to_base64(cv2_img):
-    """OpenCV 이미지를 Base64 문자열로 변환"""
-    _, buffer = cv2.imencode(".jpg", cv2_img)
-    return base64.b64encode(buffer).decode("utf-8")
+# ==========================================
+# 3. 모델 로딩 함수 (지연 로딩용)
+# ==========================================
+def load_ai_models():
+    """요청이 들어왔을 때 비로소 모델을 로딩함"""
+    global egi_rec_model, water_cls_model, yolo_model, scaler, metadata_cols, EGI_CLASSES
+
+    # 이미 로딩되어 있다면 건너뜀
+    if egi_rec_model is not None and yolo_model is not None:
+        return
+
+    dev_print(f"⏳ [Lazy Load] Vision AI (YOLO/Keras) 모델 로딩 시작...")
+
+    try:
+        if os.path.exists(EGI_REC_PATH):
+            egi_rec_model = load_model(EGI_REC_PATH)
+        if os.path.exists(WATER_CLS_PATH):
+            water_cls_model = load_model(WATER_CLS_PATH)
+        if os.path.exists(YOLO_PATH):
+            yolo_model = YOLO(YOLO_PATH)
+
+        if os.path.exists(SCALER_PATH):
+            scaler = joblib.load(SCALER_PATH)
+            le_target = joblib.load(LE_TARGET_PATH)
+            metadata_cols = joblib.load(META_COLS_PATH)
+            EGI_CLASSES = list(le_target.classes_)
+        else:
+            EGI_CLASSES = [
+                "red",
+                "green",
+                "purple",
+                "blue",
+                "gold",
+                "silver",
+                "rainbow",
+            ]
+
+        dev_print("✅ Vision AI Models Loaded.")
+    except Exception as e:
+        print(f"⚠️ Vision AI Load Error: {e}")
 
 
-def predict_best_egi(image_file, env_data):
-    """
-    AI 추론 및 디버그 정보 생성 함수
-    Returns: recommended_color, water_color_result, debug_info
-    """
-    dev_print(f"\n{'='*20} AI Inference Start {'='*20}")
+# ==========================================
+# 4. 유틸리티 함수
+# ==========================================
+def encode_image_to_base64(cv_image):
+    try:
+        _, buffer = cv2.imencode(".jpg", cv_image)
+        return base64.b64encode(buffer).decode("utf-8")
+    except:
+        return ""
+
+
+def preprocess_env_data(marine_data):
+    # 로딩 확인
+    if not scaler or not metadata_cols:
+        return np.zeros((1, 5))
+
+    wind_speed = float(marine_data.get("wind_speed") or 0)
+    water_temp = float(marine_data.get("water_temp") or 0)
+    wind_dir = float(marine_data.get("wind_direction_deg") or 0)
+    current_hour = datetime.now().hour
+
+    numeric_df = pd.DataFrame(
+        [[wind_speed, water_temp, current_hour, wind_dir]],
+        columns=["풍속", "수온", "시간", "풍향"],
+    )
+    numeric_scaled = scaler.transform(numeric_df)[0]
+
+    final_vector = np.zeros(len(metadata_cols))
+    final_vector[0] = numeric_scaled[0]
+    final_vector[1] = numeric_scaled[1]
+    final_vector[2] = numeric_scaled[2]
+    final_vector[3] = numeric_scaled[3]
+
+    raw_weather = marine_data.get("rain_type_text", "맑음")
+    raw_tide = str(marine_data.get("moon_phase", "무시"))
+
+    tide_col = f"물때_{raw_tide}"
+    weather_col = f"날씨_{raw_weather}"
+
+    if tide_col in metadata_cols:
+        final_vector[metadata_cols.index(tide_col)] = 1.0
+    if weather_col in metadata_cols:
+        final_vector[metadata_cols.index(weather_col)] = 1.0
+
+    return np.expand_dims(final_vector, axis=0)
+
+
+# ==========================================
+# 5. 추론 로직 (지연 로딩 적용)
+# ==========================================
+def predict_best_egi(image_file, marine_data):
+    dev_print(f"\n>>> AI Inference Start")
+
+    if egi_rec_model is None or yolo_model is None:
+        load_ai_models()
 
     if not egi_rec_model or not yolo_model:
-        return "yellow", "Muddy", {}
+        return None, None, {"error": "AI Models not ready"}
 
-    debug_info = {}  # 디버그 정보 담을 딕셔너리
+    debug_info = {}
 
-    # --- 1. 이미지 로드 및 전처리 ---
     try:
-        # PIL 이미지 로드 (모델 입력용)
+        # 1. 이미지 로드
         origin_pil = Image.open(image_file).convert("RGB")
-
-        # OpenCV 이미지 변환 (시각화/그리기용)
-        # PIL(RGB) -> OpenCV(BGR)
         open_cv_image = cv2.cvtColor(np.array(origin_pil), cv2.COLOR_RGB2BGR)
-        debug_img_draw = open_cv_image.copy()  # 박스 그릴 복사본
+        debug_img_draw = open_cv_image.copy()
 
-        # --- 2. YOLO 물체 인식 (Cropping) ---
-        results = yolo_model(origin_pil, verbose=False)
-
-        crop_pil = None  # 기본은 None
+        # 2. YOLO 감지
+        crop_pil = None
         detected = False
 
-        for r in results:
-            boxes = r.boxes
-            for box in boxes:
-                # 확신도 0.5 이상만 인정
-                conf = float(box.conf[0])
-                if conf < 0.4:
-                    continue
-                # 바다 클래스
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
+        results = yolo_model(origin_pil, verbose=False)
 
-                # [시각화] 원본에 초록색 박스 그리기
-                cv2.rectangle(debug_img_draw, (x1, y1), (x2, y2), (0, 255, 0), 5)
+        for r in results:
+            for box in r.boxes:
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                conf = float(box.conf[0])
+
+                cv2.rectangle(debug_img_draw, (x1, y1), (x2, y2), (0, 255, 0), 4)
                 cv2.putText(
                     debug_img_draw,
-                    "Water",
+                    f"Water: {conf:.2f}",
                     (x1, y1 - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    1,
+                    0.9,
                     (0, 255, 0),
                     2,
                 )
 
-                # 분석용 이미지 크롭
                 crop_pil = origin_pil.crop((x1, y1, x2, y2))
                 detected = True
-                break  # 첫 번째 박스만 사용
+                debug_info["yolo_status"] = "detected"
+                break
             if detected:
                 break
 
-        # 물을 못 찾았으면 여기서 중단하고 None 반환
         if not detected or crop_pil is None:
-            dev_print("  [AI Debug] ❌ YOLO failed to detect water.")
-            return None, None, None
+            dev_print("⚠️ YOLO detected nothing. Request retry.")
+            return None, None, {"error": "No water detected"}
 
-        # [디버그 정보 저장]
-        # 1. YOLO 결과 이미지 (박스 그려진 것)
+        # 3. 후처리 및 추론
         debug_info["yolo_image"] = (
             f"data:image/jpeg;base64,{encode_image_to_base64(debug_img_draw)}"
         )
-
-        # 2. 실제 모델에 들어가는 크롭 이미지
         crop_cv2 = cv2.cvtColor(np.array(crop_pil), cv2.COLOR_RGB2BGR)
         debug_info["crop_image"] = (
             f"data:image/jpeg;base64,{encode_image_to_base64(crop_cv2)}"
         )
 
-        # --- 3. 모델 입력 데이터 준비 ---
-        # (A) 에기 추천용 (64x64)
         img_input_egi = crop_pil.resize((64, 64))
         img_array_egi = np.array(img_input_egi) / 255.0
         img_array_egi = np.expand_dims(img_array_egi, axis=0)
 
-        # (B) 물색 분류용 (224x224, ResNet50)
         img_input_water = crop_pil.resize((224, 224))
         img_array_water = np.array(img_input_water, dtype=np.float32)
         img_array_water = np.expand_dims(img_array_water, axis=0)
-        img_array_water = preprocess_input(img_array_water)
+        img_array_water = img_array_water / 255.0
 
-        # --- 4. 환경 데이터 벡터화 (Tabular) ---
-        # (기존 로직 동일)
-        raw_wind = float(env_data.get("wind_speed") or SCALER_STATS["풍속"]["mean"])
-        raw_temp = float(env_data.get("water_temp") or SCALER_STATS["수온"]["mean"])
-        raw_deg = float(
-            env_data.get("wind_direction_deg") or SCALER_STATS["풍향"]["mean"]
-        )
-        raw_time = 12.0
+        env_vector = preprocess_env_data(marine_data)
 
-        scaled_wind = (raw_wind - SCALER_STATS["풍속"]["mean"]) / SCALER_STATS["풍속"][
-            "std"
-        ]
-        scaled_temp = (raw_temp - SCALER_STATS["수온"]["mean"]) / SCALER_STATS["수온"][
-            "std"
-        ]
-        scaled_time = (raw_time - SCALER_STATS["시간"]["mean"]) / SCALER_STATS["시간"][
-            "std"
-        ]
-        scaled_deg = (raw_deg - SCALER_STATS["풍향"]["mean"]) / SCALER_STATS["풍향"][
-            "std"
-        ]
-
-        moon_phase = str(env_data.get("moon_phase", "")).strip()
-        if moon_phase.isdigit():
-            target_tide = f"물때_{moon_phase}물"
-        else:
-            target_tide = f"물때_{moon_phase}"
-
-        rain_text = str(env_data.get("rain_type_text", "없음"))
-        if "비" in rain_text or "눈" in rain_text:
-            target_weather = "날씨_1"
-        else:
-            target_weather = "날씨_0"
-
-        input_vector = []
-        for col in TRAIN_COLUMNS:
-            val = 0.0
-            if col == "풍속":
-                val = scaled_wind
-            elif col == "수온":
-                val = scaled_temp
-            elif col == "시간":
-                val = scaled_time
-            elif col == "풍향":
-                val = scaled_deg
-            elif col.startswith("물때_"):
-                if col == target_tide:
-                    val = 1.0
-            elif col.startswith("날씨_"):
-                if col == target_weather:
-                    val = 1.0
-            input_vector.append(val)
-
-        tabular_input = np.array(input_vector, dtype=np.float32)
-        tabular_input = np.expand_dims(tabular_input, axis=0)
-
-        # --- 5. 모델 추론 ---
-
-        # (1) 에기 추천
-        recommended_color = "yellow"
+        recommended_color = "purple"
         try:
-            egi_pred = egi_rec_model.predict([img_array_egi, tabular_input], verbose=0)
-            EGI_CLASSES = [
-                "blue",
-                "brown",
-                "green",
-                "orange",
-                "pink",
-                "purple",
-                "rainbow",
-                "red",
-                "yellow",
-            ]
+            egi_pred = egi_rec_model.predict([img_array_egi, env_vector], verbose=0)
             best_idx = np.argmax(egi_pred[0])
             if best_idx < len(EGI_CLASSES):
                 recommended_color = EGI_CLASSES[best_idx]
         except Exception as e:
-            dev_print(f"  [AI Debug] ❌ Egi Prediction Error: {e}")
+            dev_print(f"Egi Model Error: {e}")
 
-        # (2) 물색 분류
-        water_color_result = "muddy"
-        confidence = 0.0
-
+        water_color_result = "medium"
         if water_cls_model:
             try:
                 water_pred = water_cls_model.predict(img_array_water, verbose=0)
-                water_idx = np.argmax(water_pred[0])
-                confidence = float(np.max(water_pred[0]))  # 확률값 저장
+                w_idx = np.argmax(water_pred[0])
+                water_classes = ["clear", "medium", "muddy"]
+                if w_idx < len(water_classes):
+                    water_color_result = water_classes[w_idx]
+            except:
+                pass
 
-                WATER_CLASSES = ["clear", "medium", "muddy"]
-                if water_idx < len(WATER_CLASSES):
-                    water_color_result = WATER_CLASSES[water_idx]
+        debug_info["final_decision"] = recommended_color
+        debug_info["ai_prediction"] = water_color_result
 
-                # [디버그 정보 저장]
-                debug_info["ai_prediction"] = water_color_result
-                debug_info["confidence"] = confidence
-
-            except Exception as e:
-                dev_print(f"  [AI Debug] ⚠️ Water Cls Error: {e}")
-
-        dev_print(f"{'='*20} AI Inference End {'='*20}\n")
-
-        # 3개의 값을 반환 (추천색, 물색, 디버그정보)
         return recommended_color, water_color_result, debug_info
+
     except Exception as e:
-        print(f"  [AI Debug] ❌ Critical Error: {e}")
-        return None, None, None
+        print(f"Critical AI Error: {e}")
+        return None, None, {"error": str(e)}

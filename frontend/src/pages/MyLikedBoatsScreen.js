@@ -14,7 +14,6 @@ function MyLikedBoatsScreen({ onNavigate, fromPage }) {
   }, []);
 
   const fetchLikedBoats = async () => {
-    // ... (기존 로직 유지) ...
     setLoading(true);
     const token = localStorage.getItem('authToken');
     

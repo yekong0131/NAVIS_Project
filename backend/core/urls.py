@@ -16,7 +16,6 @@ from .views import (
     PortSearchView,
     ProfileCharacterListView,
     VerifyPasswordView,
-    WaterColorAnalyzeView,
     EgiRecommendView,
     SignupView,
     LoginView,
@@ -42,8 +41,6 @@ urlpatterns = [
     # 낚시 일지 분석/요약
     path("diaries/analyze/", DiaryAnalyzeView.as_view(), name="diary-analyze"),
     path("diaries/summary/", DiarySummaryView.as_view(), name="diary-summary"),
-    # 물색 분석
-    path("analyze/color/", WaterColorAnalyzeView.as_view(), name="analyze-color"),
     # 에기 추천
     path("egi/recommend/", EgiRecommendView.as_view(), name="egi-recommend"),
     # 회원
