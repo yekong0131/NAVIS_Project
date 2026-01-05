@@ -17,9 +17,7 @@ web_build/
 egi_data/images/*
 
 backend/__pycache__/
-backend/migrations/
 backend/core/__pycache__/
-backend/core/migrations/
 backend/scripts
 backend/core/ai_models
 backend/core/ai_models/*.h5
