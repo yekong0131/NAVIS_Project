@@ -6,7 +6,7 @@ import torch
 import re
 from core.utils.search_engine import SearchEngine
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-from peft import PeftModel  # ✅ [추가] PEFT 모델 로드를 위해 필요
+from peft import PeftModel
 from django.conf import settings
 
 

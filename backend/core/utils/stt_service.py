@@ -129,8 +129,6 @@ class STTParser:
 
         # 날짜 정보가 없으면 현재 시간으로 채움
         if not result_json.get("fishing_date"):
-            # Serializer가 DateTimeField라면 ISO 포맷 전체를, DateField라면 날짜만 넣습니다.
-            # 여기서는 YYYY-MM-DD 형식으로 넣습니다.
             result_json["fishing_date"] = now
         return result_json
 
@@ -140,8 +138,6 @@ class STTParser:
 
     @classmethod
     def _parse_with_regex(cls, text: str) -> Dict:
-        # Regex 방식은 복잡한 날짜 추론(예: '지난주 수요일')이 어려우므로
-        # 기본적으로 현재 날짜를 반환하도록 설정
         return {
             "fishing_date": datetime.now(),
             "catches": cls._parse_catches_regex(text),

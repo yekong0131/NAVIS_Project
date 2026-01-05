@@ -217,7 +217,7 @@ const VoiceRecordScreen = ({ onNavigate }) => {
                             {isRecording ? "듣고 있어요..." : "터치하여 말하기"}
                         </h2>
                         
-                        {/* ⭐ 다시 돌아온 예시 문구! */}
+                        {/* 예시 문구 */}
                         {!isRecording && (
                             <div className="bg-white/5 rounded-2xl p-5 mx-8 mt-4 border border-white/10 animate-fade-in-up">
                                 <p className="text-gray-300 text-sm text-center leading-relaxed">

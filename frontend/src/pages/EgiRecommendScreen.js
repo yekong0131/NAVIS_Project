@@ -287,7 +287,7 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                                 <img src={wangpandaImg} alt="Panda" className="w-full h-full object-cover" />
                             </div>
                             <p className="text-[14px] text-gray-700 font-medium leading-relaxed text-black">
-                                {aiRecs.length > 0 ? `"탁한 물색에서는 에기를 강하게보여주고, 특히 핑크 색상의 에기는 자연적인 환경에서 눈에 띄며, 갑오징어나 쭈꾸미에게 유혹력을 높이는 데 도움이 됩니다. 이러한 색상들은 물속에서의 어종들과 잘 어우러져 입질을 줄 수 있습니다."` : "분석 결과에 맞는 에기를 찾고 있습니다..."}
+                                {aiRecs.length > 0 ? `"${aiRecs[0].reason}"` : "분석 결과에 맞는 에기를 찾고 있습니다..."}
                             </p>
                         </div>
 
