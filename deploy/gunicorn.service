@@ -5,8 +5,16 @@ After=network.target
 [Service]
 User=ubuntu
 Group=www-data
+
 WorkingDirectory=/home/ubuntu/NAVIS_Project/backend
-ExecStart=/home/ubuntu/NAVIS_Project/backend/venv/bin/gunicorn --access-logfile - --workers 1 --timeout 120 --bind unix:/home/ubuntu/NAVIS_Project/backend/gunicorn.sock navis_server.wsgi:application
-EnvironmentFile=/home/ubuntu/NAVIS_Project/.env
+
+EnvironmentFile=/home/ubuntu/NAVIS_Project/backend/.env
+
+ExecStart=/home/ubuntu/NAVIS_Project/backend/venv/bin/gunicorn \
+    --access-logfile - \
+    --workers 1 \
+    --bind unix:/home/ubuntu/NAVIS_Project/backend/navis.sock \
+    navis_server.wsgi:application
+
 [Install]
 WantedBy=multi-user.target
