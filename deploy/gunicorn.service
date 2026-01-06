@@ -13,7 +13,7 @@ EnvironmentFile=/home/ubuntu/NAVIS_Project/backend/.env
 ExecStart=/home/ubuntu/NAVIS_Project/backend/venv/bin/gunicorn \
     --access-logfile - \
     --workers 1 \
-    --bind unix:/home/ubuntu/NAVIS_Project/backend/navis.sock \
+    --bind unix:/home/ubuntu/NAVIS_Project/backend/gunicorn.sock \
     navis_server.wsgi:application
 
 [Install]
