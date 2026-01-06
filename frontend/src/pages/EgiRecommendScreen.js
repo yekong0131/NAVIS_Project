@@ -275,7 +275,7 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                             {capturedImage && <img src={capturedImage} alt="" className="w-full h-full object-cover opacity-90" />}
                             <div className="absolute bottom-3 right-3 bg-black/60 px-3 py-1 rounded-full backdrop-blur-sm border border-white/20">
                                 <span className="text-white text-xs font-bold">
-                                    💧 물색: {waterColorKo} ({Math.round(aiConf * 100)}%)
+                                    💧 물색: {waterColorKo} 
                                 </span>
                             </div>
                         </div>
@@ -315,7 +315,6 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                                         <h4 className="font-bold text-[15px] mb-1 text-gray-900 line-clamp-2 leading-tight min-h-[42px]">{egi.name}</h4>
                                         <div className="flex flex-wrap gap-2 mt-1">
                                             <span className="text-[11px] bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold">{egi.color_name}</span>
-                                            <span className="text-[11px] bg-gray-100 text-gray-500 px-2 py-1 rounded">신뢰도 {Math.round(egi.score || 95)}%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -366,7 +365,6 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
                                                 <div className="bg-gray-100 p-2 rounded-lg">
                                                     <span className="block font-bold text-gray-700">AI 예측 결과:</span>
                                                     <span className="text-blue-600 font-bold text-lg uppercase">{debugInfo.ai_prediction}</span>
-                                                    <span className="block text-gray-400">신뢰도: {Math.round(debugInfo.confidence * 100)}%</span>
                                                 </div>
                                             </div>
                                         </div>

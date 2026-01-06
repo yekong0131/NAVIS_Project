@@ -12,6 +12,7 @@ from django.conf import settings
 from tensorflow.keras.models import load_model
 import tensorflow as tf
 from ultralytics import YOLO
+from tensorflow.keras.applications.resnet50 import preprocess_input
 
 # ==========================================
 # 1. GPU 설정 및 경로
@@ -126,7 +127,7 @@ def preprocess_env_data(marine_data):
     final_vector[3] = numeric_scaled[3]
 
     raw_weather = marine_data.get("rain_type_text", "맑음")
-    raw_tide = str(marine_data.get("moon_phase", "무시"))
+    raw_tide = str(marine_data.get("moon_phase", "조금"))
 
     tide_col = f"물때_{raw_tide}"
     weather_col = f"날씨_{raw_weather}"
@@ -208,7 +209,7 @@ def predict_best_egi(image_file, marine_data):
         img_input_water = crop_pil.resize((224, 224))
         img_array_water = np.array(img_input_water, dtype=np.float32)
         img_array_water = np.expand_dims(img_array_water, axis=0)
-        img_array_water = img_array_water / 255.0
+        img_array_water = preprocess_input(img_array_water)
 
         env_vector = preprocess_env_data(marine_data)
 

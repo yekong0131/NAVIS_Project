@@ -56,19 +56,23 @@
       <td><a href="" target="_blank">
           <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
         </a>
-</td>
+      </td>
       <td><a href="" target="_blank">
           <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
-        </a></td>
+        </a>
+      </td>
       <td><a href="" target="_blank">
           <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
-        </a></td>
+        </a>
+      </td>
       <td><a href="" target="_blank">
           <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
-        </a></td>
+        </a>
+      </td>
       <td><a href="" target="_blank">
           <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
-        </a></td>
+        </a>
+      </td>
     </tr>
   </tbody>
 </table>
@@ -76,17 +80,20 @@
 
 ---
 ### 🛠️ 기술 스택
-#### ☁️ Server (Backend & Infra)
+#### ☁️ Server & DevOps 
 
 <div>
   <img src="https://img.shields.io/badge/python-3776AB?style=for-the-badge&logo=python&logoColor=white">
   <img src="https://img.shields.io/badge/django-092E20?style=for-the-badge&logo=django&logoColor=white">
   <img src="https://img.shields.io/badge/DJANGO-REST-ff1709?style=for-the-badge&logo=django&logoColor=white&color=ff1709&labelColor=gray">
-  <img src="https://img.shields.io/badge/Amazon AWS-232F3E?style=flat-square&logo=amazonaws&logoColor=white"/>
   <img src="https://img.shields.io/badge/Amazon%20EC2-FF9900?style=for-the-badge&logo=Amazon%20EC2&logoColor=white">
+  <img src="https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white">
+  <img src="https://img.shields.io/badge/gunicorn-%298729.svg?style=for-the-badge&logo=gunicorn&logoColor=white">
+
+  - Swagger (drf-spectacular) : API 문서화 도구
 </div>
 
-#### 📱 Client (App)
+#### 📱 Client (Web)
 
 <div>
   <img src="https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB">
@@ -94,46 +101,56 @@
   <img src="https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white">
 </div>
 
-- Geolocation API: 현재 위치 기반 날씨 및 해양 정보 제공을 위해 사용
+- Geolocation API: 위치 기반 기상 정보
 
-- Camera API (navigator.mediaDevices): 물색 촬영 및 분석 기능을 위해 사용
+- Media Capture API: 카메라(물 색 촬영) 및 마이크 제어
+
+- MediaStream Recording API: 음성 녹음 및 데이터 처리 (낚시 일지 음성 기록)
 
 
-#### 💾 Database & Infrastructure
-- **Database**
+#### 💾 Database & Storage
 
-<img src="https://img.shields.io/badge/mysql-4479A1?style=for-the-badge&logo=mysql&logoColor=white">
-
-- **Cloud / Storage**
-
-<img src="https://img.shields.io/badge/Amazon%20S3-FF9900?style=for-the-badge&logo=amazons3&logoColor=white">
-
+<div>
+  <img src="https://img.shields.io/badge/mysql-4479A1?style=for-the-badge&logo=mysql&logoColor=white">
+  <img src="https://img.shields.io/badge/elasticsearch-%230377CC.svg?style=for-the-badge&logo=elasticsearch&logoColor=white">
+  <img src="https://img.shields.io/badge/Amazon%20S3-FF9900?style=for-the-badge&logo=amazons3&logoColor=white">
+</div>
 
 
 #### 🧠 AI & Data Engineering
 - **Computer Vision**
-<div>
-  <img src="https://img.shields.io/badge/YOLO-111F68?style=for-the-badge&logo=yolo&logoColor=white">
-  <img src="https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white">
-</div>
 
-- **LLM & RAG**
+  <div>
+    <img src="https://img.shields.io/badge/YOLO-111F68?style=for-the-badge&logo=yolo&logoColor=white">
+    <img src="https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white">
+    <img src="https://img.shields.io/badge/TensorFlow-%23FF6F00.svg?style=for-the-badge&logo=TensorFlow&logoColor=white">
+    <img src="https://img.shields.io/badge/opencv-%23white.svg?style=for-the-badge&logo=opencv&logoColor=white">
+  </div>
 
-<div>
-  <img src="https://img.shields.io/badge/chatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white">
-  <img src="https://img.shields.io/badge/langchain-%231C3C3C.svg?style=for-the-badge&logo=langchain&logoColor=white">
-</div>
+
+- **NLP & LLM & RAG**
+
+  <div>
+    <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white">
+    <img src="https://img.shields.io/badge/chatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white">
+    <img src="https://img.shields.io/badge/huggingface-%23FFD21E.svg?style=for-the-badge&logo=huggingface&logoColor=white">
+  </div>
+  
+  - OpenAI Whisper: STT (Speech-to-Text) 낚시 기록 음성 인식
+  - Sparse Retriever (BM25) : 도메인 특화 용어(낚시 용어) 검색 정확도 최적화 알고리즘
 
 - **Data Engineering**
 
-<div>
-  <img src="https://img.shields.io/badge/-selenium-%43B02A?style=for-the-badge&logo=selenium&logoColor=white">
-  <img src="https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white">
-</div>
+  <div>
+    <img src="https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white">
+    <img src="https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white">
+    <img src="https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white">
+  </div>
 
-#### 💻 DevOps & Tools
+#### 💻 Tools
 
 <img src="https://img.shields.io/badge/Visual%20Studio%20Code-0078d7.svg?style=for-the-badge&logo=visual-studio-code&logoColor=white">
+<img src="https://img.shields.io/badge/-Swagger-%23Clojure?style=for-the-badge&logo=swagger&logoColor=white">
 
 #### 🤝 Collaboration Tools
 
@@ -143,6 +160,7 @@
   <img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white">
   <img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white">
   <img src="https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white">
+  <img src="https://img.shields.io/badge/Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white">
 </div>
 
 #### 📚 Data Collection & Processing
@@ -151,7 +169,7 @@
     - 수온, 파고, 유속, 바다낚시지수/점수 수집
   
   - 해양수산부 해양관측부이 최신관측데이터 OpenAPI [[해양수산부-2]] 
-    - 실시간 수온, 파고, 풍속·풍향 보완
+    - 실시간 기상 관측 데이터(풍속, 풍향) 보완
   
   - 기상청 초단기실황 OpenAPI [[기상청-1]]
     - 기온, 습도, 강수형태, 풍속·풍향 보정용
@@ -172,7 +190,13 @@
 
 ### 📝 핵심 기능 (MVP)
 - **[메인] AI 에기 추천**
-    - 물 사진 촬영 → 탁도/색상 분석 (YOLO) → 기상 데이터 결합 → 최적 에기 Top 3 추천
+    - 사진 촬영 → 이미지에서 바다 디텍팅 및 크롭 (YOLO) ⇒ 크롭된 이미지
+    
+      ① 기상 데이터 결합 → 최적 에기색 추천(Custom Multi-input CNN)  
+      
+      ② 물 색 분류(ResNET50) + 추천 에기색 → 에기 추천 근거 생성 (LoRA Fine-Tuned sLLM)
+
+      ⇒ 사용자에게 추천 에기와 근거를 함께 제시
 - **[기록] 스마트 낚시 일지**
     - 음성 인식(STT)을 통한 조과 기록 → 자동 텍스트 변환 및 저장 → 캘린더/통계 시각화
 - **[조회] 선박 & 물때 정보**

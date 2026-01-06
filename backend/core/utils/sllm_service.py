@@ -18,10 +18,10 @@ def dev_print(*args, **kwargs):
 # ==========================================
 # 1. 설정 및 전역 변수
 # ==========================================
-ADAPTER_PATH = os.path.join(settings.BASE_DIR, "core", "ai_models", "final")
+ADAPTER_PATH = os.path.join(settings.BASE_DIR, "core", "ai_models", "saved_adapter")
 
-# BASE_MODEL_PATH = "EleutherAI/polyglot-ko-1.3b"
-BASE_MODEL_PATH = "meta-llama/Llama-3.2-3B-Instruct"
+BASE_MODEL_PATH = "EleutherAI/polyglot-ko-1.3b"
+# BASE_MODEL_PATH = "meta-llama/Llama-3.2-3B-Instruct"
 
 JSON_DATA_PATH = os.path.join(settings.BASE_DIR, "data", "processed_clean_data.json")
 

@@ -5,7 +5,6 @@ After=network.target
 [Service]
 User=ubuntu
 Group=www-data
-# 주의: 아래 경로는 실제 서버에서 git clone 받을 위치에 따라 달라집니다. (일단 /home/ubuntu/NAVIS_PROJECT 라고 가정)
 WorkingDirectory=/home/ubuntu/NAVIS_Project/backend
 ExecStart=/home/ubuntu/NAVIS_Project/backend/venv/bin/gunicorn --access-logfile - --workers 1 --timeout 120 --bind unix:/home/ubuntu/NAVIS_Project/backend/gunicorn.sock navis_server.wsgi:application
 EnvironmentFile=/home/ubuntu/NAVIS_Project/.env

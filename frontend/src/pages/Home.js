@@ -23,19 +23,16 @@ const getUserLocation = () => {
   });
 };
 
-// [수정] props에 environmentData, setEnvironmentData 추가
 function Home({ onNavigate, user, environmentData, setEnvironmentData }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [recommendedEgis, setRecommendedEgis] = useState([]);
   const [likedBoats, setLikedBoats] = useState([]);
   
-  // [수정] environmentData는 props로 받으므로 로컬 state 삭제
-  // 로딩 상태는 화면별로 관리해도 되므로 로컬 유지
+
   const [loadingEnv, setLoadingEnv] = useState(false);
 
   // === 환경 정보 로직 ===
   const fetchEnvironmentData = useCallback(async (forceRefresh = false) => {
-    // [핵심] 이미 데이터가 있고, 강제 새로고침이 아니면 API 호출 안 함 (유지)
     if (!forceRefresh && environmentData) return;
 
     setLoadingEnv(true);
@@ -57,6 +54,8 @@ function Home({ onNavigate, user, environmentData, setEnvironmentData }) {
           (data.current_speed < 0.3 ? '약함' : data.current_speed < 0.7 ? '중간' : '강함') : '정보 없음',
         location_name: data.location_name || '현재 위치',
         fishing_index: data.fishing_index || '',
+        high_tide: data.next_high_tide || '-', 
+        low_tide: data.next_low_tide || '-',
       });
     } catch (err) {
       console.error('환경 정보 로딩 실패:', err);
@@ -88,7 +87,7 @@ function Home({ onNavigate, user, environmentData, setEnvironmentData }) {
             setRecommendedEgis(egiRes.data);
         } catch (err) {}
         
-        // [핵심] 데이터가 없을 때만 초기 수집 실행
+        // 데이터가 없을 때만 초기 수집 실행
         if (!environmentData) {
             fetchEnvironmentData(false);
         }
@@ -153,7 +152,7 @@ function Home({ onNavigate, user, environmentData, setEnvironmentData }) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-3 mb-3">
                   <div className="bg-white rounded-xl p-3 text-center shadow-sm">
                     <div className="text-xl mb-1">🌊</div>
                     <p className="text-[10px] text-gray-500 font-medium mb-1">물때</p>
@@ -183,6 +182,33 @@ function Home({ onNavigate, user, environmentData, setEnvironmentData }) {
                     <div className="text-xl mb-1">🌀</div>
                     <p className="text-[10px] text-gray-500 font-medium mb-1">조류</p>
                     <p className="text-[13px] font-bold text-gray-800">{environmentData.current_strength}</p>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl py-3 px-4 shadow-sm flex items-center justify-around border border-blue-50">
+                  {/* 만조 */}
+                  <div className="flex flex-col items-center w-1/2"> {/* w-1/2로 영역 확보 */}
+                      <span className="text-[10px] text-gray-500 mb-1">다음 만조</span>
+                      <div className="relative flex items-center justify-center">
+                          <span className="absolute right-full mr-1.5 text-red-500 text-[10px] font-bold top-1/2 -translate-y-1/2">
+                              ▲
+                          </span>
+                          <span className="text-[15px] font-extrabold text-gray-700 tracking-tight leading-none">
+                              {environmentData.high_tide}
+                          </span>
+                      </div>
+                  </div>
+                  <div className="w-[1px] h-8 bg-gray-100"></div>
+                  {/* 간조 */}
+                  <div className="flex flex-col items-center w-1/2">
+                      <span className="text-[10px] text-gray-500 mb-1">다음 간조</span>
+                      <div className="relative flex items-center justify-center">
+                          <span className="absolute right-full mr-1.5 text-blue-500 text-[10px] font-bold top-1/2 -translate-y-1/2">
+                              ▼
+                          </span>
+                          <span className="text-[15px] font-extrabold text-gray-700 tracking-tight leading-none">
+                              {environmentData.low_tide}
+                          </span>
+                      </div>
                   </div>
                 </div>
               </div>
@@ -224,7 +250,7 @@ function Home({ onNavigate, user, environmentData, setEnvironmentData }) {
                 className="flex justify-between items-center mb-4 cursor-pointer active:opacity-70 transition-opacity"
                 onClick={() => onNavigate('egi-list', { fromPage: 'home' })}
             >
-                <h3 className="font-bold text-[17px] text-black font-sans">추천 에기</h3>
+                <h3 className="font-bold text-[17px] text-black font-sans">이런 에기는 어떠세요?</h3>
                 <span className="text-gray-400 font-bold text-lg">〉</span>
             </div>
 

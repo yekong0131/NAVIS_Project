@@ -141,9 +141,6 @@ function UserProfileEditScreen({ user, onNavigate, onUserUpdate }) {
                     onClick={() => setSelectedCharId(null)}
                     className={`shrink-0 flex flex-col items-center gap-2 cursor-pointer opacity-60 hover:opacity-100`}
                 >
-                     <div className="w-16 h-16 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
-                        <span className="text-xs font-bold text-gray-400">기본</span>
-                     </div>
                 </div>
 
                 {characters.map((char) => (

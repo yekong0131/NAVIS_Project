@@ -35,8 +35,8 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "[::1]",
     # EC2 Public IP or Domain 추가
-    "3.38.115.11",
-    "ec2-3-38-115-11.ap-northeast-2.compute.amazonaws.com",
+    "13.124.148.4",
+    "ec2-13-124-148-4.ap-northeast-2.compute.amazonaws.com",
 ]
 # ==========================================
 # Elasticsearch 설정
