@@ -137,11 +137,16 @@ def get_relevant_context(water, egi):
 def generate_recommendation_reason(water_color, egi_color, env_data):
     global llm_model, llm_tokenizer
 
+    # 1. 번역 (영어 -> 한글 변환)
+    p_water = PROMPT_WATER_TRANSLATION.get(water_color, water_color)
+    p_egi = PROMPT_EGI_TRANSLATION.get(egi_color, egi_color)
+
     if llm_model is None:
         load_llm_model()
 
     if not llm_model:
-        return "AI 모델 로딩 실패.", "Model Error"
+        fallback_reason = f"현재 관측된 {p_water} 물색 환경에서는 시인성이 좋은 {p_egi} 색상의 에기가 대상어에게 가장 강력하게 어필할 수 있어 추천합니다."
+        return fallback_reason, "Rule-based Fallback (No LLM)"
 
     try:
         # 1. 문맥 준비
