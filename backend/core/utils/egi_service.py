@@ -1,5 +1,6 @@
 # backend/core/utils/egi_service.py
 
+import os
 from .integrated_data_collector import collect_all_marine_data
 from .ai_inference import predict_best_egi
 

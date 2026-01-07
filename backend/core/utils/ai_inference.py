@@ -28,7 +28,7 @@ if gpus:
 MODEL_DIR = os.path.join(settings.BASE_DIR, "core", "ai_models")
 EGI_REC_PATH = os.path.join(MODEL_DIR, "best_egi_rec.h5")
 WATER_CLS_PATH = os.path.join(MODEL_DIR, "cnn_water_cls.h5")
-YOLO_PATH = os.path.join(MODEL_DIR, "yolo_Water_detect.pt")
+YOLO_PATH = os.path.join(MODEL_DIR, "yolo_water_detect.pt")
 
 SCALER_PATH = os.path.join(MODEL_DIR, "scaler.pkl")
 LE_TARGET_PATH = os.path.join(MODEL_DIR, "le_target.pkl")
