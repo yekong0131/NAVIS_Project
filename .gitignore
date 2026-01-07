@@ -19,10 +19,7 @@ egi_data/images/*
 backend/__pycache__/
 backend/core/__pycache__/
 backend/scripts
-backend/core/ai_models
-backend/core/ai_models/*.h5
-
-backend/core/ai_models/final
+backend/core/ai_models/saved_adapter
 
 /node_modules
 /frontend/node_modules
