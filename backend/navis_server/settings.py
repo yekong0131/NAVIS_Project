@@ -35,8 +35,8 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "[::1]",
     # EC2 Public IP or Domain 추가
-    "43.203.209.51",
-    "ec2-43-203-209-51.ap-northeast-2.compute.amazonaws.com",
+    "43.203.121.224",
+    "ec2-43-203-121-224.ap-northeast-2.compute.amazonaws.com",
 ]
 # ==========================================
 # Elasticsearch 설정
@@ -219,3 +219,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 # ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://43.203.121.224",
+    "http://ec2-43-203-121-224.ap-northeast-2.compute.amazonaws.com",
+]

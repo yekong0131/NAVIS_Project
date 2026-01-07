@@ -118,7 +118,9 @@ function UserProfileEditScreen({ user, onNavigate, onUserUpdate }) {
   return (
     <div className="fixed inset-0 bg-slate-100 flex justify-center overflow-hidden font-sans">
       <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col shadow-2xl border-x border-gray-100">
-        
+        {/* [추가] 최상단 TopBar */}
+                <TopBar user={user} onNavigate={onNavigate} />
+
         {/* 헤더 */}
         <div className="flex items-center px-5 py-4 border-b border-gray-100 relative">
             <button 

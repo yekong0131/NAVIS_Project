@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import dphoImg from "../assets/dpho.jpg"; 
+import TopBar from '../components/TopBar';
 
 const WebViewModal = ({ url, onClose }) => {
   if (!url) return null;
@@ -17,7 +18,7 @@ const WebViewModal = ({ url, onClose }) => {
   );
 };
 
-function BoatDetailScreen({ boat, onNavigate }) {
+function BoatDetailScreen({ boat, onNavigate, user }) {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [webViewUrl, setWebViewUrl] = useState(null);
@@ -91,7 +92,6 @@ function BoatDetailScreen({ boat, onNavigate }) {
   return (
     <div className="fixed inset-0 bg-slate-100 flex justify-center overflow-hidden font-sans">
       <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col overflow-hidden shadow-2xl border-x border-gray-100">
-      
         {/* 상단 네비게이션 */}
         <div className="absolute top-0 left-0 right-0 px-4 pt-8 flex justify-between items-center z-10">
           {/* [수정됨] onClick에 handleBack 함수 연결 */}

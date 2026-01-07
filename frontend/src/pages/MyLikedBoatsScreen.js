@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import dphoImg from "../assets/dpho.jpg"; // 경로 확인 필요
+import TopBar from '../components/TopBar';
 
 // [수정] fromPage prop 추가
-function MyLikedBoatsScreen({ onNavigate, fromPage }) {
+function MyLikedBoatsScreen({ onNavigate, fromPage, user }) {
   const [boats, setBoats] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +47,9 @@ function MyLikedBoatsScreen({ onNavigate, fromPage }) {
   return (
     <div className="fixed inset-0 bg-slate-100 flex justify-center overflow-hidden font-sans">
       <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col overflow-hidden shadow-2xl border-x border-gray-100">
-        
+        {/* [추가] 최상단 TopBar */}
+        <TopBar user={user} onNavigate={onNavigate} />
+
         {/* 헤더 */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center relative">
             {/* [수정] onClick에 handleBack 연결 */}

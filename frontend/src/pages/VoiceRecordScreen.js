@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import TopBar from '../components/TopBar';
 
 // API 주소
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
-const VoiceRecordScreen = ({ onNavigate }) => {
+const VoiceRecordScreen = ({ onNavigate, user }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState(0); // 0 ~ 100
@@ -162,7 +163,6 @@ const VoiceRecordScreen = ({ onNavigate }) => {
   return (
     <div className="fixed inset-0 bg-slate-900 flex justify-center items-center z-50 font-sans">
         <div className="relative w-full max-w-[420px] h-full bg-slate-900 flex flex-col text-white shadow-2xl overflow-hidden">
-            
             {/* 닫기 버튼 */}
             <div className="absolute top-0 right-0 p-6 pt-12 z-[60]">
                 <button 

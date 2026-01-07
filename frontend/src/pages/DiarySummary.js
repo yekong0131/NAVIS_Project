@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import dphoImg from "../assets/dpho.jpg"; // 기본 이미지
+import TopBar from '../components/TopBar';
 
-function DiarySummary({ onBack }) {
+function DiarySummary({ onBack, user, onNavigate }) {
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
   
@@ -84,7 +85,9 @@ function DiarySummary({ onBack }) {
   return (
     <div className="fixed inset-0 bg-slate-100 flex justify-center overflow-hidden font-sans">
       <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col overflow-hidden shadow-2xl border-x border-gray-100">
-      
+      {/* [추가] 최상단 TopBar */}
+      <TopBar user={user} onNavigate={onNavigate} />
+
         {/* 상단 네비게이션 */}
         <div className="px-5 pt-8 pb-2 bg-white flex flex-col z-10 border-b border-gray-50 flex-shrink-0">
           <div className="relative flex items-center justify-center mb-4">

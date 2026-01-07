@@ -76,13 +76,18 @@ def load_rag_data():
 
 
 def load_llm_model():
-    """실제 모델을 메모리에 올리는 함수 (Base + Adapter)"""
+    """
+    환경에 따라 유연하게 모델을 로딩하는 함수
+    1. GPU(Local/High-Spec Server): 4bit 양자화로 고속 로딩
+    2. CPU(t3.medium): RAM/Swap을 사용하여 로딩 시도 -> 실패 시 기본 멘트 사용
+    """
     global llm_model, llm_tokenizer, search_engine
 
-    dev_print("⏳ [Lazy Load] AI 모델 로딩 시작...")
+    dev_print("⏳ [Lazy Load] AI 모델 로딩 프로세스 시작...")
 
     load_rag_data()
 
+    # 검색 엔진 연결
     try:
         search_engine = SearchEngine()
         dev_print("✅ [Search] Connected.")
@@ -90,47 +95,73 @@ def load_llm_model():
         dev_print(f"⚠️ [Search] Connection Failed: {e}")
         search_engine = None
 
-    if not torch.cuda.is_available():
-        # [SERVER Case] GPU가 없는 환경 (AWS t2.micro 등)
-        print("\n" + "=" * 40)
-        print("⚠️  [System] GPU 사용 불가 (CPU Mode).")
-        print("🛑  LLM 로딩 건너뜀")
-        print("✅  기본 응답 return")
-        print("=" * 40 + "\n")
+    # ---------------------------------------------------------
+    # CASE A: GPU가 있는 경우 (개발 환경)
+    # ---------------------------------------------------------
+    if torch.cuda.is_available():
+        try:
+            dev_print("🚀 GPU Detected! Loading with 4-bit Quantization...")
 
-        # 모델을 None으로 유지 -> generate 함수가 알아서 기본 멘트를 반환함
-        llm_model = None
-        return
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+            )
 
-    try:
-        dev_print("⏳ [Lazy Load] AI 모델 로딩 시작... (GPU Mode)")
-        # 1. 4-bit 양자화 설정 (메모리 절약)
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_use_double_quant=True,
-        )
+            base_model = AutoModelForCausalLM.from_pretrained(
+                BASE_MODEL_PATH,
+                quantization_config=bnb_config,
+                device_map="auto",
+            )
 
-        # 2. 베이스 모델 로드 (Polyglot)
-        dev_print(f"🚀 Base Model 로드 중: {BASE_MODEL_PATH}")
-        base_model = AutoModelForCausalLM.from_pretrained(
-            BASE_MODEL_PATH,
-            quantization_config=bnb_config,
-            device_map="auto",
-        )
+            llm_tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_PATH)
 
-        # 3. 토크나이저 로드
-        llm_tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_PATH)
+            dev_print(f"🔗 Adapter 장착 중 (GPU): {ADAPTER_PATH}")
+            llm_model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
+            llm_model.eval()
 
-        # 4. LoRA 어댑터 장착 (핵심!)
-        dev_print(f"🔗 Adapter 장착 중: {ADAPTER_PATH}")
-        llm_model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
-        llm_model.eval()
+            dev_print("✅ [LLM] GPU Mode Loaded Successfully!")
+            return
 
-        dev_print("✅ [LLM] Base Model + Adapter Loaded Successfully!")
-    except Exception as e:
-        print(f"❌ [LLM] Load Failed: {e}")
-        llm_model = None
+        except Exception as e:
+            print(f"❌ [GPU Load Error] {e}")
+            llm_model = None
+            return
+
+    # ---------------------------------------------------------
+    # CASE B: GPU가 없는 경우 (AWS t3.medium)
+    # ---------------------------------------------------------
+    else:
+        print("⚠️ [System] No GPU detected. Attempting CPU Load...")
+        print("⏳ t3.medium 메모리 한계 테스트 중... (시간이 조금 걸립니다)")
+
+        try:
+            base_model = AutoModelForCausalLM.from_pretrained(
+                BASE_MODEL_PATH,
+                torch_dtype=torch.float32,
+                device_map="cpu",
+                low_cpu_mem_usage=True,
+            )
+
+            llm_tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_PATH)
+
+            dev_print(f"🔗 Adapter 장착 중 (CPU): {ADAPTER_PATH}")
+            llm_model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
+            llm_model.eval()
+
+            dev_print("✅ [LLM] CPU Mode Loaded! (속도는 느릴 수 있습니다)")
+
+        except (RuntimeError, MemoryError) as e:
+            dev_print("\n" + "=" * 50)
+            dev_print(f"❌ [Memory Error] 서버 용량 부족으로 LLM 로딩 실패.")
+            dev_print(f"💬 Error Detail: {e}")
+            dev_print("✅ '기본 멘트(Rule-based)' 모드로 자동 전환합니다.")
+            dev_print("=" * 50 + "\n")
+            llm_model = None
+
+        except Exception as e:
+            print(f"❌ [Unknown Error] CPU 로딩 중 오류 발생: {e}")
+            llm_model = None
 
 
 # ==========================================

@@ -124,7 +124,7 @@ function App() {
         )}
         
         {screen === "signup" && (
-          <Signup onNavigate={handleNavigate} />
+          <Signup user={user} onNavigate={handleNavigate} />
         )}
         
         {screen === "home" && (
@@ -187,7 +187,10 @@ function App() {
 
         {/* [추가] 비밀번호 확인 화면 */}
         {screen === "password-confirm" && (
-          <PasswordConfirmScreen onNavigate={handleNavigate} />
+          <PasswordConfirmScreen 
+            user={user} 
+            onNavigate={handleNavigate} 
+          />
         )}
 
         {/* 회원 정보 수정 화면 */}
@@ -221,7 +224,10 @@ function App() {
         )}
 
         {screen === "diary_summary" && (
-              <DiarySummary onBack={() => setScreen("profile")} />
+              <DiarySummary 
+                user={user}
+                onBack={() => setScreen("profile")} 
+              />
         )}
 
         {/* [수정] 9. 에기 도감 (목록) */}

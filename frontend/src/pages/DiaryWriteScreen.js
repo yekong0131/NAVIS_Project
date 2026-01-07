@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import TopBar from '../components/TopBar';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
@@ -21,7 +22,7 @@ const COLOR_STYLES = {
     '기타': { bg: '#95A5A6', text: '#FFFFFF', border: '#95A5A6' },
 };
 
-const DiaryWriteScreen = ({ onNavigate, initialDiary }) => {
+const DiaryWriteScreen = ({ onNavigate, initialDiary, user }) => {
   const [loading, setLoading] = useState(false);
   const [egiColors, setEgiColors] = useState([]); 
   const [isEgiModalOpen, setIsEgiModalOpen] = useState(false);
@@ -371,7 +372,9 @@ const DiaryWriteScreen = ({ onNavigate, initialDiary }) => {
   return (
     <div className="fixed inset-0 bg-slate-100 flex justify-center overflow-hidden font-sans z-50">
       <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col overflow-hidden shadow-2xl border-x border-gray-100">
-        
+        {/* [추가] 최상단 TopBar */}
+        <TopBar user={user} onNavigate={onNavigate} />
+
         <div className="px-5 pt-4 pb-4 bg-white sticky top-0 z-[9999] flex items-center justify-between border-b border-gray-100 shadow-sm">
             <button 
                 type="button"

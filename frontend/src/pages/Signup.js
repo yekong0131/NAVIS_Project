@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react"; // [수정] useEffect 추가
 import axios from "axios";
 import pandaLoginImg from "../assets/login_panda.png"; 
+import TopBar from '../components/TopBar';
 
-function Signup({ onNavigate }) {
+function Signup({ onNavigate, user }) {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -98,7 +99,9 @@ function Signup({ onNavigate }) {
   return (
     <div className="fixed inset-0 bg-slate-100 flex justify-center overflow-hidden font-sans">
       <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col shadow-2xl border-x border-gray-100">
-        
+        {/* [추가] 최상단 TopBar */}
+                <TopBar user={user} onNavigate={onNavigate} />
+
         {/* 상단 네비게이션 */}
         <div className="flex justify-between items-center px-5 py-4 shrink-0">
             <button onClick={() => onNavigate('login')} className="text-2xl text-gray-500 p-1 -ml-2">✕</button>

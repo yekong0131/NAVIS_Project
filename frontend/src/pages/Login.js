@@ -4,8 +4,9 @@ import pandaLoginImg from "../assets/login_panda.png";
 import kakaoImg from "../assets/kakao.jpg";
 import naverImg from "../assets/naver.jpg";
 import googleImg from "../assets/google.jpg";
+import TopBar from '../components/TopBar';
 
-function Login({ onLogin, onNavigate }) {
+function Login({ onLogin, onNavigate, user }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
@@ -45,7 +46,9 @@ function Login({ onLogin, onNavigate }) {
   return (
     <div className="fixed inset-0 bg-slate-100 flex justify-center overflow-hidden font-sans">
       <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col shadow-2xl border-x border-gray-100">
-        
+        {/* [추가] 최상단 TopBar */}
+        <TopBar user={user} onNavigate={onNavigate} />
+
         {/* 1. 상단 네비게이션 */}
         <div className="flex justify-between items-center px-5 py-4">
             <button 

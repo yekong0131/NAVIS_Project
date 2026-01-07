@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
 import pandaImg from "../assets/login_panda.png"; // 기존 이미지 재사용
+import TopBar from '../components/TopBar';
 
-function PasswordConfirmScreen({ onNavigate }) {
+function PasswordConfirmScreen({ onNavigate, user }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   
@@ -36,7 +37,9 @@ function PasswordConfirmScreen({ onNavigate }) {
   return (
     <div className="fixed inset-0 bg-slate-100 flex justify-center overflow-hidden font-sans">
       <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col shadow-2xl border-x border-gray-100">
-        
+        {/* [추가] 최상단 TopBar */}
+        <TopBar user={user} onNavigate={onNavigate} />
+
         {/* 상단 네비게이션 */}
         <div className="flex items-center px-5 py-4 relative">
             <button onClick={() => onNavigate('profile')} className="text-xl p-2 absolute left-4">✕</button>
