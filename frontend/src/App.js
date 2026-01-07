@@ -31,6 +31,7 @@ function App() {
   const [selectedEgi, setSelectedEgi] = useState(null);
   
   const [sourcePage, setSourcePage] = useState("home");
+  const [listOrigin, setListOrigin] = useState("home");
 
   const [initialEgiMode, setInitialEgiMode] = useState('camera');
 
@@ -75,6 +76,10 @@ function App() {
 
     if (data && data.fromPage) {
         setSourcePage(data.fromPage);
+        const mainEntryPages = ['home', 'profile', 'boat-search', 'diary'];
+        if (mainEntryPages.includes(data.fromPage)) {
+            setListOrigin(data.fromPage);
+        }
     }
 
     // 정상 이동 로직
@@ -176,7 +181,7 @@ function App() {
             <MyLikedBoatsScreen 
               user={user}
               onNavigate={handleNavigate}
-              fromPage={sourcePage} // [추가] 저장해둔 이전 페이지 정보를 전달
+              fromPage={listOrigin} // [추가] 저장해둔 이전 페이지 정보를 전달
             />
         )}
 
@@ -224,8 +229,7 @@ function App() {
           <EgiList 
             user={user}
             onNavigate={handleNavigate}
-            // 목록에서 뒤로가기 누르면 무조건 홈으로 (또는 필요시 로직 변경 가능)
-            onBack={() => setScreen("home")} 
+            onBack={() => setScreen(listOrigin)} 
           />
         )}
 
@@ -236,7 +240,7 @@ function App() {
                 onNavigate={handleNavigate}
                 savedState={egiState}      // 저장된 결과 전달
                 onSaveState={setEgiState}  // 결과 저장 함수 전달
-                fromPage={sourcePage}      // 돌아갈 페이지 (home, diary 등)
+                fromPage={listOrigin}      // 돌아갈 페이지 (home, diary 등)
                 initialMode={initialEgiMode}
             />
         )}
