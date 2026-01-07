@@ -79,7 +79,8 @@ def load_llm_model():
     """실제 모델을 메모리에 올리는 함수 (Base + Adapter)"""
     global llm_model, llm_tokenizer, search_engine
 
-    dev_print("⏳ [Lazy Load] AI 모델 로딩 시작... (GPU 가속 활성화)")
+    dev_print("⏳ [Lazy Load] AI 모델 로딩 시작...")
+
     load_rag_data()
 
     try:
@@ -89,7 +90,20 @@ def load_llm_model():
         dev_print(f"⚠️ [Search] Connection Failed: {e}")
         search_engine = None
 
+    if not torch.cuda.is_available():
+        # [SERVER Case] GPU가 없는 환경 (AWS t2.micro 등)
+        print("\n" + "=" * 40)
+        print("⚠️  [System] GPU 사용 불가 (CPU Mode).")
+        print("🛑  LLM 로딩 건너뜀")
+        print("✅  기본 응답 return")
+        print("=" * 40 + "\n")
+
+        # 모델을 None으로 유지 -> generate 함수가 알아서 기본 멘트를 반환함
+        llm_model = None
+        return
+
     try:
+        dev_print("⏳ [Lazy Load] AI 모델 로딩 시작... (GPU Mode)")
         # 1. 4-bit 양자화 설정 (메모리 절약)
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
