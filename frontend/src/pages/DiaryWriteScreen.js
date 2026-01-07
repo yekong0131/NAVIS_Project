@@ -373,7 +373,7 @@ const DiaryWriteScreen = ({ onNavigate, initialDiary, user }) => {
     <div className="fixed inset-0 bg-slate-100 flex justify-center overflow-hidden font-sans z-50">
       <div className="relative w-full max-w-[420px] h-full bg-white flex flex-col overflow-hidden shadow-2xl border-x border-gray-100">
         {/* [추가] 최상단 TopBar */}
-        <TopBar user={user} onNavigate={onNavigate} />
+        {/* <TopBar user={user} onNavigate={onNavigate} /> */}
 
         <div className="px-5 pt-4 pb-4 bg-white sticky top-0 z-[9999] flex items-center justify-between border-b border-gray-100 shadow-sm">
             <button 

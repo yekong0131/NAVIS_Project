@@ -138,7 +138,7 @@ def load_llm_model():
         try:
             base_model = AutoModelForCausalLM.from_pretrained(
                 BASE_MODEL_PATH,
-                torch_dtype=torch.float32,
+                dtype=torch.float32,
                 device_map="cpu",
                 low_cpu_mem_usage=True,
             )

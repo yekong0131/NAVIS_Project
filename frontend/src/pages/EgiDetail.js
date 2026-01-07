@@ -56,7 +56,7 @@ const EgiDetail = ({ egi, onBack, user, onNavigate }) => {
 
                 {/* 헤더 */}
                 <div className="h-[60px] flex items-center px-4 border-b border-gray-100 bg-white z-10">
-                    <button onClick={onBack} className="text-2xl mr-4 text-gray-700 font-bold p-1">←</button>
+                    <button onClick={onBack} className="text-2xl mr-4 text-gray-700 font-bold p-1">〈</button>
                     <h1 className="font-bold text-lg text-gray-800">상품 상세</h1>
                 </div>
 

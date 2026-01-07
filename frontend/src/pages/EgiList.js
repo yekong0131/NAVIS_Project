@@ -65,7 +65,7 @@ const EgiList = ({ onNavigate, onBack, user }) => {
                 <TopBar user={user} onNavigate={onNavigate} />
 
                 <div className="bg-white px-4 py-3 flex items-center border-b border-gray-100 z-10">
-                    <button onClick={onBack} className="text-2xl mr-4 text-gray-700 font-bold p-1">←</button>
+                    <button onClick={onBack} className="text-2xl mr-4 text-gray-700 font-bold p-1">〈</button>
                     <h1 className="font-bold text-lg text-gray-900">에기 도감</h1>
                 </div>
 

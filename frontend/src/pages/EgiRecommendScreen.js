@@ -194,9 +194,6 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
         return (
             <div className="fixed inset-0 bg-white flex justify-center items-center z-[110]">
                 <div className="flex flex-col items-center animate-pulse">
-                    {/* [추가] 최상단 TopBar */}
-                    <TopBar user={user} onNavigate={onNavigate} />
-
                     <div className="w-20 h-20 bg-gray-200 rounded-full mb-4"></div>
                     <h2 className="text-xl font-bold text-gray-800">물색을 분석 중입니다...</h2>
                     <p className="text-sm text-gray-500 mt-2">잠시만 기다려주세요 🌊</p>
@@ -222,9 +219,6 @@ const EgiRecommendScreen = ({ onNavigate, user, savedState, onSaveState, fromPag
         return (
             <div className="fixed inset-0 bg-white flex justify-center overflow-hidden font-sans z-[110]">
                 <div className="relative w-full max-w-[420px] h-full flex flex-col shadow-2xl text-black">
-                    {/* [추가] 최상단 TopBar */}
-                    <TopBar user={user} onNavigate={onNavigate} />
-
                     {/* 상단 헤더 */}
                     <div className="px-5 pt-3 border-b border-gray-50 sticky top-0 bg-white z-20">
                         <div className="flex justify-between items-center text-[13px] font-bold mb-4">
