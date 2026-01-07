@@ -58,6 +58,11 @@ def load_ai_models():
     """요청이 들어왔을 때 비로소 모델을 로딩함"""
     global egi_rec_model, water_cls_model, yolo_model, scaler, metadata_cols, EGI_CLASSES
 
+    dev_print("🔍 모델 파일 존재 여부:")
+    dev_print(f"EGI_REC_PATH exists: {os.path.exists(EGI_REC_PATH)}")
+    dev_print(f"WATER_CLS_PATH exists: {os.path.exists(WATER_CLS_PATH)}")
+    dev_print(f"YOLO_PATH exists: {os.path.exists(YOLO_PATH)}")
+
     # 이미 로딩되어 있다면 건너뜀
     if egi_rec_model is not None and yolo_model is not None:
         return
@@ -67,10 +72,13 @@ def load_ai_models():
     try:
         if os.path.exists(EGI_REC_PATH):
             egi_rec_model = load_model(EGI_REC_PATH)
+            dev_print("✅ egi_rec_model 로드 성공")
         if os.path.exists(WATER_CLS_PATH):
             water_cls_model = load_model(WATER_CLS_PATH)
+            dev_print("✅ water_cls_model 로드 성공")
         if os.path.exists(YOLO_PATH):
             yolo_model = YOLO(YOLO_PATH)
+            dev_print("✅ yolo_model 로드 성공")
 
         if os.path.exists(SCALER_PATH):
             scaler = joblib.load(SCALER_PATH)

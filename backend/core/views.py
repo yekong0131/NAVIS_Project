@@ -2,6 +2,7 @@
 
 from datetime import datetime, date
 import json
+import traceback
 
 # Django
 from django.contrib.auth import authenticate, get_user_model
@@ -739,113 +740,138 @@ class EgiRecommendView(APIView):
         responses={200: EgiRecommendResponseSerializer},
     )
     def post(self, request, *args, **kwargs):
-        # 1. 입력 검증
-        serializer = EgiRecommendSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            dev_print("\n" + "=" * 50)
+            dev_print("🔍 API 요청 받음")
+            dev_print(f"Method: {request.method}")
+            dev_print(f"Data keys: {request.data.keys()}")
+            dev_print(f"Files keys: {request.FILES.keys()}")
+            dev_print("=" * 50 + "\n")
 
-        image_file = serializer.validated_data.get("image")
-        lat = serializer.validated_data["lat"]
-        lon = serializer.validated_data["lon"]
-        target_fish = serializer.validated_data.get("target_fish") or "쭈갑"
+            # 1. 입력 검증
+            serializer = EgiRecommendSerializer(data=request.data)
+            if not serializer.is_valid():
+                dev_print(f"❌ Validation Error: {serializer.errors}")
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # -------------------------------------------------------------
-        # 2. 통합 서비스 호출
-        # -------------------------------------------------------------
-        ctx = get_recommendation_context(lat, lon, image_file, target_fish)
+            image_file = serializer.validated_data.get("image")
+            lat = serializer.validated_data["lat"]
+            lon = serializer.validated_data["lon"]
+            target_fish = serializer.validated_data.get("target_fish") or "쭈갑"
 
-        if ctx is None:
-            return Response(
-                {
-                    "status": "fail",
-                    "message": "사진에서 바다(물)를 찾을 수 없습니다.\n수면이 잘 보이도록 다시 촬영해주세요.",
-                },
-                status=status.HTTP_200_OK,
+            dev_print(f"✅ Validation passed")
+            dev_print(f"Image file: {serializer.validated_data.get('image')}")
+            dev_print(
+                f"Lat/Lon: {serializer.validated_data['lat']}, {serializer.validated_data['lon']}"
             )
 
-        marine_env = ctx["marine_data"]
-        ai_rec_color = ctx["recommended_color"]
-        water_color = ctx["water_color"]
+            # -------------------------------------------------------------
+            # 2. 통합 서비스 호출
+            # -------------------------------------------------------------
+            dev_print(">>> get_recommendation_context 호출 전")
+            ctx = get_recommendation_context(lat, lon, image_file, target_fish)
+            dev_print(f">>> get_recommendation_context 결과: {ctx is not None}")
 
-        reason_text = ctx.get("reason", "추천 근거를 생성할 수 없습니다.")
-
-        # 디버그 정보 업데이트
-        if "debug_info" in ctx:
-            ctx["debug_info"]["ai_reasoning_text"] = reason_text
-            ctx["debug_info"]["step4_sllm_prompt"] = ctx.get(
-                "sllm_prompt", "프롬프트 없음"
-            )
-
-        # YOLO 신뢰도 점수
-        base_score = int(ctx.get("confidence", 0.95) * 100)
-        final_score = min(base_score, 99.9)
-
-        # -------------------------------------------------------------
-        # 3. DB 매핑 및 조회
-        # -------------------------------------------------------------
-        COLOR_TRANSLATION = {
-            "blue": "파랑",
-            "brown": "갈색",
-            "green": "초록",
-            "orange": "주황",
-            "pink": "핑크",
-            "purple": "보라",
-            "rainbow": "무지개",
-            "red": "빨강",
-            "yellow": "노랑",
-        }
-
-        db_color_name = COLOR_TRANSLATION.get(ai_rec_color, "노랑")
-        matched_egis = Egi.objects.filter(color__color_name=db_color_name)[:3]
-
-        recommendations = []
-        if matched_egis.exists():
-            for egi in matched_egis:
-                egi_data = EgiSerializer(egi, context={"request": request}).data
-                egi_data.update(
+            if ctx is None:
+                dev_print("⚠️ Context가 None - 물 감지 실패")
+                return Response(
                     {
-                        "color_name": egi.color.color_name,
+                        "status": "fail",
+                        "message": "사진에서 바다(물)를 찾을 수 없습니다.\n수면이 잘 보이도록 다시 촬영해주세요.",
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            marine_env = ctx["marine_data"]
+            ai_rec_color = ctx["recommended_color"]
+            water_color = ctx["water_color"]
+
+            reason_text = ctx.get("reason", "추천 근거를 생성할 수 없습니다.")
+
+            # 디버그 정보 업데이트
+            if "debug_info" in ctx:
+                ctx["debug_info"]["ai_reasoning_text"] = reason_text
+                ctx["debug_info"]["step4_sllm_prompt"] = ctx.get(
+                    "sllm_prompt", "프롬프트 없음"
+                )
+
+            # YOLO 신뢰도 점수
+            base_score = int(ctx.get("confidence", 0.95) * 100)
+            final_score = min(base_score, 99.9)
+
+            # -------------------------------------------------------------
+            # 3. DB 매핑 및 조회
+            # -------------------------------------------------------------
+            COLOR_TRANSLATION = {
+                "blue": "파랑",
+                "brown": "갈색",
+                "green": "초록",
+                "orange": "주황",
+                "pink": "핑크",
+                "purple": "보라",
+                "rainbow": "무지개",
+                "red": "빨강",
+                "yellow": "노랑",
+            }
+
+            db_color_name = COLOR_TRANSLATION.get(ai_rec_color, "노랑")
+            matched_egis = Egi.objects.filter(color__color_name=db_color_name)[:3]
+
+            recommendations = []
+            if matched_egis.exists():
+                for egi in matched_egis:
+                    egi_data = EgiSerializer(egi, context={"request": request}).data
+                    egi_data.update(
+                        {
+                            "color_name": egi.color.color_name,
+                            "reason": reason_text,
+                            "score": final_score,
+                        }
+                    )
+                    recommendations.append(egi_data)
+            else:
+                recommendations.append(
+                    {
+                        "name": f"추천 색상: {db_color_name} (상품 준비중)",
+                        "color_name": db_color_name,
                         "reason": reason_text,
-                        "score": final_score,
+                        "score": 95.0,
+                        "image_url": None,
+                        "brand": "-",
+                        "egi_id": 0,
                     }
                 )
-                recommendations.append(egi_data)
-        else:
-            recommendations.append(
-                {
-                    "name": f"추천 색상: {db_color_name} (상품 준비중)",
-                    "color_name": db_color_name,
-                    "reason": reason_text,
-                    "score": 95.0,
-                    "image_url": None,
-                    "brand": "-",
-                    "egi_id": 0,
-                }
-            )
 
-        # -------------------------------------------------------------
-        # 4. 응답 반환
-        # -------------------------------------------------------------
-        response_data = {
-            "status": "success",
-            "data": {
-                "analysis_result": {"water_color": water_color, "confidence": 0.95},
-                "environment": {
-                    "water_temp": marine_env.get("water_temp"),
-                    "tide": marine_env.get("moon_phase"),
-                    "weather": marine_env.get("rain_type_text"),
-                    "wind_speed": marine_env.get("wind_speed"),
-                    "location_name": marine_env.get("location_name"),
+            # -------------------------------------------------------------
+            # 4. 응답 반환
+            # -------------------------------------------------------------
+            response_data = {
+                "status": "success",
+                "data": {
+                    "analysis_result": {"water_color": water_color, "confidence": 0.95},
+                    "environment": {
+                        "water_temp": marine_env.get("water_temp"),
+                        "tide": marine_env.get("moon_phase"),
+                        "weather": marine_env.get("rain_type_text"),
+                        "wind_speed": marine_env.get("wind_speed"),
+                        "location_name": marine_env.get("location_name"),
+                    },
+                    "recommendations": recommendations,
+                    "debug_info": (
+                        ctx.get("debug_info", {})
+                        if os.getenv("APP_ENV") == "development"
+                        else {}
+                    ),
                 },
-                "recommendations": recommendations,
-                "debug_info": (
-                    ctx.get("debug_info", {})
-                    if os.getenv("APP_ENV") == "development"
-                    else {}
-                ),
-            },
-        }
-        return Response(response_data, status=status.HTTP_200_OK)
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            dev_print(f"\n❌ 예상치 못한 에러:")
+            dev_print(traceback.format_exc())
+            return Response(
+                {"status": "error", "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 # ========================
