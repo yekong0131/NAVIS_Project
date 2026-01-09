@@ -21,7 +21,6 @@
 ## 🐲 팀원 소개
 <table style="width:100%; text-align:center; table-layout:fixed; border-collapse:collapse;">
   <colgroup>
-    <!-- 전체 5열이므로 20%씩 -->
     <col style="width:20%;">
     <col style="width:20%;">
     <col style="width:20%;">
@@ -32,8 +31,8 @@
     <tr>
       <th>권혜린</th>
       <th>박시은</th>
-      <th>윤예빈</th>
       <th>오원석</th>
+      <th>윤예빈</th>
       <th>조승아</th>
     </tr>
   </thead>
@@ -41,35 +40,60 @@
     <tr>
       <td><img src="./images/hyerin.png" style="width:150px; height:auto;" alt="혜린"></td>
       <td><img src="./images/sieun.png" style="width:150px; height:auto;" alt="시은"></td>
-      <td><img src="./images/yekong.png" style="width:150px; height:auto;" alt="예빈"></td>
       <td><img src="./images/wonseok.png" style="width:150px; height:auto;" alt="원석"></td>
+      <td><img src="./images/yekong.png" style="width:150px; height:auto;" alt="예빈"></td>
       <td><img src="./images/seungah.png" style="width:150px; height:auto;" alt="승아"></td>
     </tr>
     <tr>
-      <td>PM<br>ㅇㅇ</td>
-      <td>똥<br>ㅇㅇ</td>
-      <td>ㅇㅇ<br>ㅇㅇ</td>
-      <td>ㅇㅇ<br>ㅇㅇ</td>
-      <td>ㅇㅇ<br>ㅇㅇ</td>
+      <td>
+          PM·AI·Data <br><br>
+          CNN 모델 학습 <br>
+          sLLM 파인튜닝<br>
+          데이터 수집 및 전처리
+      </td>
+      <td>
+        AI·Data<br><br>
+        Elasticsesarch <br>
+        sLLM 파인튜닝 <br>
+        데이터 수집 및 전처리
+      </td>
+      <td>
+        AI·Data<br><br>
+        LLM <br>
+        Computer Vision <br>
+        데이터 수집 및 전처리 
+      </td>
+      <td>
+        BE·FE·AI<br><br>
+        AI/LLM 인프라 <br>
+        CNN 모델 학습 <br>
+        데이터 수집 및 전처리
+      </td>
+      <td>
+        AI·Data·FE<br><br>
+        LLM/Elasticsearch <br>
+        Computer Vision <br>
+        데이터 수집 및 전처리
+      </td>
     </tr>
     <tr>
-      <td><a href="" target="_blank">
+      <td><a href="https://github.com/anjuondol2" target="_blank">
           <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
         </a>
       </td>
-      <td><a href="" target="_blank">
+      <td><a href="https://github.com/parkyunjin5-debug" target="_blank">
           <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
         </a>
       </td>
-      <td><a href="" target="_blank">
+      <td><a href="https://github.com/WonSeok840" target="_blank">
           <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
         </a>
       </td>
-      <td><a href="" target="_blank">
+      <td><a href="https://github.com/yekong0131" target="_blank">
           <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
         </a>
       </td>
-      <td><a href="" target="_blank">
+      <td><a href="https://github.com/sdunge" target="_blank">
           <img src="https://img.shields.io/badge/GitHub-Link-black?style=flat&logo=github&logoColor=white" />
         </a>
       </td>
@@ -89,8 +113,6 @@
   <img src="https://img.shields.io/badge/Amazon%20EC2-FF9900?style=for-the-badge&logo=Amazon%20EC2&logoColor=white">
   <img src="https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white">
   <img src="https://img.shields.io/badge/gunicorn-%298729.svg?style=for-the-badge&logo=gunicorn&logoColor=white">
-
-  - Swagger (drf-spectacular) : API 문서화 도구
 </div>
 
 #### 📱 Client (Web)
@@ -99,6 +121,10 @@
   <img src="https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB">
   <img src="https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E">
   <img src="https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white">
+  <br>
+  <img src="https://img.shields.io/badge/Geolocation_API-E34F26?style=for-the-badge&logo=html5&logoColor=white">
+  <img src="https://img.shields.io/badge/Media_Capture_API-E34F26?style=for-the-badge&logo=html5&logoColor=white">
+  <img src="https://img.shields.io/badge/MediaStream_API-E34F26?style=for-the-badge&logo=html5&logoColor=white">
 </div>
 
 - Geolocation API: 위치 기반 기상 정보
@@ -133,10 +159,16 @@
   <div>
     <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white">
     <img src="https://img.shields.io/badge/chatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white">
+    <img src="https://img.shields.io/badge/OpenAI_Whisper-412991?style=for-the-badge&logo=openai&logoColor=white">
     <img src="https://img.shields.io/badge/huggingface-%23FFD21E.svg?style=for-the-badge&logo=huggingface&logoColor=white">
+    <br>
+    <img src="https://img.shields.io/badge/Kiwi-81C147?style=for-the-badge&logoColor=white">
+    <img src="https://img.shields.io/badge/KoNLPy(Okt)-0052CC?style=for-the-badge&logoColor=white">
   </div>
   
-  - OpenAI Whisper: STT (Speech-to-Text) 낚시 기록 음성 인식
+  - OpenAI Whisper: STT (Speech-to-Text) 낚시 일지 기록 음성 인식
+  - OpenAI ChatGPT (gpt-4o-mini): 낚시 일지 음성 인식 형식 변환
+  - Kiwi & Okt: Elasticsearch 한국어 형태소 분석 및 검색어 토큰화(Tokenization) 최적화
   - Sparse Retriever (BM25) : 도메인 특화 용어(낚시 용어) 검색 정확도 최적화 알고리즘
 
 - **Data Engineering**
@@ -151,6 +183,8 @@
 
 <img src="https://img.shields.io/badge/Visual%20Studio%20Code-0078d7.svg?style=for-the-badge&logo=visual-studio-code&logoColor=white">
 <img src="https://img.shields.io/badge/-Swagger-%23Clojure?style=for-the-badge&logo=swagger&logoColor=white">
+
+- Swagger (drf-spectacular) : API 문서화 도구
 
 #### 🤝 Collaboration Tools
 
@@ -207,8 +241,41 @@
 
 ## 💼 문서
 
-- 
-- 
+<details markdown="1">
+  <summary>최종 보고서</summary>
+  <div>
+     <a href="">navis_최종_보고서.pdf</a>
+  </div>
+</details> 
+
+<details markdown="1">
+  <summary>모델 정의서</summary>
+  <div>
+    <a href="">navis_모델_정의서.pdf</a>
+  </div>
+</details>
+
+<details markdown="1">
+  <summary>성능 평가서</summary>
+  <div>
+    <a href="">navis_성능_평가서.pdf</a>
+  </div>
+</details>
+
+<details markdown="1">
+  <summary>WBS</summary>
+  <div>
+    <a href="">navis_WBS.pdf</a>
+  </div>
+</details>
+
+<details markdown="1">
+  <summary>발표 PPT</summary>
+  <div>
+    <a href="">navis_발표_PPT.pdf</a>
+  </div>
+</details>
+
 
 ---
 
@@ -218,6 +285,10 @@
     │
     ├── 📁 backend/                 # Django 백엔드 서버
     │   ├── 📁 core/                # 메인 Django 앱 (User, Fishing, Ocean 등)
+    │   │   ├── 📁 ai_models/       # ai 모델 
+    │   │   │   ├── 🐍 best_egi_rec.h5   # 에기 추천 CNN       
+    │   │   │   ├── 🐍 cnn_water_cls.h5  # 물 색 분석 CNN
+    │   │   │   └── 🐍 yolo_water_detect # YOLO
     │   │   ├── 📁 management/      # 커스텀 커맨드 관리
     │   │   ├── 📁 migrations/      # DB 마이그레이션 파일
     │   │   ├── 📁 utils/           # 유틸리티 (데이터 수집 로직 등)
@@ -225,9 +296,16 @@
     │   │   ├── 🐍 serializers.py   # 데이터 직렬화 (JSON 변환)
     │   │   ├── 🐍 urls.py          # API URL 라우팅
     │   │   └── 🐍 views.py         # API 비즈니스 로직
+    │   ├── 📁 data/                # Django 프로젝트
+    │   │   └── 📄 processed_clean_data.json # 오타 정리 json
     │   ├── 📁 navis_server/        # Django 프로젝트 설정 (settings.py 등)
+    │   ├── 💿 backup.sql           # MySQL 백업
+    │   ├── 🐍 get_lora_model.py    # hugging face model 다운로드
     │   └── 🐍 manage.py            # Django 실행 및 관리 파일
     │
+    ├── 📁 deplay/                  # 서버용 설정 문서
+    │   ├── ⚙️ gunicorn.service     # gunicorn 설정 문서
+    │   └── ⚙️ nginx.conf           # nginx 설정 문서  
     ├── 📁 docs/                    # 프로젝트 문서 관리 폴더
     │
     ├── 📁 frontend/                # React (Expo) 프론트엔드
