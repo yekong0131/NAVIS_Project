@@ -115,6 +115,8 @@
   <img src="https://img.shields.io/badge/gunicorn-%298729.svg?style=for-the-badge&logo=gunicorn&logoColor=white">
 </div>
 
+<br>
+
 ### 📱 Client (Web)
 
 <div>
@@ -133,6 +135,7 @@
 
 - MediaStream Recording API: 음성 녹음 및 데이터 처리 (낚시 일지 음성 기록)
 
+<br>
 
 ### 💾 Database & Storage
 
@@ -142,6 +145,7 @@
   <img src="https://img.shields.io/badge/Amazon%20S3-FF9900?style=for-the-badge&logo=amazons3&logoColor=white">
 </div>
 
+<br>
 
 ### 🧠 AI & Data Engineering
 #### Computer Vision
@@ -153,6 +157,7 @@
     <img src="https://img.shields.io/badge/opencv-%23white.svg?style=for-the-badge&logo=opencv&logoColor=white">
   </div>
 
+<br>
 
 #### NLP & LLM & RAG
 
@@ -171,6 +176,8 @@
   - Kiwi & Okt: Elasticsearch 한국어 형태소 분석 및 검색어 토큰화(Tokenization) 최적화
   - Sparse Retriever (BM25) : 도메인 특화 용어(낚시 용어) 검색 정확도 최적화 알고리즘
 
+<br>
+
 #### Data Engineering
 
   <div>
@@ -179,12 +186,16 @@
     <img src="https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white">
   </div>
 
+<br>
+
 ### 💻 Tools
 
 <img src="https://img.shields.io/badge/Visual%20Studio%20Code-0078d7.svg?style=for-the-badge&logo=visual-studio-code&logoColor=white">
 <img src="https://img.shields.io/badge/-Swagger-%23Clojure?style=for-the-badge&logo=swagger&logoColor=white">
 
 - Swagger (drf-spectacular) : API 문서화 도구
+
+<br>
 
 ### 🤝 Collaboration Tools
 
@@ -196,6 +207,8 @@
   <img src="https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white">
   <img src="https://img.shields.io/badge/Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white">
 </div>
+
+<br>
 
 ### 📚 Data Collection & Processing
 #### Public Open API 연동
@@ -220,6 +233,8 @@
 [조석-1]: https://www.khoa.go.kr/oceangrid/khoa/takepart/openapi/openApiTideInfo.do
 [음양력-1]: https://www.data.go.kr/data/15012679/openapi.do
 
+<br>
+
 ---
 
 ## 📝 핵심 기능 (MVP)
@@ -238,6 +253,8 @@
     - 직관적인 카드 뉴스 형태의 '오늘의 물때/날씨' 브리핑
 
 ---
+
+<br>
 
 ## 💼 문서
 
@@ -276,6 +293,7 @@
   </div>
 </details>
 
+<br>
 
 ---
 
@@ -303,7 +321,7 @@
     │   ├── 🐍 get_lora_model.py    # hugging face model 다운로드
     │   └── 🐍 manage.py            # Django 실행 및 관리 파일
     │
-    ├── 📁 deplay/                  # 서버용 설정 문서
+    ├── 📁 deploy/                  # 서버용 설정 문서
     │   ├── ⚙️ gunicorn.service     # gunicorn 설정 문서
     │   └── ⚙️ nginx.conf           # nginx 설정 문서  
     ├── 📁 docs/                    # 프로젝트 문서 관리 폴더
@@ -333,12 +351,15 @@
     ├── 📝 README.md                # 프로젝트 통합 설명서
     └── 📄 requirements.txt         # 가상환경 Python 패키지 의존성 목록
 ```
+<br>
 
 
 ### 📜 API 문서
 - Swagger UI: `/api/schema/swagger-ui/`
 - OpenAPI JSON: `docs/openapi-schema.json`
 - ReDoc HTML: `docs/openapi-schema.html`
+
+<br>
 
 ---
 
@@ -348,6 +369,8 @@
 - `pip install -r requirements.txt`
 - `$env:PYTHONIOENCODING="utf-8"`
 - `npm start`
+
+<br>
 
 ---
 
