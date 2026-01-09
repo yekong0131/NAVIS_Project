@@ -19,7 +19,7 @@
 
 ---
 ## 🐲 팀원 소개
-<table style="width:100%; text-align:center; table-layout:fixed; border-collapse:collapse;">
+<table style="width:100%; text-align:center; table-layout:fixed; border-collapse:collapse;" markdown="1">
   <colgroup>
     <col style="width:20%;">
     <col style="width:20%;">
@@ -46,31 +46,31 @@
     </tr>
     <tr>
       <td>
-          PM·AI·Data <br><br>
-          CNN 모델 학습 <br>
-          sLLM 파인튜닝<br>
-          데이터 수집 및 전처리
+        <strong>PM·AI·Data</strong> <br><br>
+        CNN 모델 학습 <br>
+        sLLM 파인튜닝<br>
+        데이터 수집 및 전처리
       </td>
       <td>
-        AI·Data<br><br>
+        <strong>AI·Data</strong><br><br>
         Elasticsesarch <br>
         sLLM 파인튜닝 <br>
         데이터 수집 및 전처리
       </td>
       <td>
-        AI·Data<br><br>
+        <strong>AI·Data</strong><br><br>
         LLM <br>
         Computer Vision <br>
         데이터 수집 및 전처리 
       </td>
       <td>
-        BE·FE·AI<br><br>
+        <strong>BE·FE·AI</strong><br><br>
         AI/LLM 인프라 <br>
         CNN 모델 학습 <br>
         데이터 수집 및 전처리
       </td>
       <td>
-        AI·Data·FE<br><br>
+        <strong>AI·Data·FE</strong><br><br>
         LLM/Elasticsearch <br>
         Computer Vision <br>
         데이터 수집 및 전처리
@@ -103,8 +103,8 @@
 <br>
 
 ---
-### 🛠️ 기술 스택
-#### ☁️ Server & DevOps 
+## 🛠️ 기술 스택
+### ☁️ Server & DevOps 
 
 <div>
   <img src="https://img.shields.io/badge/python-3776AB?style=for-the-badge&logo=python&logoColor=white">
@@ -115,7 +115,7 @@
   <img src="https://img.shields.io/badge/gunicorn-%298729.svg?style=for-the-badge&logo=gunicorn&logoColor=white">
 </div>
 
-#### 📱 Client (Web)
+### 📱 Client (Web)
 
 <div>
   <img src="https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB">
@@ -134,7 +134,7 @@
 - MediaStream Recording API: 음성 녹음 및 데이터 처리 (낚시 일지 음성 기록)
 
 
-#### 💾 Database & Storage
+### 💾 Database & Storage
 
 <div>
   <img src="https://img.shields.io/badge/mysql-4479A1?style=for-the-badge&logo=mysql&logoColor=white">
@@ -143,8 +143,8 @@
 </div>
 
 
-#### 🧠 AI & Data Engineering
-- **Computer Vision**
+### 🧠 AI & Data Engineering
+#### Computer Vision
 
   <div>
     <img src="https://img.shields.io/badge/YOLO-111F68?style=for-the-badge&logo=yolo&logoColor=white">
@@ -154,7 +154,7 @@
   </div>
 
 
-- **NLP & LLM & RAG**
+#### NLP & LLM & RAG
 
   <div>
     <img src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white">
@@ -171,7 +171,7 @@
   - Kiwi & Okt: Elasticsearch 한국어 형태소 분석 및 검색어 토큰화(Tokenization) 최적화
   - Sparse Retriever (BM25) : 도메인 특화 용어(낚시 용어) 검색 정확도 최적화 알고리즘
 
-- **Data Engineering**
+#### Data Engineering
 
   <div>
     <img src="https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white">
@@ -179,14 +179,14 @@
     <img src="https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white">
   </div>
 
-#### 💻 Tools
+### 💻 Tools
 
 <img src="https://img.shields.io/badge/Visual%20Studio%20Code-0078d7.svg?style=for-the-badge&logo=visual-studio-code&logoColor=white">
 <img src="https://img.shields.io/badge/-Swagger-%23Clojure?style=for-the-badge&logo=swagger&logoColor=white">
 
 - Swagger (drf-spectacular) : API 문서화 도구
 
-#### 🤝 Collaboration Tools
+### 🤝 Collaboration Tools
 
 <div>
   <img src="https://img.shields.io/badge/Notion-%23000000.svg?style=for-the-badge&logo=notion&logoColor=white">
@@ -197,8 +197,8 @@
   <img src="https://img.shields.io/badge/Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white">
 </div>
 
-#### 📚 Data Collection & Processing
-- **Public Open API 연동**
+### 📚 Data Collection & Processing
+#### Public Open API 연동
   - 해양수산부 바다낚시지수 OpenAPI [[해양수산부-1]]
     - 수온, 파고, 유속, 바다낚시지수/점수 수집
   
@@ -222,7 +222,7 @@
 
 ---
 
-### 📝 핵심 기능 (MVP)
+## 📝 핵심 기능 (MVP)
 - **[메인] AI 에기 추천**
     - 사진 촬영 → 이미지에서 바다 디텍팅 및 크롭 (YOLO) ⇒ 크롭된 이미지
     
@@ -281,7 +281,7 @@
 
 ### 🎄 폴더 구조도 (Tree Structure)
 ```
-        NAVIS_PROJECT/
+    NAVIS_PROJECT/
     │
     ├── 📁 backend/                 # Django 백엔드 서버
     │   ├── 📁 core/                # 메인 Django 앱 (User, Fishing, Ocean 등)
@@ -340,7 +340,9 @@
 - OpenAPI JSON: `docs/openapi-schema.json`
 - ReDoc HTML: `docs/openapi-schema.html`
 
-### 🖨️ 가상환경 세팅 및 실행
+---
+
+## 🖨️ 가상환경 세팅 및 실행
 - `conda create --name navisenv python=3.9 --no-default-packages`
 - `conda activate navisenv`
 - `pip install -r requirements.txt`
@@ -348,7 +350,8 @@
 - `npm start`
 
 ---
-### ⚖️ Git Commit Convention
+
+## ⚖️ Git Commit Convention
 
 - \[Tag\]: 설명
 
