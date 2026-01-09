@@ -3,7 +3,6 @@
 import os
 from .integrated_data_collector import collect_all_marine_data
 from .ai_inference import predict_best_egi
-
 from .sllm_service import generate_recommendation_reason
 
 
@@ -26,7 +25,7 @@ def get_recommendation_context(lat, lon, image_file, target_fish="쭈갑"):
         if rec_color is None:
             return None
 
-        # 3. LLM 근거 생성 (프롬프트도 함께 받기)
+        # 3. LLM 근거 생성
         reason, sllm_prompt = generate_recommendation_reason(
             water_color, rec_color, marine_data
         )
@@ -38,7 +37,7 @@ def get_recommendation_context(lat, lon, image_file, target_fish="쭈갑"):
             "marine_data": marine_data,
             "debug_info": debug_info,
             "reason": reason,
-            "sllm_prompt": sllm_prompt,  # 프롬프트 전달
+            "sllm_prompt": sllm_prompt,
         }
     except Exception as e:
         dev_print(f"❌ get_recommendation_context 에러: {e}")

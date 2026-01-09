@@ -9,6 +9,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import PeftModel
 from django.conf import settings
 
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 
 def dev_print(*args, **kwargs):
     if os.getenv("APP_ENV") == "development":
@@ -132,46 +134,46 @@ def load_llm_model():
     # CASE B: GPU가 없는 경우 (AWS t3.medium)
     # ---------------------------------------------------------
     else:
-        # print("⚠️ [System] No GPU detected. Attempting CPU Load...")
-        # print("⏳ t3.medium 메모리 한계 테스트 중... (시간이 조금 걸립니다)")
+        print("⚠️ [System] No GPU detected. Attempting CPU Load...")
+        print("⏳ t3.medium 메모리 한계 테스트 중... (시간이 조금 걸립니다)")
 
-        # try:
-        #     base_model = AutoModelForCausalLM.from_pretrained(
-        #         BASE_MODEL_PATH,
-        #         dtype=torch.float32,
-        #         device_map="cpu",
-        #         low_cpu_mem_usage=True,
-        #     )
+        try:
+            base_model = AutoModelForCausalLM.from_pretrained(
+                BASE_MODEL_PATH,
+                dtype=torch.float32,
+                device_map="cpu",
+                low_cpu_mem_usage=True,
+            )
 
-        #     llm_tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_PATH)
+            llm_tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_PATH)
 
-        #     dev_print(f"🔗 Adapter 장착 중 (CPU): {ADAPTER_PATH}")
-        #     llm_model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
-        #     llm_model.eval()
+            dev_print(f"🔗 Adapter 장착 중 (CPU): {ADAPTER_PATH}")
+            llm_model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
+            llm_model.eval()
 
-        #     dev_print("✅ [LLM] CPU Mode Loaded! (속도는 느릴 수 있습니다)")
+            dev_print("✅ [LLM] CPU Mode Loaded! (속도는 느릴 수 있습니다)")
 
-        # except (RuntimeError, MemoryError) as e:
-        #     dev_print("\n" + "=" * 50)
-        #     dev_print(f"❌ [Memory Error] 서버 용량 부족으로 LLM 로딩 실패.")
-        #     dev_print(f"💬 Error Detail: {e}")
-        #     dev_print("✅ '기본 멘트(Rule-based)' 모드로 자동 전환합니다.")
-        #     dev_print("=" * 50 + "\n")
-        #     llm_model = None
+        except (RuntimeError, MemoryError) as e:
+            dev_print("\n" + "=" * 50)
+            dev_print(f"❌ [Memory Error] 서버 용량 부족으로 LLM 로딩 실패.")
+            dev_print(f"💬 Error Detail: {e}")
+            dev_print("✅ '기본 멘트(Rule-based)' 모드로 자동 전환합니다.")
+            dev_print("=" * 50 + "\n")
+            llm_model = None
 
-        # except Exception as e:
-        #     print(f"❌ [Unknown Error] CPU 로딩 중 오류 발생: {e}")
-        #     llm_model = None
+        except Exception as e:
+            print(f"❌ [Unknown Error] CPU 로딩 중 오류 발생: {e}")
+            llm_model = None
 
-        print("\n" + "=" * 40)
-        print("⚠️  [System] Server Mode (No GPU).")
-        print("🛑  Skipping LLM Load for Performance.")
-        print("✅  'Rule-based Fallback' 모드로 동작합니다.")
-        print("=" * 40 + "\n")
+        # print("\n" + "=" * 40)
+        # print("⚠️  [System] Server Mode (No GPU).")
+        # print("🛑  Skipping LLM Load for Performance.")
+        # print("✅  'Rule-based Fallback' 모드로 동작합니다.")
+        # print("=" * 40 + "\n")
 
-        # 모델을 None으로 두면, 나중에 generate 함수가 알아서 기본 멘트를 만듭니다.
-        llm_model = None
-        return
+        # # 모델을 None으로 두면, 나중에 generate 함수가 알아서 기본 멘트를 만듭니다.
+        # llm_model = None
+        # return
 
 
 # ==========================================

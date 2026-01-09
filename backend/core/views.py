@@ -201,17 +201,16 @@ class DiaryListCreateView(generics.ListCreateAPIView):
             data[key] = value
 
         # 2. 'images' 필드 전처리 (빈 값 필터링 및 리스트 처리)
-        # MultiPartParser를 쓰면 request.data는 QueryDict이므로 getlist를 써야 다중 이미지를 가져옵니다.
         if "images" in request.data:
             raw_images = request.data.getlist("images")
             cleaned_images = []
 
             for img in raw_images:
-                # Case A: 문자열인 경우 (Swagger나 Postman이 빈 값을 ""로 보낼 때) -> 무시
+                # Case A: 문자열인 경우
                 if isinstance(img, str):
                     continue
 
-                # Case B: 파일 객체지만 용량이 0인 경우 -> 무시
+                # Case B: 파일 객체지만 용량이 0인 경우
                 if hasattr(img, "size") and img.size == 0:
                     continue
 

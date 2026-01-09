@@ -1,6 +1,10 @@
 # backend/core/utils/ai_inference.py
 
 import os
+
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+# os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
 import cv2
 import numpy as np
 import base64
@@ -14,16 +18,6 @@ import tensorflow as tf
 from ultralytics import YOLO
 from tensorflow.keras.applications.resnet50 import preprocess_input
 
-# ==========================================
-# 1. GPU 설정 및 경로
-# ==========================================
-gpus = tf.config.experimental.list_physical_devices("GPU")
-if gpus:
-    try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except RuntimeError as e:
-        print(f"⚠️ TF Memory Growth Error: {e}")
 
 MODEL_DIR = os.path.join(settings.BASE_DIR, "core", "ai_models")
 EGI_REC_PATH = os.path.join(MODEL_DIR, "best_egi_rec.h5")
@@ -221,7 +215,7 @@ def predict_best_egi(image_file, marine_data):
 
         env_vector = preprocess_env_data(marine_data)
 
-        recommended_color = "purple"
+        recommended_color = ""
         try:
             egi_pred = egi_rec_model.predict([img_array_egi, env_vector], verbose=0)
             best_idx = np.argmax(egi_pred[0])
@@ -230,7 +224,7 @@ def predict_best_egi(image_file, marine_data):
         except Exception as e:
             dev_print(f"Egi Model Error: {e}")
 
-        water_color_result = "medium"
+        water_color_result = ""
         if water_cls_model:
             try:
                 water_pred = water_cls_model.predict(img_array_water, verbose=0)
