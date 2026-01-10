@@ -1,0 +1,44 @@
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+.DS_Store
+.env
+secrets.json
+.idea/
+.vscode/
+*.csv
+ports_data.xlsx
+
+.expo
+dist/
+web_build/
+
+egi_data/images/*
+
+backend/__pycache__/
+backend/core/__pycache__/
+backend/scripts
+backend/core/ai_models/saved_adapter
+
+/node_modules
+/frontend/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
