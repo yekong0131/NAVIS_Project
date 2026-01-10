@@ -263,7 +263,7 @@
 <details markdown="1">
   <summary>최종 보고서</summary>
   <div>
-     <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_최종 보고서.pdf">NAVIS_최종 보고서.pdf</a>
+     <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_최종보고서.pdf">NAVIS_최종 보고서.pdf</a>
   </div>
 </details> 
 
@@ -277,21 +277,32 @@
 <details markdown="1">
   <summary>성능 평가 결과서</summary>
   <div>
-    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_성능 평가서.pdf">NAVIS_성능 평가 결과서.pdf</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_성능 평가 결과서.pdf">NAVIS_성능 평가 결과서.pdf</a>
   </div>
 </details>
 
 <details markdown="1">
   <summary>WBS</summary>
   <div>
-    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_WBS.pdf">NAVIS_WBS.pdf</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_WBS.xlsx">NAVIS_WBS.xlsx</a>
   </div>
 </details>
 
 <details markdown="1">
   <summary>발표 PPT</summary>
   <div>
-    <a href="">NAVIS_발표 PPT.pdf</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_발표 PPT.pdf">NAVIS_발표 PPT.pdf</a>
+  </div>
+  <div>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_발표 PPT.pptx">NAVIS_발표 PPT.pptx</a>
+  </div>
+</details>
+
+
+<details markdown="1">
+  <summary>시연 영상</summary>
+  <div>
+    <a href="https://youtu.be/kckdCCwGmyo">시연 영상</a>
   </div>
 </details>
 
