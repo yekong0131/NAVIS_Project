@@ -17,6 +17,8 @@
 ### 📅 기간
 2025년 11월 - 2026년 1월 (약 7주)
 
+<br>
+
 ---
 ## 🐲 팀원 소개
 <table style="width:100%; text-align:center; table-layout:fixed; border-collapse:collapse;" markdown="1">
@@ -252,44 +254,44 @@
     - 크롤링 기반 선박 예약 현황 조회 (빈자리 확인)
     - 직관적인 카드 뉴스 형태의 '오늘의 물때/날씨' 브리핑
 
----
-
 <br>
+
+---
 
 ## 💼 문서
 
 <details markdown="1">
   <summary>최종 보고서</summary>
   <div>
-     <a href="">navis_최종_보고서.pdf</a>
+     <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_최종 보고서.pdf">NAVIS_최종 보고서.pdf</a>
   </div>
 </details> 
 
 <details markdown="1">
   <summary>모델 정의서</summary>
   <div>
-    <a href="">navis_모델_정의서.pdf</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_모델 정의서.pdf">NAVIS_모델 정의서.pdf</a>
   </div>
 </details>
 
 <details markdown="1">
-  <summary>성능 평가서</summary>
+  <summary>성능 평가 결과서</summary>
   <div>
-    <a href="">navis_성능_평가서.pdf</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_성능 평가서.pdf">NAVIS_성능 평가 결과서.pdf</a>
   </div>
 </details>
 
 <details markdown="1">
   <summary>WBS</summary>
   <div>
-    <a href="">navis_WBS.pdf</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_WBS.pdf">NAVIS_WBS.pdf</a>
   </div>
 </details>
 
 <details markdown="1">
   <summary>발표 PPT</summary>
   <div>
-    <a href="">navis_발표_PPT.pdf</a>
+    <a href="">NAVIS_발표 PPT.pdf</a>
   </div>
 </details>
 
