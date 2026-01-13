@@ -21,8 +21,6 @@ backend/core/__pycache__/
 backend/scripts
 backend/core/ai_models/saved_adapter
 
-backend\init_buoys.py
-
 /node_modules
 /frontend/node_modules
 /.pnp

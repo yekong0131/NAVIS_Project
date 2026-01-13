@@ -268,6 +268,13 @@
 </details> 
 
 <details markdown="1">
+  <summary>요구사항 정의서</summary>
+  <div>
+     <a href="https://github.com/whynotsw-camp/wh08-3rd-NAVIS/blob/main/docs/NAVIS_요구사항 정의서.pdf">NAVIS_요구사항 정의서.pdf</a>
+  </div>
+</details> 
+
+<details markdown="1">
   <summary>최종 보고서</summary>
   <div>
      <a href="https://github.com/whynotsw-camp/wh08-3rd-NAVIS/blob/main/docs/NAVIS_%EC%B5%9C%EC%A2%85%EB%B3%B4%EA%B3%A0%EC%84%9C.pdf">NAVIS_최종 보고서.pdf</a>
