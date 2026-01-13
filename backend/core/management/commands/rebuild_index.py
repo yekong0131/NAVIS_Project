@@ -6,7 +6,7 @@ import re
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from core.utils.search_engine import SearchEngine
-from kiwipiepy import Kiwi  # pip install kiwipiepy 필요
+from kiwipiepy import Kiwi 
 
 
 class Command(BaseCommand):
