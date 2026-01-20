@@ -263,52 +263,52 @@
 <details markdown="1">
   <summary>프로젝트 기획서</summary>
   <div>
-     <a href="https://github.com/whynotsw-camp/wh08-3rd-NAVIS/blob/main/docs/NAVIS_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20%EA%B8%B0%ED%9A%8D%EC%84%9C.pdf">NAVIS_프로젝트 기획서.pdf</a>
+     <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20%EA%B8%B0%ED%9A%8D%EC%84%9C.pdf">NAVIS_프로젝트 기획서.pdf</a>
   </div>
 </details> 
 
 <details markdown="1">
   <summary>요구사항 정의서</summary>
   <div>
-     <a href="https://github.com/whynotsw-camp/wh08-3rd-NAVIS/blob/main/docs/NAVIS_요구사항 정의서.pdf">NAVIS_요구사항 정의서.pdf</a>
+     <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_요구사항 정의서.pdf">NAVIS_요구사항 정의서.pdf</a>
   </div>
 </details> 
 
 <details markdown="1">
   <summary>최종 보고서</summary>
   <div>
-     <a href="https://github.com/whynotsw-camp/wh08-3rd-NAVIS/blob/main/docs/NAVIS_%EC%B5%9C%EC%A2%85%EB%B3%B4%EA%B3%A0%EC%84%9C.pdf">NAVIS_최종 보고서.pdf</a>
+     <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_%EC%B5%9C%EC%A2%85%EB%B3%B4%EA%B3%A0%EC%84%9C.pdf">NAVIS_최종 보고서.pdf</a>
   </div>
 </details> 
 
 <details markdown="1">
   <summary>모델 정의서</summary>
   <div>
-    <a href="https://github.com/whynotsw-camp/wh08-3rd-NAVIS/blob/main/docs/NAVIS_%EB%AA%A8%EB%8D%B8%20%EC%A0%95%EC%9D%98%EC%84%9C.pdf">NAVIS_모델 정의서.pdf</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_%EB%AA%A8%EB%8D%B8%20%EC%A0%95%EC%9D%98%EC%84%9C.pdf">NAVIS_모델 정의서.pdf</a>
   </div>
 </details>
 
 <details markdown="1">
   <summary>성능 평가 결과서</summary>
   <div>
-    <a href="https://github.com/whynotsw-camp/wh08-3rd-NAVIS/blob/main/docs/NAVIS_%EC%84%B1%EB%8A%A5%20%ED%8F%89%EA%B0%80%20%EA%B2%B0%EA%B3%BC%EC%84%9C.pdf">NAVIS_성능 평가 결과서.pdf</a>
+    <a href="hhttps://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_%EC%84%B1%EB%8A%A5%20%ED%8F%89%EA%B0%80%20%EA%B2%B0%EA%B3%BC%EC%84%9C.pdf">NAVIS_성능 평가 결과서.pdf</a>
   </div>
 </details>
 
 <details markdown="1">
   <summary>WBS</summary>
   <div>
-    <a href="https://github.com/whynotsw-camp/wh08-3rd-NAVIS/blob/main/docs/NAVIS_WBS.xlsx">NAVIS_WBS.xlsx</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_WBS.xlsx">NAVIS_WBS.xlsx</a>
   </div>
 </details>
 
 <details markdown="1">
   <summary>발표 PPT</summary>
   <div>
-    <a href="https://github.com/whynotsw-camp/wh08-3rd-NAVIS/blob/main/docs/NAVIS_%EB%B0%9C%ED%91%9C%20PPT.pdf">NAVIS_발표 PPT.pdf</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_%EB%B0%9C%ED%91%9C%20PPT.pdf">NAVIS_발표 PPT.pdf</a>
   </div>
   <div>
-    <a href="https://github.com/whynotsw-camp/wh08-3rd-NAVIS/blob/main/docs/NAVIS_%EB%B0%9C%ED%91%9C%20PPT.pptx">NAVIS_발표 PPT.pptx</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_%EB%B0%9C%ED%91%9C%20PPT.pptx">NAVIS_발표 PPT.pptx</a>
   </div>
 </details>
 
