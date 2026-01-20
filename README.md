@@ -291,7 +291,7 @@
 <details markdown="1">
   <summary>성능 평가 결과서</summary>
   <div>
-    <a href="hhttps://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_%EC%84%B1%EB%8A%A5%20%ED%8F%89%EA%B0%80%20%EA%B2%B0%EA%B3%BC%EC%84%9C.pdf">NAVIS_성능 평가 결과서.pdf</a>
+    <a href="https://github.com/yekong0131/NAVIS_Project/blob/main/docs/NAVIS_%EC%84%B1%EB%8A%A5%20%ED%8F%89%EA%B0%80%20%EA%B2%B0%EA%B3%BC%EC%84%9C.pdf">NAVIS_성능 평가 결과서.pdf</a>
   </div>
 </details>
 
